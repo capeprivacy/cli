@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 
@@ -34,6 +36,12 @@ func encrypt(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
+	secretBuf := make([]byte, 32)
+	_, err = io.ReadFull(rand.Reader, secretBuf)
+	if err != nil {
+		panic(err)
+	}
+
 	if len(args) != 1 {
 		panic("expected one path to data to encrypt")
 	}
@@ -44,18 +52,45 @@ func encrypt(cmd *cobra.Command, args []string) {
 		panic(fmt.Sprintf("unable to read file %s", err))
 	}
 
-	req, err := http.NewRequest("POST", u+"/v1/attest", nil)
+	doc, err := runAttest(u)
 	if err != nil {
-		panic(fmt.Sprintf("unable to create request %s", err))
+		panic(fmt.Sprintf("unable to read file %s", err))
+	}
+
+	dataBy = append(secretBuf, dataBy...)
+	encryptedData, err := runLocalEncrypt(*doc, dataBy)
+	if err != nil {
+		panic(fmt.Sprintf("unable to encrypt data %s", err))
+	}
+
+	remoteEncryptedData, err := runEnclaveEncrypt(u, encryptedData)
+	if err != nil {
+		panic(fmt.Sprintf("unable to remote encrypt data %s", err))
+	}
+
+	outputFilename := fmt.Sprintf("%s.cape", filename)
+	err = ioutil.WriteFile(outputFilename, remoteEncryptedData, 0644)
+	if err != nil {
+		panic(fmt.Sprintf("unable to encrypt %s", err))
+	}
+
+	fmt.Printf("Successfully encrypted and attested. File written to %s. Your secret is %s\n",
+		outputFilename, base64.StdEncoding.EncodeToString(secretBuf))
+}
+
+func runAttest(URL string) (*attest.AttestationDoc, error) {
+	req, err := http.NewRequest("POST", URL+"/v1/attest", nil)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create request %s", err)
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		panic(fmt.Sprintf("request failed %s", err))
+		return nil, fmt.Errorf("request failed %s", err)
 	}
 
 	if res.StatusCode != http.StatusOK {
-		panic(fmt.Sprintf("bad status code %d", res.StatusCode))
+		return nil, fmt.Errorf("bad status code %d", res.StatusCode)
 	}
 
 	resData := AttestResponse{}
@@ -63,38 +98,69 @@ func encrypt(cmd *cobra.Command, args []string) {
 	dec := json.NewDecoder(res.Body)
 	err = dec.Decode(&resData)
 	if err != nil {
-		panic(fmt.Sprintf("unable to decode response %s", err))
+		return nil, fmt.Errorf("unable to decode response %s", err)
 	}
 
 	doc, err := attest.Attest(resData.AttestationDoc)
 	if err != nil {
-		panic(fmt.Sprintf("attestation failed %s", err))
+		return nil, fmt.Errorf("attestation failed %s", err)
 	}
 
+	return doc, nil
+}
+
+func runLocalEncrypt(doc attest.AttestationDoc, inputData []byte) ([]byte, error) {
 	b64, err := base64.StdEncoding.DecodeString(doc.PublicKey)
 	if err != nil {
-		panic(fmt.Sprintf("base64 decode failed %s", err))
+		return nil, fmt.Errorf("base64 decode failed %s", err)
 	}
 
 	pub, err := x509.ParsePKIXPublicKey(b64)
 	if err != nil {
-		panic(fmt.Sprintf("parse x509 failed %s", err))
+		return nil, fmt.Errorf("parse x509 failed %s", err)
 	}
 
 	encryptedData := new(bytes.Buffer)
 	rsaPub := pub.(*rsa.PublicKey)
 	encryptor := encryptor.NewRSAOAEPEncryptor(rsaPub, "cape")
 
-	err = encryptor.Encrypt(bytes.NewBuffer(dataBy), encryptedData)
+	err = encryptor.Encrypt(bytes.NewBuffer(inputData), encryptedData)
 	if err != nil {
-		panic(fmt.Sprintf("unable to encrypt %s", err))
+		return nil, fmt.Errorf("unable to encrypt %s", err)
 	}
 
-	outputFilename := fmt.Sprintf("%s.cape", filename)
-	err = ioutil.WriteFile(outputFilename, encryptedData.Bytes(), 0644)
+	return encryptedData.Bytes(), nil
+}
+
+func runEnclaveEncrypt(URL string, localEncryptedData []byte) ([]byte, error) {
+	b64 := base64.StdEncoding.EncodeToString(localEncryptedData)
+
+	reqData := EncryptReq{Data: b64}
+	jsonBy, err := json.Marshal(reqData)
 	if err != nil {
-		panic(fmt.Sprintf("unable to encrypt %s", err))
+		return nil, fmt.Errorf("unable to json encode %s", err)
 	}
 
-	fmt.Printf("Successfully encrypted and attested. File written to %s\n", outputFilename)
+	req, err := http.NewRequest("POST", URL+"/v1/encrypt", bytes.NewBuffer(jsonBy))
+	if err != nil {
+		return nil, fmt.Errorf("unable to create request %s", err)
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed %s", err)
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("bad status code %d", res.StatusCode)
+	}
+
+	resData := &EncryptRes{}
+	dec := json.NewDecoder(res.Body)
+	err = dec.Decode(resData)
+	if err != nil {
+		return nil, fmt.Errorf("unable to decode res %s", err)
+	}
+
+	return base64.StdEncoding.DecodeString(resData.EncryptedData)
 }

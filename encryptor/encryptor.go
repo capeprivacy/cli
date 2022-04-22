@@ -11,8 +11,8 @@ import (
 type RSAOAEPEncryptor struct {
 	PublicKey     *rsa.PublicKey
 	MaxEncryptLen int
-	hash          hash.Hash
-	label         []byte
+	Hash          hash.Hash
+	Label         []byte
 }
 
 func NewRSAOAEPEncryptor(publicKey *rsa.PublicKey, labelStr string) RSAOAEPEncryptor {
@@ -22,15 +22,15 @@ func NewRSAOAEPEncryptor(publicKey *rsa.PublicKey, labelStr string) RSAOAEPEncry
 	return RSAOAEPEncryptor{
 		PublicKey:     publicKey,
 		MaxEncryptLen: max,
-		hash:          hash,
-		label:         label,
+		Hash:          hash,
+		Label:         label,
 	}
 }
 
 func (r RSAOAEPEncryptor) Encrypt(read io.Reader, write io.Writer) error {
 	buf := make([]byte, r.MaxEncryptLen)
 	for {
-		_, err := read.Read(buf)
+		n, err := read.Read(buf)
 		if err != nil {
 			if err == io.EOF {
 				return nil
@@ -39,7 +39,32 @@ func (r RSAOAEPEncryptor) Encrypt(read io.Reader, write io.Writer) error {
 			return err
 		}
 
-		by, err := rsa.EncryptOAEP(r.hash, rand.Reader, r.PublicKey, buf, r.label)
+		by, err := rsa.EncryptOAEP(r.Hash, rand.Reader, r.PublicKey, buf[:n], r.Label)
+		if err != nil {
+			return err
+		}
+
+		_, err = write.Write(by)
+		if err != nil {
+			return err
+		}
+	}
+}
+
+// Decrypt method used mostly for testing only
+func (r RSAOAEPEncryptor) Decrypt(privateKey *rsa.PrivateKey, read io.Reader, write io.Writer) error {
+	buf := make([]byte, 256)
+	for {
+		n, err := read.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+
+			return err
+		}
+
+		by, err := rsa.DecryptOAEP(r.Hash, rand.Reader, privateKey, buf[:n], r.Label)
 		if err != nil {
 			return err
 		}
