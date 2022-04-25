@@ -52,18 +52,18 @@ func encrypt(cmd *cobra.Command, args []string) {
 		panic(fmt.Sprintf("unable to read file %s", err))
 	}
 
-	doc, err := runAttest(u)
+	doc, err := doAttest(u)
 	if err != nil {
 		panic(fmt.Sprintf("unable to read file %s", err))
 	}
 
 	dataBy = append(secretBuf, dataBy...)
-	encryptedData, err := runLocalEncrypt(*doc, dataBy)
+	encryptedData, err := doLocalEncrypt(*doc, dataBy)
 	if err != nil {
 		panic(fmt.Sprintf("unable to encrypt data %s", err))
 	}
 
-	remoteEncryptedData, err := runEnclaveEncrypt(u, encryptedData)
+	remoteEncryptedData, err := doEnclaveEncrypt(u, encryptedData)
 	if err != nil {
 		panic(fmt.Sprintf("unable to remote encrypt data %s", err))
 	}
@@ -78,7 +78,7 @@ func encrypt(cmd *cobra.Command, args []string) {
 		outputFilename, base64.StdEncoding.EncodeToString(secretBuf))
 }
 
-func runAttest(URL string) (*attest.AttestationDoc, error) {
+func doAttest(URL string) (*attest.AttestationDoc, error) {
 	req, err := http.NewRequest("POST", URL+"/v1/attest", nil)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create request %s", err)
@@ -109,7 +109,7 @@ func runAttest(URL string) (*attest.AttestationDoc, error) {
 	return doc, nil
 }
 
-func runLocalEncrypt(doc attest.AttestationDoc, inputData []byte) ([]byte, error) {
+func doLocalEncrypt(doc attest.AttestationDoc, inputData []byte) ([]byte, error) {
 	b64, err := base64.StdEncoding.DecodeString(doc.PublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("base64 decode failed %s", err)
@@ -132,7 +132,7 @@ func runLocalEncrypt(doc attest.AttestationDoc, inputData []byte) ([]byte, error
 	return encryptedData.Bytes(), nil
 }
 
-func runEnclaveEncrypt(URL string, localEncryptedData []byte) ([]byte, error) {
+func doEnclaveEncrypt(URL string, localEncryptedData []byte) ([]byte, error) {
 	b64 := base64.StdEncoding.EncodeToString(localEncryptedData)
 
 	reqData := EncryptReq{Data: b64}
