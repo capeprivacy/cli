@@ -127,7 +127,7 @@ func doRun(URL string, functionData []byte, functionSecret []byte, serverSideEnc
 	runReq := &RunReq{
 		EncryptedFunctionData: functionDataStr,
 		EncryptedInputData:    inputDataStr,
-		serverSideEncrypted:   serverSideEncrypted,
+		ServerSideEncrypted:   serverSideEncrypted,
 	}
 
 	body, err := json.Marshal(runReq)

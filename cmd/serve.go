@@ -46,7 +46,7 @@ type EncryptRes struct {
 type RunReq struct {
 	EncryptedFunctionData string `json:"function_data"`
 	EncryptedInputData    string `json:"input_data"`
-	serverSideEncrypted   bool   `json:"server_side_encrypted"`
+	ServerSideEncrypted   bool   `json:"server_side_encrypted"`
 }
 
 type RunRes struct {
@@ -300,7 +300,7 @@ func (h handler) runHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.serverSideEncrypted {
+	if req.ServerSideEncrypted {
 		functionSecret, decryptedFunction := functionOut[:32], functionOut[32:]
 		_, err = h.aesDecrypt(functionSecret, decryptedFunction)
 		if err != nil {
