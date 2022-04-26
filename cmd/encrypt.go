@@ -11,11 +11,57 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/encryptor"
 	"github.com/spf13/cobra"
 )
+
+type EncryptedData struct {
+	Data   []byte
+	Secret []byte
+}
+
+func (e EncryptedData) MarshalJSON() ([]byte, error) {
+	d := struct {
+		Data   string `json:"data"`
+		Secret string `json:"secret"`
+	}{
+		Data:   base64.StdEncoding.EncodeToString(e.Data),
+		Secret: base64.StdEncoding.EncodeToString(e.Secret),
+	}
+
+	return json.Marshal(d)
+}
+
+func (e *EncryptedData) UnmarshalJSON(by []byte) error {
+	d := struct {
+		Data   string `json:"data"`
+		Secret string `json:"secret"`
+	}{}
+
+	err := json.Unmarshal(by, &d)
+	if err != nil {
+		return err
+	}
+
+	data, err := base64.StdEncoding.DecodeString(d.Data)
+	if err != nil {
+		return err
+	}
+
+	e.Data = data
+
+	secret, err := base64.StdEncoding.DecodeString(d.Secret)
+	if err != nil {
+		return err
+	}
+
+	e.Secret = secret
+
+	return nil
+}
 
 // encryptCmd represents the request command
 var encryptCmd = &cobra.Command{
@@ -68,10 +114,22 @@ func encrypt(cmd *cobra.Command, args []string) {
 		panic(fmt.Sprintf("unable to remote encrypt data %s", err))
 	}
 
+	out := EncryptedData{
+		Data:   remoteEncryptedData,
+		Secret: secretBuf,
+	}
+
 	outputFilename := fmt.Sprintf("%s.cape", filename)
-	err = ioutil.WriteFile(outputFilename, remoteEncryptedData, 0644)
+	f, err := os.Create(outputFilename)
 	if err != nil {
-		panic(fmt.Sprintf("unable to encrypt %s", err))
+		panic(fmt.Sprintf("unable to create output file %s", err))
+	}
+	defer f.Close()
+
+	enc := json.NewEncoder(f)
+	err = enc.Encode(out)
+	if err != nil {
+		panic(fmt.Sprintf("unable to encode output %s", err))
 	}
 
 	fmt.Printf("Successfully encrypted and attested. File written to %s. Your secret is %s\n",

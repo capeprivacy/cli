@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/capeprivacy/cli/attest"
 	"github.com/spf13/cobra"
 )
 
@@ -30,14 +31,12 @@ func run(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	if len(args) != 4 {
+	if len(args) != 2 {
 		panic("expected four args, path to file containing the function, secret for that data, path to file containing input data and secret for that data")
 	}
 
 	functionFile := args[0]
-	functionSecret := args[1]
-	dataFile := args[2]
-	dataSecret := args[3]
+	dataFile := args[1]
 
 	functionData, err := ioutil.ReadFile(functionFile)
 	if err != nil {
@@ -49,48 +48,86 @@ func run(cmd *cobra.Command, args []string) {
 		panic(fmt.Sprintf("unable to read file %s", err))
 	}
 
-	functionSecretBy, err := base64.StdEncoding.DecodeString(functionSecret)
-	if err != nil {
-		panic(fmt.Sprintf("unable to decode base64 %s", err))
-	}
-
-	inputSecretBy, err := base64.StdEncoding.DecodeString(dataSecret)
-	if err != nil {
-		panic(fmt.Sprintf("unable to decode base64 %s", err))
-	}
-
 	doc, err := doAttest(u)
 	if err != nil {
 		panic(fmt.Sprintf("unable to read file %s", err))
 	}
 
-	functionData = append(functionSecretBy, functionData...)
-	encryptedFunctionData, err := doLocalEncrypt(*doc, functionData)
-	if err != nil {
-		panic(fmt.Sprintf("unable to encrypt data %s", err))
+	encryptedData := EncryptedData{}
+	err = json.Unmarshal(functionData, &encryptedData)
+	if err == nil {
+		results, err := handleDataEncrypted(u, *doc, functionData, inputData)
+		if err != nil {
+			panic(fmt.Sprintf("unable to handle encrypted data %s", err))
+		}
+
+		fmt.Printf("Successfully ran function. Your results are '%s'\n", results)
+		return
 	}
 
-	inputData = append(inputSecretBy, inputData...)
-	encryptedInputData, err := doLocalEncrypt(*doc, inputData)
+	results, err := handleDataNotEncrypted(u, *doc, functionData, inputData)
 	if err != nil {
-		panic(fmt.Sprintf("unable to encrypt data %s", err))
-	}
-
-	results, err := doRun(u, encryptedFunctionData, encryptedInputData)
-	if err != nil {
-		panic(fmt.Sprintf("unable to run function %s", err))
+		panic(fmt.Sprintf("unable to handle not already encrypted data %s", err))
 	}
 
 	fmt.Printf("Successfully ran function. Your results are '%s'\n", results)
 }
 
-func doRun(URL string, functionData []byte, functionSecret []byte) (string, error) {
+func handleDataEncrypted(URL string, doc attest.AttestationDoc, functionData []byte, inputData []byte) (string, error) {
+	encryptedFunc := EncryptedData{}
+	err := json.Unmarshal(functionData, &encryptedFunc)
+	if err != nil {
+		return "", err
+	}
+
+	encryptedInput := EncryptedData{}
+	err = json.Unmarshal(inputData, &encryptedInput)
+	if err != nil {
+		return "", err
+	}
+
+	functionData = append(encryptedFunc.Secret, encryptedFunc.Data...)
+	encryptedFunctionData, err := doLocalEncrypt(doc, functionData)
+	if err != nil {
+		panic(fmt.Sprintf("unable to encrypt data %s", err))
+	}
+
+	inputData = append(encryptedInput.Secret, encryptedInput.Data...)
+	encryptedInputData, err := doLocalEncrypt(doc, inputData)
+	if err != nil {
+		panic(fmt.Sprintf("unable to encrypt data %s", err))
+	}
+
+	results, err := doRun(URL, encryptedFunctionData, encryptedInputData, true)
+	if err != nil {
+		panic(fmt.Sprintf("unable to run function %s", err))
+	}
+
+	return results, nil
+}
+
+func handleDataNotEncrypted(URL string, doc attest.AttestationDoc, functionData []byte, inputData []byte) (string, error) {
+	encryptedFunction, err := doLocalEncrypt(doc, functionData)
+	if err != nil {
+		panic(fmt.Sprintf("unable to encrypt data %s", err))
+	}
+
+	encryptedInputData, err := doLocalEncrypt(doc, inputData)
+	if err != nil {
+		panic(fmt.Sprintf("unable to encrypt data %s", err))
+	}
+
+	return doRun(URL, encryptedFunction, encryptedInputData, false)
+}
+
+func doRun(URL string, functionData []byte, functionSecret []byte, serverSideEncrypted bool) (string, error) {
 	functionDataStr := base64.StdEncoding.EncodeToString(functionData)
 	inputDataStr := base64.StdEncoding.EncodeToString(functionSecret)
 
 	runReq := &RunReq{
 		EncryptedFunctionData: functionDataStr,
 		EncryptedInputData:    inputDataStr,
+		serverSideEncrypted:   serverSideEncrypted,
 	}
 
 	body, err := json.Marshal(runReq)

@@ -4,6 +4,18 @@ Cape CLI
 
 ## Overview
 
+### One-shot Function
+
+```
+$ ls
+input_data func.py
+
+$ cape run func.py input_data
+Successfully ran function. Your results are '<RESULTS GO HERE>'
+```
+
+### Function Reuse
+
 ```
 $ ls
 input_data func.py
@@ -20,7 +32,7 @@ Successfully encrypted and attested. File written to input_data.cape. Your secre
 $ ls
 input_data func.py func.py.cape input_data.cape
 
-$ cape run func.py.cape pczcC+ti12N7iAhFduyHEaiil3kJV0DGHCsCC37T+5U= input_data.cape KH+VNX9WUJtuzkSMB2EW38zYJtNLty5nwsANkXW2Amw=
+$ cape run func.py.cape input_data.cape
 Successfully ran function. Your results are '<RESULTS GO HERE>'
 ```
 

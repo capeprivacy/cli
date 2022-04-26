@@ -46,6 +46,7 @@ type EncryptRes struct {
 type RunReq struct {
 	EncryptedFunctionData string `json:"function_data"`
 	EncryptedInputData    string `json:"input_data"`
+	serverSideEncrypted   bool   `json:"server_side_encrypted"`
 }
 
 type RunRes struct {
@@ -291,8 +292,6 @@ func (h handler) runHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	functionSecret, decryptedFunction := functionOut[:32], functionOut[32:]
-
 	inputOut, err := h.rsaDecrypt(decryptor, req.EncryptedInputData)
 	if err != nil {
 		fmt.Printf("rsa decrypt err %s\n", err)
@@ -301,22 +300,24 @@ func (h handler) runHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	inputSecret, decryptedInput := inputOut[:32], inputOut[32:]
+	if req.serverSideEncrypted {
+		functionSecret, decryptedFunction := functionOut[:32], functionOut[32:]
+		_, err = h.aesDecrypt(functionSecret, decryptedFunction)
+		if err != nil {
+			fmt.Printf("aes decrypt function err %s\n", err)
 
-	_, err = h.aesDecrypt(functionSecret, decryptedFunction)
-	if err != nil {
-		fmt.Printf("aes decrypt function err %s\n", err)
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
 
-		rw.WriteHeader(http.StatusBadRequest)
-		return
-	}
+		inputSecret, decryptedInput := inputOut[:32], inputOut[32:]
+		_, err = h.aesDecrypt(inputSecret, decryptedInput)
+		if err != nil {
+			fmt.Printf("aes decrypt input err %s\n", err)
 
-	_, err = h.aesDecrypt(inputSecret, decryptedInput)
-	if err != nil {
-		fmt.Printf("aes decrypt input err %s\n", err)
-
-		rw.WriteHeader(http.StatusBadRequest)
-		return
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
 	}
 
 	// do run here
