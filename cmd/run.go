@@ -7,10 +7,37 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/capeprivacy/cli/attest"
+	"github.com/capeprivacy/go-kit/id"
 	"github.com/spf13/cobra"
 )
+
+type BeginResponse struct {
+	ID                  id.ID     `json:"id"`
+	AttestationDocument string    `json:"attestation_document"`
+	CreatedAt           time.Time `json:"created_at"`
+}
+
+type RunRequest struct {
+	Function string `json:"function"`
+	Input    string `json:"input"`
+}
+
+type RunResponse struct {
+	AttestationDocument string `json:"attestation_document"`
+	Results             string `json:"results"`
+}
+
+type ErrorResponse struct {
+	Message string `json:"message"`
+}
+
+type enclave struct {
+	id          id.ID
+	attestation attest.AttestationDoc
+}
 
 // runCmd represents the request command
 var runCmd = &cobra.Command{
@@ -48,7 +75,7 @@ func run(cmd *cobra.Command, args []string) {
 		panic(fmt.Sprintf("unable to read file %s", err))
 	}
 
-	doc, err := doAttest(u)
+	enclave, err := doBegin(u)
 	if err != nil {
 		panic(fmt.Sprintf("unable to read file %s", err))
 	}
@@ -56,7 +83,7 @@ func run(cmd *cobra.Command, args []string) {
 	encryptedData := EncryptedData{}
 	err = json.Unmarshal(functionData, &encryptedData)
 	if err == nil {
-		results, err := handleDataEncrypted(u, *doc, functionData, inputData)
+		results, err := handleDataEncrypted(u, enclave, functionData, inputData)
 		if err != nil {
 			panic(fmt.Sprintf("unable to handle encrypted data %s", err))
 		}
@@ -65,7 +92,7 @@ func run(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	results, err := handleDataNotEncrypted(u, *doc, functionData, inputData)
+	results, err := handleDataNotEncrypted(u, enclave, functionData, inputData)
 	if err != nil {
 		panic(fmt.Sprintf("unable to handle not already encrypted data %s", err))
 	}
@@ -73,7 +100,7 @@ func run(cmd *cobra.Command, args []string) {
 	fmt.Printf("Successfully ran function. Your results are '%s'\n", results)
 }
 
-func handleDataEncrypted(URL string, doc attest.AttestationDoc, functionData []byte, inputData []byte) (string, error) {
+func handleDataEncrypted(URL string, enclave *enclave, functionData []byte, inputData []byte) (string, error) {
 	encryptedFunc := EncryptedData{}
 	err := json.Unmarshal(functionData, &encryptedFunc)
 	if err != nil {
@@ -87,18 +114,18 @@ func handleDataEncrypted(URL string, doc attest.AttestationDoc, functionData []b
 	}
 
 	functionData = append(encryptedFunc.Secret, encryptedFunc.Data...)
-	encryptedFunctionData, err := doLocalEncrypt(doc, functionData)
+	encryptedFunctionData, err := doLocalEncrypt(enclave.attestation, functionData)
 	if err != nil {
 		panic(fmt.Sprintf("unable to encrypt data %s", err))
 	}
 
 	inputData = append(encryptedInput.Secret, encryptedInput.Data...)
-	encryptedInputData, err := doLocalEncrypt(doc, inputData)
+	encryptedInputData, err := doLocalEncrypt(enclave.attestation, inputData)
 	if err != nil {
 		panic(fmt.Sprintf("unable to encrypt data %s", err))
 	}
 
-	results, err := doRun(URL, encryptedFunctionData, encryptedInputData, true)
+	results, err := doRun(URL, enclave.id, encryptedFunctionData, encryptedInputData, true)
 	if err != nil {
 		panic(fmt.Sprintf("unable to run function %s", err))
 	}
@@ -106,28 +133,58 @@ func handleDataEncrypted(URL string, doc attest.AttestationDoc, functionData []b
 	return results, nil
 }
 
-func handleDataNotEncrypted(URL string, doc attest.AttestationDoc, functionData []byte, inputData []byte) (string, error) {
-	encryptedFunction, err := doLocalEncrypt(doc, functionData)
+func handleDataNotEncrypted(URL string, enclave *enclave, functionData []byte, inputData []byte) (string, error) {
+	encryptedFunction, err := doLocalEncrypt(enclave.attestation, functionData)
 	if err != nil {
 		panic(fmt.Sprintf("unable to encrypt data %s", err))
 	}
 
-	encryptedInputData, err := doLocalEncrypt(doc, inputData)
+	encryptedInputData, err := doLocalEncrypt(enclave.attestation, inputData)
 	if err != nil {
 		panic(fmt.Sprintf("unable to encrypt data %s", err))
 	}
 
-	return doRun(URL, encryptedFunction, encryptedInputData, false)
+	return doRun(URL, enclave.id, encryptedFunction, encryptedInputData, false)
 }
 
-func doRun(URL string, functionData []byte, functionSecret []byte, serverSideEncrypted bool) (string, error) {
+func doBegin(URL string) (*enclave, error) {
+	req, err := http.NewRequest("POST", URL+"/v1/begin", nil)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create request %s", err)
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed %s", err)
+	}
+
+	if res.StatusCode != http.StatusAccepted {
+		return nil, fmt.Errorf("bad status code %d", res.StatusCode)
+	}
+
+	resData := BeginResponse{}
+
+	dec := json.NewDecoder(res.Body)
+	err = dec.Decode(&resData)
+	if err != nil {
+		return nil, fmt.Errorf("unable to decode response %s", err)
+	}
+
+	doc, err := attest.Attest(resData.AttestationDocument)
+	if err != nil {
+		return nil, fmt.Errorf("attestation failed %s", err)
+	}
+
+	return &enclave{id: resData.ID, attestation: *doc}, nil
+}
+
+func doRun(URL string, id id.ID, functionData []byte, functionSecret []byte, serverSideEncrypted bool) (string, error) {
 	functionDataStr := base64.StdEncoding.EncodeToString(functionData)
 	inputDataStr := base64.StdEncoding.EncodeToString(functionSecret)
 
-	runReq := &RunReq{
-		EncryptedFunctionData: functionDataStr,
-		EncryptedInputData:    inputDataStr,
-		ServerSideEncrypted:   serverSideEncrypted,
+	runReq := &RunRequest{
+		Function: functionDataStr,
+		Input:    inputDataStr,
 	}
 
 	body, err := json.Marshal(runReq)
@@ -135,7 +192,8 @@ func doRun(URL string, functionData []byte, functionSecret []byte, serverSideEnc
 		return "", err
 	}
 
-	req, err := http.NewRequest("POST", URL+"/v1/run", bytes.NewBuffer(body))
+	endpoint := fmt.Sprintf("%s/v1/run/%s", URL, id)
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(body))
 	if err != nil {
 		return "", err
 	}
@@ -149,7 +207,7 @@ func doRun(URL string, functionData []byte, functionSecret []byte, serverSideEnc
 		return "", fmt.Errorf("bad status code %d", res.StatusCode)
 	}
 
-	resData := &RunRes{}
+	resData := &RunResponse{}
 	dec := json.NewDecoder(res.Body)
 	err = dec.Decode(resData)
 	if err != nil {
