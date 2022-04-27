@@ -17,6 +17,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type EncryptReq struct {
+	Data string `json:"data"`
+}
+
+type EncryptRes struct {
+	EncryptedData string `json:"encrypted_data"`
+}
+
 type EncryptedData struct {
 	Data   []byte
 	Secret []byte
@@ -97,13 +105,13 @@ func encrypt(cmd *cobra.Command, args []string) {
 		panic(fmt.Sprintf("unable to read file %s", err))
 	}
 
-	doc, err := doAttest(u)
+	enclave, err := doBegin(u)
 	if err != nil {
 		panic(fmt.Sprintf("unable to read file %s", err))
 	}
 
 	dataBy = append(secretBuf, dataBy...)
-	encryptedData, err := doLocalEncrypt(*doc, dataBy)
+	encryptedData, err := doLocalEncrypt(enclave.attestation, dataBy)
 	if err != nil {
 		panic(fmt.Sprintf("unable to encrypt data %s", err))
 	}
@@ -135,44 +143,8 @@ func encrypt(cmd *cobra.Command, args []string) {
 		outputFilename, base64.StdEncoding.EncodeToString(secretBuf))
 }
 
-func doAttest(URL string) (*attest.AttestationDoc, error) {
-	req, err := http.NewRequest("POST", URL+"/v1/attest", nil)
-	if err != nil {
-		return nil, fmt.Errorf("unable to create request %s", err)
-	}
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request failed %s", err)
-	}
-
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("bad status code %d", res.StatusCode)
-	}
-
-	resData := AttestResponse{}
-
-	dec := json.NewDecoder(res.Body)
-	err = dec.Decode(&resData)
-	if err != nil {
-		return nil, fmt.Errorf("unable to decode response %s", err)
-	}
-
-	doc, err := attest.Attest(resData.AttestationDoc)
-	if err != nil {
-		return nil, fmt.Errorf("attestation failed %s", err)
-	}
-
-	return doc, nil
-}
-
 func doLocalEncrypt(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) {
-	b64, err := base64.StdEncoding.DecodeString(doc.PublicKey)
-	if err != nil {
-		return nil, fmt.Errorf("base64 decode failed %s", err)
-	}
-
-	buf := bytes.NewBuffer(b64)
+	buf := bytes.NewBuffer(doc.PublicKey)
 	reader := keyset.NewBinaryReader(buf)
 	khPub, err := keyset.ReadWithNoSecrets(reader)
 	if err != nil {
