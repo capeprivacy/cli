@@ -5,20 +5,19 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha1"
-	"crypto/sha256"
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	"golang.org/x/crypto/pbkdf2"
 
 	"github.com/capeprivacy/cli/attest"
-	"github.com/capeprivacy/cli/encryptor"
+	"github.com/google/tink/go/hybrid"
+	"github.com/google/tink/go/keyset"
 	"github.com/spf13/cobra"
 )
 
@@ -58,7 +57,7 @@ type AttestResponse struct {
 }
 
 type handler struct {
-	privateKey   *rsa.PrivateKey
+	privateKey   *keyset.Handle
 	symmetricKey []byte
 	salt         []byte
 }
@@ -69,24 +68,24 @@ func serve(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	khPriv, err := keyset.NewHandle(hybrid.ECIESHKDFAES128CTRHMACSHA256KeyTemplate())
 	if err != nil {
-		panic(fmt.Sprintf("gen key %s\n", err))
+		log.Fatal(err)
 	}
 
 	symmetricKey := make([]byte, 32)
 	if _, err = io.ReadFull(rand.Reader, symmetricKey); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	// salt should really change every time but this is for testing so no big deal
 	salt := make([]byte, 8)
 	if _, err = io.ReadFull(rand.Reader, salt); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	h := handler{
-		privateKey:   key,
+		privateKey:   khPriv,
 		symmetricKey: symmetricKey,
 		salt:         salt,
 	}
@@ -100,20 +99,30 @@ func serve(cmd *cobra.Command, args []string) {
 	fmt.Printf("listening on %s\n", port)
 	err = http.ListenAndServe(port, mux)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }
 
 func (h handler) attestHandler(rw http.ResponseWriter, r *http.Request) {
-	by, err := x509.MarshalPKIXPublicKey(&h.privateKey.PublicKey)
+	khPublic, err := h.privateKey.Public()
 	if err != nil {
-		fmt.Printf("x509 marshal pub %s\n", err)
+		fmt.Printf("json marshal doc %s\n", err)
 
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	doc := attest.AttestationDoc{PublicKey: base64.StdEncoding.EncodeToString(by)}
+	buf := &bytes.Buffer{}
+	w := keyset.NewBinaryWriter(buf)
+	err = khPublic.WriteWithNoSecrets(w)
+	if err != nil {
+		fmt.Printf("write public secret %s\n", err)
+
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	doc := attest.AttestationDoc{PublicKey: base64.StdEncoding.EncodeToString(buf.Bytes())}
 	docBy, err := json.Marshal(doc)
 	if err != nil {
 		fmt.Printf("json marshal doc %s\n", err)
@@ -155,24 +164,13 @@ func (h handler) encryptHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := base64.StdEncoding.DecodeString(req.Data)
+	plaintext, err := h.decrypt(req.Data)
 	if err != nil {
-		fmt.Printf("base64 error %s\n", err)
-
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	out := &bytes.Buffer{}
-	decryptor := encryptor.RSAOAEPEncryptor{Hash: sha256.New(), Label: []byte("cape")}
-	err = decryptor.Decrypt(h.privateKey, bytes.NewBuffer(data), out)
-	if err != nil {
-		fmt.Printf("decrypt rsa error %s\n", err)
-
-		rw.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	secret, decrypted := out.Bytes()[:32], out.Bytes()[32:]
+	secret, decrypted := plaintext[:32], plaintext[32:]
 
 	secret = append(secret, h.symmetricKey...)
 	dk := pbkdf2.Key(secret, h.salt, 4096, 32, sha1.New)
@@ -222,23 +220,27 @@ func (h handler) encryptHandler(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h handler) rsaDecrypt(decryptor encryptor.RSAOAEPEncryptor, encryptedData string) ([]byte, error) {
-	data, err := base64.StdEncoding.DecodeString(encryptedData)
+func (h handler) decrypt(ciphertextStr string) ([]byte, error) {
+	ciphertext, err := base64.StdEncoding.DecodeString(ciphertextStr)
 	if err != nil {
 		fmt.Printf("base64 error %s\n", err)
 
 		return nil, err
 	}
 
-	functionOut := &bytes.Buffer{}
-	err = decryptor.Decrypt(h.privateKey, bytes.NewBuffer(data), functionOut)
+	decrypt, err := hybrid.NewHybridDecrypt(h.privateKey)
 	if err != nil {
-		fmt.Printf("decrypt rsa error %s\n", err)
-
+		fmt.Printf("new decrypt %s\n", err)
 		return nil, err
 	}
 
-	return functionOut.Bytes(), nil
+	plaintext, err := decrypt.Decrypt(ciphertext, []byte{})
+	if err != nil {
+		fmt.Printf("decrypt %s\n", err)
+		return nil, err
+	}
+
+	return plaintext, nil
 }
 
 func (h handler) aesDecrypt(secret, encrypted []byte) ([]byte, error) {
@@ -283,8 +285,7 @@ func (h handler) runHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	decryptor := encryptor.RSAOAEPEncryptor{Hash: sha256.New(), Label: []byte("cape")}
-	functionOut, err := h.rsaDecrypt(decryptor, req.EncryptedFunctionData)
+	functionOut, err := h.decrypt(req.EncryptedFunctionData)
 	if err != nil {
 		fmt.Printf("rsa decrypt err %s\n", err)
 
@@ -292,7 +293,7 @@ func (h handler) runHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	inputOut, err := h.rsaDecrypt(decryptor, req.EncryptedInputData)
+	inputOut, err := h.decrypt(req.EncryptedInputData)
 	if err != nil {
 		fmt.Printf("rsa decrypt err %s\n", err)
 

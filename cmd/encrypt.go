@@ -3,8 +3,6 @@ package cmd
 import (
 	"bytes"
 	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -14,7 +12,8 @@ import (
 	"os"
 
 	"github.com/capeprivacy/cli/attest"
-	"github.com/capeprivacy/cli/encryptor"
+	"github.com/google/tink/go/hybrid"
+	"github.com/google/tink/go/keyset"
 	"github.com/spf13/cobra"
 )
 
@@ -167,27 +166,30 @@ func doAttest(URL string) (*attest.AttestationDoc, error) {
 	return doc, nil
 }
 
-func doLocalEncrypt(doc attest.AttestationDoc, inputData []byte) ([]byte, error) {
+func doLocalEncrypt(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) {
 	b64, err := base64.StdEncoding.DecodeString(doc.PublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("base64 decode failed %s", err)
 	}
 
-	pub, err := x509.ParsePKIXPublicKey(b64)
+	buf := bytes.NewBuffer(b64)
+	reader := keyset.NewBinaryReader(buf)
+	khPub, err := keyset.ReadWithNoSecrets(reader)
 	if err != nil {
-		return nil, fmt.Errorf("parse x509 failed %s", err)
+		return nil, fmt.Errorf("read pubic key %s", err)
 	}
 
-	encryptedData := new(bytes.Buffer)
-	rsaPub := pub.(*rsa.PublicKey)
-	encryptor := encryptor.NewRSAOAEPEncryptor(rsaPub, "cape")
+	encrypt, err := hybrid.NewHybridEncrypt(khPub)
+	if err != nil {
+		return nil, err
+	}
 
-	err = encryptor.Encrypt(bytes.NewBuffer(inputData), encryptedData)
+	ciphertext, err := encrypt.Encrypt(plaintext, nil)
 	if err != nil {
 		return nil, fmt.Errorf("unable to encrypt %s", err)
 	}
 
-	return encryptedData.Bytes(), nil
+	return ciphertext, nil
 }
 
 func doEnclaveEncrypt(URL string, localEncryptedData []byte) ([]byte, error) {
