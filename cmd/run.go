@@ -11,6 +11,8 @@ import (
 
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/go-kit/id"
+	"github.com/google/tink/go/hybrid"
+	"github.com/google/tink/go/keyset"
 	"github.com/spf13/cobra"
 )
 
@@ -80,19 +82,7 @@ func run(cmd *cobra.Command, args []string) {
 		panic(fmt.Sprintf("unable to read file %s", err))
 	}
 
-	encryptedData := EncryptedData{}
-	err = json.Unmarshal(functionData, &encryptedData)
-	if err == nil {
-		results, err := handleDataEncrypted(u, enclave, functionData, inputData)
-		if err != nil {
-			panic(fmt.Sprintf("unable to handle encrypted data %s", err))
-		}
-
-		fmt.Printf("Successfully ran function. Your results are '%s'\n", results)
-		return
-	}
-
-	results, err := handleDataNotEncrypted(u, enclave, functionData, inputData)
+	results, err := handleData(u, enclave, functionData, inputData)
 	if err != nil {
 		panic(fmt.Sprintf("unable to handle not already encrypted data %s", err))
 	}
@@ -100,40 +90,7 @@ func run(cmd *cobra.Command, args []string) {
 	fmt.Printf("Successfully ran function. Your results are '%s'\n", results)
 }
 
-func handleDataEncrypted(URL string, enclave *enclave, functionData []byte, inputData []byte) (string, error) {
-	encryptedFunc := EncryptedData{}
-	err := json.Unmarshal(functionData, &encryptedFunc)
-	if err != nil {
-		return "", err
-	}
-
-	encryptedInput := EncryptedData{}
-	err = json.Unmarshal(inputData, &encryptedInput)
-	if err != nil {
-		return "", err
-	}
-
-	functionData = append(encryptedFunc.Secret, encryptedFunc.Data...)
-	encryptedFunctionData, err := doLocalEncrypt(enclave.attestation, functionData)
-	if err != nil {
-		panic(fmt.Sprintf("unable to encrypt data %s", err))
-	}
-
-	inputData = append(encryptedInput.Secret, encryptedInput.Data...)
-	encryptedInputData, err := doLocalEncrypt(enclave.attestation, inputData)
-	if err != nil {
-		panic(fmt.Sprintf("unable to encrypt data %s", err))
-	}
-
-	results, err := doRun(URL, enclave.id, encryptedFunctionData, encryptedInputData, true)
-	if err != nil {
-		panic(fmt.Sprintf("unable to run function %s", err))
-	}
-
-	return results, nil
-}
-
-func handleDataNotEncrypted(URL string, enclave *enclave, functionData []byte, inputData []byte) (string, error) {
+func handleData(URL string, enclave *enclave, functionData []byte, inputData []byte) (string, error) {
 	encryptedFunction, err := doLocalEncrypt(enclave.attestation, functionData)
 	if err != nil {
 		panic(fmt.Sprintf("unable to encrypt data %s", err))
@@ -215,4 +172,25 @@ func doRun(URL string, id id.ID, functionData []byte, functionSecret []byte, ser
 	}
 
 	return resData.Results, nil
+}
+
+func doLocalEncrypt(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) {
+	buf := bytes.NewBuffer(doc.PublicKey)
+	reader := keyset.NewBinaryReader(buf)
+	khPub, err := keyset.ReadWithNoSecrets(reader)
+	if err != nil {
+		return nil, fmt.Errorf("read pubic key %s", err)
+	}
+
+	encrypt, err := hybrid.NewHybridEncrypt(khPub)
+	if err != nil {
+		return nil, err
+	}
+
+	ciphertext, err := encrypt.Encrypt(plaintext, nil)
+	if err != nil {
+		return nil, fmt.Errorf("unable to encrypt %s", err)
+	}
+
+	return ciphertext, nil
 }
