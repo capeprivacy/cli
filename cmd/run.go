@@ -90,7 +90,7 @@ func run(cmd *cobra.Command, args []string) {
 	fmt.Printf("Successfully ran function. Your results are '%s'\n", results)
 }
 
-func handleData(URL string, enclave *enclave, functionData []byte, inputData []byte) (string, error) {
+func handleData(url string, enclave *enclave, functionData []byte, inputData []byte) (string, error) {
 	encryptedFunction, err := doLocalEncrypt(enclave.attestation, functionData)
 	if err != nil {
 		panic(fmt.Sprintf("unable to encrypt data %s", err))
@@ -101,11 +101,11 @@ func handleData(URL string, enclave *enclave, functionData []byte, inputData []b
 		panic(fmt.Sprintf("unable to encrypt data %s", err))
 	}
 
-	return doRun(URL, enclave.id, encryptedFunction, encryptedInputData, false)
+	return doRun(url, enclave.id, encryptedFunction, encryptedInputData, false)
 }
 
-func doBegin(URL string) (*enclave, error) {
-	req, err := http.NewRequest("POST", URL+"/v1/begin", nil)
+func doBegin(url string) (*enclave, error) {
+	req, err := http.NewRequest("POST", url+"/v1/begin", nil)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create request %s", err)
 	}
@@ -135,7 +135,7 @@ func doBegin(URL string) (*enclave, error) {
 	return &enclave{id: resData.ID, attestation: *doc}, nil
 }
 
-func doRun(URL string, id id.ID, functionData []byte, functionSecret []byte, serverSideEncrypted bool) (string, error) {
+func doRun(url string, id id.ID, functionData []byte, functionSecret []byte, serverSideEncrypted bool) (string, error) {
 	functionDataStr := base64.StdEncoding.EncodeToString(functionData)
 	inputDataStr := base64.StdEncoding.EncodeToString(functionSecret)
 
@@ -149,7 +149,7 @@ func doRun(URL string, id id.ID, functionData []byte, functionSecret []byte, ser
 		return "", err
 	}
 
-	endpoint := fmt.Sprintf("%s/v1/run/%s", URL, id)
+	endpoint := fmt.Sprintf("%s/v1/run/%s", url, id)
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(body))
 	if err != nil {
 		return "", err
