@@ -4,16 +4,17 @@ import (
 	"crypto/ecdsa"
 	"crypto/x509"
 	"encoding/base64"
-	"log"
+	"fmt"
+	"time"
 
-	"github.com/fxamacker/cbor"
+	"github.com/fxamacker/cbor/v2"
 	"github.com/veraison/go-cose"
 )
 
 type sign1Message struct {
 	_           struct{} `cbor:",toarray"`
-	Protected   []byte
-	Unprotected map[interface{}]interface{}
+	Protected   cbor.RawMessage
+	Unprotected cbor.RawMessage
 	Payload     []byte
 	Signature   []byte
 }
@@ -29,36 +30,89 @@ type AttestationDoc struct {
 	// TODO user_data, nonce
 }
 
+func createSign1(d []byte) (*cose.Sign1Message, error) {
+	var m sign1Message
+	err := cbor.Unmarshal(d, &m)
+	if err != nil {
+		return nil, err
+	}
+	msg := &cose.Sign1Message{
+		Headers: cose.Headers{
+			RawProtected:   m.Protected,
+			RawUnprotected: m.Unprotected,
+		},
+		Payload:   m.Payload,
+		Signature: m.Signature,
+	}
+	if err := msg.Headers.UnmarshalFromRaw(); err != nil {
+		return nil, err
+	}
+
+	return msg, nil
+}
+
+func verifySignature(cert *x509.Certificate, msg *cose.Sign1Message) error {
+	publicKey, ok := cert.PublicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return fmt.Errorf("public key must be ecdsa")
+	}
+
+	verifier, err := cose.NewVerifier(cose.AlgorithmES384, publicKey)
+	if err != nil {
+		return err
+	}
+
+	if err := msg.Verify([]byte{}, verifier); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func verifyCertChain(cert *x509.Certificate, cabundle [][]byte) error {
+	pool := x509.NewCertPool()
+	for _, certBy := range cabundle {
+		cert, err := x509.ParseCertificate(certBy)
+		if err != nil {
+			return err
+		}
+
+		pool.AddCert(cert)
+	}
+
+	// TODO using hard coded cert, use this fake time for now until it becomes
+	// not hard-coded.
+	fakeTime, _ := time.Parse(time.RFC3339Nano, "2022-04-27T17:37:15Z")
+	opts := x509.VerifyOptions{
+		Roots:         pool,
+		Intermediates: x509.NewCertPool(),
+		CurrentTime:   fakeTime,
+	}
+
+	// TODO we should be doing extra validation somehow against the amazon
+	// root cert at https://aws-nitro-enclaves.amazonaws.com/AWS_NitroEnclaves_Root-G1.zip
+	if _, err := cert.Verify(opts); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func Attest(attestation string) (*AttestationDoc, error) {
 	d, err := base64.StdEncoding.DecodeString(attestation)
 	if err != nil {
 		return nil, err
 	}
 
-	// Decode tag content to sign1Message.
-	var m sign1Message
-	err = cbor.Unmarshal(d, &m)
+	msg, err := createSign1(d)
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Create Headers from sign1Message.
-	msgHeaders := &cose.Headers{}
-	err = msgHeaders.Decode([]interface{}{m.Protected, m.Unprotected})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	msg := cose.Sign1Message{
-		Headers:   msgHeaders,
-		Payload:   m.Payload,
-		Signature: m.Signature,
+		return nil, err
 	}
 
 	doc := &AttestationDoc{}
 	err = cbor.Unmarshal(msg.Payload, doc)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	cert, err := x509.ParseCertificate(doc.Certificate)
@@ -66,18 +120,14 @@ func Attest(attestation string) (*AttestationDoc, error) {
 		return nil, err
 	}
 
-	verifier := cose.Verifier{
-		PublicKey: cert.PublicKey.(*ecdsa.PublicKey),
-		Alg:       cose.ES384,
-	}
-
-	// Verify
-	err = msg.Verify([]byte{}, verifier)
-	if err != nil {
+	if err := verifySignature(cert, msg); err != nil {
 		return nil, err
 	}
 
-	// TODO verify cert chain
+	if err := verifyCertChain(cert, doc.Cabundle); err != nil {
+		return nil, err
+	}
+
 	// TODO verify PCRs
 
 	return doc, nil

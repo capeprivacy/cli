@@ -1,0 +1,59 @@
+name: Main
+on: [push]
+jobs:
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Setup go1.17 Environment
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.17.8'
+      id: go
+    - id: go-cache-paths
+      run: |
+        echo "::set-output name=go-build::$(go env GOCACHE)"
+        echo "::set-output name=go-mod::$(go env GOMODCACHE)"
+    - name: Check out repository
+      uses: actions/checkout@v2
+    - name: Go dependencies cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ${{ steps.go-cache-paths.outputs.go-build }}
+          ${{ steps.go-cache-paths.outputs.go-mod }}
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys:
+          ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          ${{ runner.os }}-go-
+    - name: Setup SSH Keys and known_hosts
+      env:
+        SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+      run: |
+        ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+        ssh-add - <<< "${{ secrets.CAPEBOT_SSH_KEY }}"
+    - name: Configure git for private modules
+      run: git config --global url."git@github.com:".insteadOf "https://github.com"
+    - name: Build and Test
+      env:
+        SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+      run: |
+        go env -w GOPRIVATE=github.com/capeprivacy/*
+        go test ./... -race -coverprofile=coverage.out -covermode=atomic
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.17.8'
+      - name: Configure git for private modules
+        env:
+          TOKEN: ${{ secrets.PAT }}
+        run: git config --global url."https://justin1121:${TOKEN}@github.com".insteadOf "https://github.com"
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.45.2
+          args: --timeout=3m0s --verbose
