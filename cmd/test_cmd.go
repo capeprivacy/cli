@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -16,18 +17,28 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type BeginResponse struct {
+type StartRequest struct {
+	// Nonce is used by the client to verify the nonce received back in
+	// the attestation doc
+	Nonce string `json:"nonce"`
+}
+
+type StartResponse struct {
 	ID                  id.ID     `json:"id"`
 	AttestationDocument string    `json:"attestation_document"`
 	CreatedAt           time.Time `json:"created_at"`
 }
 
-type RunRequest struct {
+type TestRequest struct {
 	Function string `json:"function"`
 	Input    string `json:"input"`
+
+	// Nonce is used by the client to verify the nonce received back in
+	// the attestation doc
+	Nonce string `json:"nonce"`
 }
 
-type RunResponse struct {
+type TestResponse struct {
 	AttestationDocument string `json:"attestation_document"`
 	Results             string `json:"results"`
 }
@@ -42,26 +53,26 @@ type enclave struct {
 }
 
 // runCmd represents the request command
-var runCmd = &cobra.Command{
+var testCmd = &cobra.Command{
 	Use:   "run",
 	Short: "runs function or data",
-	Run:   run,
+	Run:   test,
 }
 
 func init() {
-	rootCmd.AddCommand(runCmd)
+	rootCmd.AddCommand(testCmd)
 
-	runCmd.PersistentFlags().StringP("token", "t", "", "token to use")
+	testCmd.PersistentFlags().StringP("token", "t", "", "token to use")
 }
 
-func run(cmd *cobra.Command, args []string) {
+func test(cmd *cobra.Command, args []string) {
 	u, err := cmd.Flags().GetString("url")
 	if err != nil {
 		panic(err)
 	}
 
 	if len(args) != 2 {
-		panic("expected four args, path to file containing the function, secret for that data, path to file containing input data and secret for that data")
+		panic("expected two args, path to file containing the function and path to file containing input data")
 	}
 
 	functionFile := args[0]
@@ -77,7 +88,7 @@ func run(cmd *cobra.Command, args []string) {
 		panic(fmt.Sprintf("unable to read file %s", err))
 	}
 
-	enclave, err := doBegin(u)
+	enclave, err := doStart(u)
 	if err != nil {
 		panic(fmt.Sprintf("unable to read file %s", err))
 	}
@@ -101,11 +112,20 @@ func handleData(url string, enclave *enclave, functionData []byte, inputData []b
 		panic(fmt.Sprintf("unable to encrypt data %s", err))
 	}
 
-	return doRun(url, enclave.id, encryptedFunction, encryptedInputData, false)
+	return doTest(url, enclave.id, encryptedFunction, encryptedInputData, false)
 }
 
-func doBegin(url string) (*enclave, error) {
-	req, err := http.NewRequest("POST", url+"/v1/begin", nil)
+func doStart(url string) (*enclave, error) {
+	reqData := StartRequest{
+		Nonce: getNonce(),
+	}
+
+	body, err := json.Marshal(reqData)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", url+"/v1/begin", bytes.NewBuffer(body))
 	if err != nil {
 		return nil, fmt.Errorf("unable to create request %s", err)
 	}
@@ -119,7 +139,7 @@ func doBegin(url string) (*enclave, error) {
 		return nil, fmt.Errorf("bad status code %d", res.StatusCode)
 	}
 
-	resData := BeginResponse{}
+	resData := StartResponse{}
 
 	dec := json.NewDecoder(res.Body)
 	err = dec.Decode(&resData)
@@ -135,13 +155,14 @@ func doBegin(url string) (*enclave, error) {
 	return &enclave{id: resData.ID, attestation: *doc}, nil
 }
 
-func doRun(url string, id id.ID, functionData []byte, functionSecret []byte, serverSideEncrypted bool) (string, error) {
+func doTest(url string, id id.ID, functionData []byte, functionSecret []byte, serverSideEncrypted bool) (string, error) {
 	functionDataStr := base64.StdEncoding.EncodeToString(functionData)
 	inputDataStr := base64.StdEncoding.EncodeToString(functionSecret)
 
-	runReq := &RunRequest{
+	runReq := &TestRequest{
 		Function: functionDataStr,
 		Input:    inputDataStr,
+		Nonce:    getNonce(),
 	}
 
 	body, err := json.Marshal(runReq)
@@ -164,7 +185,7 @@ func doRun(url string, id id.ID, functionData []byte, functionSecret []byte, ser
 		return "", fmt.Errorf("bad status code %d", res.StatusCode)
 	}
 
-	resData := &RunResponse{}
+	resData := &TestResponse{}
 	dec := json.NewDecoder(res.Body)
 	err = dec.Decode(resData)
 	if err != nil {
@@ -193,4 +214,14 @@ func doLocalEncrypt(doc attest.AttestationDoc, plaintext []byte) ([]byte, error)
 	}
 
 	return ciphertext, nil
+}
+
+func getNonce() string {
+	buf := make([]byte, 16)
+
+	if _, err := rand.Reader.Read(buf); err != nil {
+		panic(err)
+	}
+
+	return base64.StdEncoding.EncodeToString(buf)
 }
