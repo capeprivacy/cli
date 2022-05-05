@@ -10,7 +10,7 @@ Cape CLI
 $ ls
 input_data func.py
 
-$ cape run func.py input_data
+$ cape test func.py input_data
 Successfully ran function. Your results are '<RESULTS GO HERE>'
 ```
 

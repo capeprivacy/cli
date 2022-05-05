@@ -54,8 +54,8 @@ type enclave struct {
 
 // runCmd represents the request command
 var testCmd = &cobra.Command{
-	Use:   "run",
-	Short: "runs function or data",
+	Use:   "test",
+	Short: "test with function and data",
 	Run:   test,
 }
 
