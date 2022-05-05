@@ -43,9 +43,9 @@ type enclave struct {
 
 // runCmd represents the request command
 var runCmd = &cobra.Command{
-	Use:   "run",
-	Short: "runs function or data",
-	Run:   run,
+	Use:   "test",
+	Short: "tests function or data",
+	Run:   test,
 }
 
 func init() {
@@ -54,7 +54,7 @@ func init() {
 	runCmd.PersistentFlags().StringP("token", "t", "", "token to use")
 }
 
-func run(cmd *cobra.Command, args []string) {
+func test(cmd *cobra.Command, args []string) {
 	u, err := cmd.Flags().GetString("url")
 	if err != nil {
 		panic(err)
