@@ -27,9 +27,15 @@ type RunRequest struct {
 	Input    string `json:"input"`
 }
 
+type Outputs struct {
+	Data       string `json:"data"`
+	Stdout     string `json:"stdout"`
+	Stderr     string `json:"stderr"`
+	ExitStatus string `json:"exit_status"`
+}
+
 type RunResponse struct {
-	AttestationDocument string `json:"attestation_document"`
-	Results             string `json:"results"`
+	Results Outputs `json:"results"`
 }
 
 type ErrorResponse struct {
@@ -87,10 +93,10 @@ func run(cmd *cobra.Command, args []string) {
 		panic(fmt.Sprintf("unable to handle not already encrypted data %s", err))
 	}
 
-	fmt.Printf("Successfully ran function. Your results are '%s'\n", results)
+	fmt.Printf("Successfully ran function. Your results are: %+v \n", results)
 }
 
-func handleData(url string, enclave *enclave, functionData []byte, inputData []byte) (string, error) {
+func handleData(url string, enclave *enclave, functionData []byte, inputData []byte) (Outputs, error) {
 	encryptedFunction, err := doLocalEncrypt(enclave.attestation, functionData)
 	if err != nil {
 		panic(fmt.Sprintf("unable to encrypt data %s", err))
@@ -135,7 +141,7 @@ func doBegin(url string) (*enclave, error) {
 	return &enclave{id: resData.ID, attestation: *doc}, nil
 }
 
-func doRun(url string, id id.ID, functionData []byte, functionSecret []byte, serverSideEncrypted bool) (string, error) {
+func doRun(url string, id id.ID, functionData []byte, functionSecret []byte, serverSideEncrypted bool) (Outputs, error) {
 	functionDataStr := base64.StdEncoding.EncodeToString(functionData)
 	inputDataStr := base64.StdEncoding.EncodeToString(functionSecret)
 
@@ -146,29 +152,29 @@ func doRun(url string, id id.ID, functionData []byte, functionSecret []byte, ser
 
 	body, err := json.Marshal(runReq)
 	if err != nil {
-		return "", err
+		return Outputs{}, err
 	}
 
 	endpoint := fmt.Sprintf("%s/v1/run/%s", url, id)
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(body))
 	if err != nil {
-		return "", err
+		return Outputs{}, err
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		return Outputs{}, err
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("bad status code %d", res.StatusCode)
+		return Outputs{}, fmt.Errorf("bad status code %d", res.StatusCode)
 	}
 
 	resData := &RunResponse{}
 	dec := json.NewDecoder(res.Body)
 	err = dec.Decode(resData)
 	if err != nil {
-		return "", err
+		return Outputs{}, err
 	}
 
 	return resData.Results, nil
