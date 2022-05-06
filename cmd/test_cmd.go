@@ -125,7 +125,7 @@ func doStart(url string) (*enclave, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", url+"/v1/begin", bytes.NewBuffer(body))
+	req, err := http.NewRequest("POST", url+"/v1/start", bytes.NewBuffer(body))
 	if err != nil {
 		return nil, fmt.Errorf("unable to create request %s", err)
 	}
@@ -170,7 +170,7 @@ func doTest(url string, id id.ID, functionData []byte, functionSecret []byte, se
 		return "", err
 	}
 
-	endpoint := fmt.Sprintf("%s/v1/run/%s", url, id)
+	endpoint := fmt.Sprintf("%s/v1/test/%s", url, id)
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(body))
 	if err != nil {
 		return "", err
