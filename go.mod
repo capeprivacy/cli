@@ -3,14 +3,14 @@ module github.com/capeprivacy/cli
 go 1.18
 
 require (
+	github.com/capeprivacy/go-kit v0.0.0-20220420152147-667383169b7a
+	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/google/tink/go v1.6.1
 	github.com/spf13/cobra v1.4.0
 )
 
 require (
-	github.com/capeprivacy/go-kit v0.0.0-20220420152147-667383169b7a // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
-	github.com/fxamacker/cbor/v2 v2.4.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
@@ -18,7 +18,6 @@ require (
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.0-beta.8 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
@@ -38,5 +37,5 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.11.0
 	github.com/veraison/go-cose v0.0.0-sign1-alpha.0.0.20220425074922-8cef769ef52c
-	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
+	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4 // indirect
 )
