@@ -80,13 +80,10 @@ func verifyCertChain(cert *x509.Certificate, cabundle [][]byte) error {
 		pool.AddCert(cert)
 	}
 
-	// TODO using hard coded cert, use this fake time for now until it becomes
-	// not hard-coded.
-	fakeTime, _ := time.Parse(time.RFC3339Nano, "2022-04-27T17:37:15Z")
 	opts := x509.VerifyOptions{
 		Roots:         pool,
 		Intermediates: x509.NewCertPool(),
-		CurrentTime:   fakeTime,
+		CurrentTime:   time.Now().UTC(),
 	}
 
 	// TODO we should be doing extra validation somehow against the amazon

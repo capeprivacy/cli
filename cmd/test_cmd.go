@@ -200,7 +200,7 @@ func doLocalEncrypt(doc attest.AttestationDoc, plaintext []byte) ([]byte, error)
 	reader := keyset.NewBinaryReader(buf)
 	khPub, err := keyset.ReadWithNoSecrets(reader)
 	if err != nil {
-		return nil, fmt.Errorf("read pubic key %s", err)
+		return nil, fmt.Errorf("read public key %s", err)
 	}
 
 	encrypt, err := hybrid.NewHybridEncrypt(khPub)
