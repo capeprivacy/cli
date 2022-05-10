@@ -93,7 +93,6 @@ func newCertAndCabundle(t *testing.T) (*ecdsa.PrivateKey, *x509.Certificate, []b
 		t.Fatal(err)
 	}
 
-	fakeTime, _ := time.Parse(time.RFC3339Nano, "2022-04-27T17:37:14Z")
 	parent := &x509.Certificate{
 		IsCA:                  true,
 		BasicConstraintsValid: true,
@@ -103,8 +102,8 @@ func newCertAndCabundle(t *testing.T) (*ecdsa.PrivateKey, *x509.Certificate, []b
 			Country:      []string{"Earth"},
 			Organization: []string{"Mother Nature"},
 		},
-		NotBefore: fakeTime,
-		NotAfter:  fakeTime.Add(time.Second + 60),
+		NotBefore: time.Now().Add(-time.Second + 60),
+		NotAfter:  time.Now().Add(time.Second + 60),
 		// see http://golang.org/pkg/crypto/x509/#KeyUsage
 		KeyUsage: x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 	}
@@ -123,8 +122,8 @@ func newCertAndCabundle(t *testing.T) (*ecdsa.PrivateKey, *x509.Certificate, []b
 			Country:      []string{"Earth"},
 			Organization: []string{"Mother Nature"},
 		},
-		NotBefore: fakeTime,
-		NotAfter:  fakeTime.Add(time.Second + 60),
+		NotBefore: time.Now().Add(-time.Second + 60),
+		NotAfter:  time.Now().Add(time.Second + 60),
 		// see http://golang.org/pkg/crypto/x509/#KeyUsage
 		KeyUsage: x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 	}
