@@ -38,9 +38,16 @@ type TestRequest struct {
 	Nonce string `json:"nonce"`
 }
 
+type Outputs struct {
+	Data       string `json:"data"`
+	Stdout     string `json:"stdout"`
+	Stderr     string `json:"stderr"`
+	ExitStatus string `json:"exit_status"`
+}
+
 type TestResponse struct {
-	AttestationDocument string `json:"attestation_document"`
-	Results             string `json:"results"`
+	Results     Outputs `json:"results"`
+	Attestation Outputs `json:"attestation"`
 }
 
 type ErrorResponse struct {
@@ -98,10 +105,10 @@ func test(cmd *cobra.Command, args []string) {
 		panic(fmt.Sprintf("unable to handle not already encrypted data %s", err))
 	}
 
-	fmt.Printf("Successfully ran function. Your results are '%s'\n", results)
+	fmt.Printf("Successfully ran function. Your results are: %+v \n", results)
 }
 
-func handleData(url string, enclave *enclave, functionData []byte, inputData []byte) (string, error) {
+func handleData(url string, enclave *enclave, functionData []byte, inputData []byte) (*Outputs, error) {
 	encryptedFunction, err := doLocalEncrypt(enclave.attestation, functionData)
 	if err != nil {
 		panic(fmt.Sprintf("unable to encrypt data %s", err))
@@ -155,7 +162,7 @@ func doStart(url string) (*enclave, error) {
 	return &enclave{id: resData.ID, attestation: *doc}, nil
 }
 
-func doTest(url string, id id.ID, functionData []byte, functionSecret []byte, serverSideEncrypted bool) (string, error) {
+func doTest(url string, id id.ID, functionData []byte, functionSecret []byte, serverSideEncrypted bool) (*Outputs, error) {
 	functionDataStr := base64.StdEncoding.EncodeToString(functionData)
 	inputDataStr := base64.StdEncoding.EncodeToString(functionSecret)
 
@@ -167,32 +174,32 @@ func doTest(url string, id id.ID, functionData []byte, functionSecret []byte, se
 
 	body, err := json.Marshal(runReq)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	endpoint := fmt.Sprintf("%s/v1/test/%s", url, id)
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(body))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("bad status code %d", res.StatusCode)
+		return nil, fmt.Errorf("bad status code %d", res.StatusCode)
 	}
 
 	resData := &TestResponse{}
 	dec := json.NewDecoder(res.Body)
 	err = dec.Decode(resData)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return resData.Results, nil
+	return &resData.Results, nil
 }
 
 func doLocalEncrypt(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) {
