@@ -15,8 +15,9 @@ import (
 )
 
 type DeployRequest struct {
-	Data  []byte
-	Nonce string
+	Data  []byte `json:"data"`
+	Name  string `json:"name"`
+	Nonce string `json:"nonce"`
 }
 
 type DeployResponse struct {
@@ -43,11 +44,12 @@ func deploy(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	if len(args) != 1 {
-		panic("expected one argument, path to a directory to zip")
+	if len(args) != 2 {
+		panic("expected two arguments, name of function and path to a directory to zip")
 	}
 
-	functionDir := args[0]
+	name := args[0]
+	functionDir := args[1]
 
 	file, err := os.Open(functionDir)
 	if err != nil {
@@ -95,7 +97,7 @@ func deploy(cmd *cobra.Command, args []string) {
 		panic(fmt.Sprintf("unable to do local encrypt %s", err))
 	}
 
-	id, err := doDeploy(u, enclave.id, ciphertext)
+	id, err := doDeploy(u, enclave.id, name, ciphertext)
 	if err != nil {
 		panic(fmt.Sprintf("unable to deploy function %s", err))
 	}
@@ -103,7 +105,7 @@ func deploy(cmd *cobra.Command, args []string) {
 	fmt.Printf("Successfully deployed function. Function ID: %s", id)
 }
 
-func doDeploy(url string, id id.ID, ciphertext []byte) (string, error) {
+func doDeploy(url string, id id.ID, name string, ciphertext []byte) (string, error) {
 	reqData := DeployRequest{
 		Nonce: getNonce(),
 	}
