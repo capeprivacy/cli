@@ -52,7 +52,7 @@ type enclave struct {
 	attestation attest.AttestationDoc
 }
 
-// runCmd represents the request command
+// testCmd represents the request command
 var testCmd = &cobra.Command{
 	Use:   "test",
 	Short: "test with function and data",
