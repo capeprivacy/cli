@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 
 	czip "github.com/capeprivacy/cli/zip"
+	"github.com/capeprivacy/go-kit/id"
 	"github.com/spf13/cobra"
 )
 
@@ -42,10 +44,30 @@ func deploy(cmd *cobra.Command, args []string) {
 	}
 
 	if len(args) != 1 {
-		panic("expected two args, path to file containing the function and path to file containing input data")
+		panic("expected one argument, path to a directory to zip")
 	}
 
 	functionDir := args[0]
+
+	file, err := os.Open(functionDir)
+	if err != nil {
+		panic(err)
+	}
+
+	st, err := file.Stat()
+	if err != nil {
+		panic(err)
+	}
+
+	if !st.IsDir() {
+		panic(fmt.Sprintf("expected argument %s to be a directory", functionDir))
+	}
+
+	err = file.Close()
+	if err != nil {
+		panic(err)
+	}
+
 	zipRoot := filepath.Base(functionDir)
 
 	buf := new(bytes.Buffer)
@@ -73,7 +95,7 @@ func deploy(cmd *cobra.Command, args []string) {
 		panic(fmt.Sprintf("unable to do local encrypt %s", err))
 	}
 
-	id, err := doDeploy(u, ciphertext)
+	id, err := doDeploy(u, enclave.id, ciphertext)
 	if err != nil {
 		panic(fmt.Sprintf("unable to deploy function %s", err))
 	}
@@ -81,7 +103,7 @@ func deploy(cmd *cobra.Command, args []string) {
 	fmt.Printf("Successfully deployed function. Function ID: %s", id)
 }
 
-func doDeploy(url string, ciphertext []byte) (string, error) {
+func doDeploy(url string, id id.ID, ciphertext []byte) (string, error) {
 	reqData := DeployRequest{
 		Nonce: getNonce(),
 	}
@@ -91,7 +113,8 @@ func doDeploy(url string, ciphertext []byte) (string, error) {
 		return "", err
 	}
 
-	req, err := http.NewRequest("POST", url+"/v1/deploy", bytes.NewBuffer(body))
+	endpoint := fmt.Sprintf("%s/v1/deploy/%s", url, id)
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(body))
 	if err != nil {
 		return "", fmt.Errorf("unable to create request %s", err)
 	}
