@@ -124,7 +124,7 @@ func doDeploy(url string, id id.ID, ciphertext []byte) (string, error) {
 		return "", fmt.Errorf("request failed %s", err)
 	}
 
-	if res.StatusCode != http.StatusAccepted {
+	if res.StatusCode != http.StatusCreated {
 		return "", fmt.Errorf("bad status code %d", res.StatusCode)
 	}
 
