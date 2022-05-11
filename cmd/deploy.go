@@ -92,12 +92,7 @@ func deploy(cmd *cobra.Command, args []string) {
 		panic(fmt.Sprintf("unable to start enclave %s", err))
 	}
 
-	ciphertext, err := doLocalEncrypt(enclave.attestation, buf.Bytes())
-	if err != nil {
-		panic(fmt.Sprintf("unable to do local encrypt %s", err))
-	}
-
-	id, err := doDeploy(u, enclave.id, name, ciphertext)
+	id, err := doDeploy(u, enclave.id, name, buf.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("unable to deploy function %s", err))
 	}
