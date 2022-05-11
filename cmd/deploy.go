@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	czip "github.com/capeprivacy/cli/zip"
+	"github.com/capeprivacy/go-kit/id"
 	"github.com/spf13/cobra"
 )
 
@@ -86,7 +87,12 @@ func deploy(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	id, err := doDeploy(u, name, buf.Bytes())
+	enclave, err := doStart(u)
+	if err != nil {
+		panic(fmt.Sprintf("unable to start enclave %s", err))
+	}
+
+	id, err := doDeploy(u, enclave.id, name, buf.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("unable to deploy function %s", err))
 	}
@@ -94,7 +100,7 @@ func deploy(cmd *cobra.Command, args []string) {
 	fmt.Printf("Successfully deployed function. Function ID: %s", id)
 }
 
-func doDeploy(url string, name string, ciphertext []byte) (string, error) {
+func doDeploy(url string, id id.ID, name string, ciphertext []byte) (string, error) {
 	reqData := DeployRequest{
 		Nonce: getNonce(),
 	}
@@ -104,7 +110,7 @@ func doDeploy(url string, name string, ciphertext []byte) (string, error) {
 		return "", err
 	}
 
-	endpoint := fmt.Sprintf("%s/v1/deploy/", url)
+	endpoint := fmt.Sprintf("%s/v1/deploy/%s", url, id)
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(body))
 	if err != nil {
 		return "", fmt.Errorf("unable to create request %s", err)
