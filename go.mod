@@ -34,6 +34,7 @@ require (
 require (
 	github.com/fxamacker/cbor v1.5.1
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.11.0
 	github.com/veraison/go-cose v0.0.0-sign1-alpha.0.0.20220425074922-8cef769ef52c
