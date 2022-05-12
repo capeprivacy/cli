@@ -94,6 +94,7 @@ func deploy(cmd *cobra.Command, args []string) {
 	err = filepath.Walk(functionDir, czip.Walker(w, zipRoot))
 	if err != nil {
 		log.Errorf("zipping directory failed: %s", err)
+		return
 	}
 
 	// explicitly close now so that the bytes are flushed and
