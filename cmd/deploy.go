@@ -102,8 +102,10 @@ func deploy(cmd *cobra.Command, args []string) {
 	fmt.Printf("Successfully deployed function. Function ID: %s", id)
 }
 
-func doDeploy(url string, id id.ID, name string, ciphertext []byte) (string, error) {
+func doDeploy(url string, id id.ID, name string, data []byte) (string, error) {
 	reqData := DeployRequest{
+		Name:  name,
+		Data:  data,
 		Nonce: getNonce(),
 	}
 
