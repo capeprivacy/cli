@@ -101,7 +101,7 @@ func test(cmd *cobra.Command, args []string) {
 
 	results, err := handleData(u, enclave, functionData, inputData)
 	if err != nil {
-		log.Errorf("unable to handle unencrypted data %s", err)
+		log.Errorf("unable to run test %s", err)
 	}
 
 	fmt.Printf("Successfully ran function. Your results are: %+v \n", results)
