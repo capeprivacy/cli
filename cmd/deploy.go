@@ -60,15 +60,18 @@ func deploy(cmd *cobra.Command, args []string) {
 	file, err := os.Open(functionDir)
 	if err != nil {
 		log.Errorf("unable to read function directory: %s", err)
+		return
 	}
 
 	st, err := file.Stat()
 	if err != nil {
 		log.Errorf("unable to read function directory: %s", err)
+		return
 	}
 
 	if !st.IsDir() {
 		log.Errorf("expected argument %s to be a directory", functionDir)
+		return
 	}
 
 	_, err = file.Readdirnames(1)
@@ -80,6 +83,7 @@ func deploy(cmd *cobra.Command, args []string) {
 	err = file.Close()
 	if err != nil {
 		log.Errorf("something went wrong: %s", err)
+		return
 	}
 
 	zipRoot := filepath.Base(functionDir)
@@ -97,16 +101,19 @@ func deploy(cmd *cobra.Command, args []string) {
 	err = w.Close()
 	if err != nil {
 		log.Errorf("zipping directory failed: %s", err)
+		return
 	}
 
 	enclave, err := doStart(u)
 	if err != nil {
 		log.Errorf("unable to start enclave %s", err)
+		return
 	}
 
 	id, err := doDeploy(u, enclave.id, name, buf.Bytes())
 	if err != nil {
 		log.Errorf("unable to deploy function %s", err)
+		return
 	}
 
 	fmt.Printf("Successfully deployed function. Function ID: %s", id)
