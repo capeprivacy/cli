@@ -50,6 +50,7 @@ func run(cmd *cobra.Command, args []string) {
 	u, err := cmd.Flags().GetString("url")
 	if err != nil {
 		log.Errorf("flag not found: %s", err)
+		return
 	}
 
 	if len(args) != 2 {
@@ -64,21 +65,25 @@ func run(cmd *cobra.Command, args []string) {
 	inputData, err := ioutil.ReadFile(dataFile)
 	if err != nil {
 		log.Errorf("unable to read data file: %s", err)
+		return
 	}
 
 	enclave, err := doStart(u)
 	if err != nil {
 		log.Errorf("unable to start enclave: %s", err)
+		return
 	}
 
 	encryptedData, err := crypto.LocalEncrypt(enclave.attestation, inputData)
 	if err != nil {
 		log.Errorf("unable to encrypt data %s", err)
+		return
 	}
 
 	results, err := doRun(u, enclave.id, functionID, encryptedData)
 	if err != nil {
 		log.Errorf("unable to handle run %s", err)
+		return
 	}
 
 	fmt.Printf("Successfully ran function. Your results are '%s'\n", results)
