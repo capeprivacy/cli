@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/go-kit/id"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -70,7 +71,7 @@ func run(cmd *cobra.Command, args []string) {
 		log.Errorf("unable to start enclave: %s", err)
 	}
 
-	encryptedData, err := doLocalEncrypt(enclave.attestation, inputData)
+	encryptedData, err := crypto.LocalEncrypt(enclave.attestation, inputData)
 
 	if err != nil {
 		log.Errorf("unable to encrypt data %s", err)
