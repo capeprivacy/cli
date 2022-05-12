@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/go-kit/id"
@@ -44,11 +46,6 @@ type Outputs struct {
 	ExitStatus string `json:"exit_status"`
 }
 
-type TestResponse struct {
-	Results     Outputs `json:"results"`
-	Attestation Outputs `json:"attestation"`
-}
-
 type ErrorResponse struct {
 	Message string `json:"message"`
 }
@@ -62,6 +59,7 @@ type enclave struct {
 var testCmd = &cobra.Command{
 	Use:   "test",
 	Short: "test with function and data",
+	Long:  "test with function and data, takes path to function and path to data",
 	Run:   test,
 }
 
@@ -74,11 +72,13 @@ func init() {
 func test(cmd *cobra.Command, args []string) {
 	u, err := cmd.Flags().GetString("url")
 	if err != nil {
-		panic(err)
+		log.Errorf("flag not found: %s", err)
 	}
 
 	if len(args) != 2 {
-		panic("expected two args, path to file containing the function and path to file containing input data")
+		log.Error("Error, invalid arguments")
+		_ = cmd.Help()
+		return
 	}
 
 	functionFile := args[0]
@@ -86,22 +86,22 @@ func test(cmd *cobra.Command, args []string) {
 
 	functionData, err := ioutil.ReadFile(functionFile)
 	if err != nil {
-		panic(fmt.Sprintf("unable to read file %s", err))
+		log.Errorf("unable to read function file: %s", err)
 	}
 
 	inputData, err := ioutil.ReadFile(dataFile)
 	if err != nil {
-		panic(fmt.Sprintf("unable to read file %s", err))
+		log.Errorf("unable to read data file: %s", err)
 	}
 
 	enclave, err := doStart(u)
 	if err != nil {
-		panic(fmt.Sprintf("unable to read file %s", err))
+		log.Errorf("unable to start enclave: %s", err)
 	}
 
 	results, err := handleData(u, enclave, functionData, inputData)
 	if err != nil {
-		panic(fmt.Sprintf("unable to handle not already encrypted data %s", err))
+		log.Errorf("unable to handle unencrypted data %s", err)
 	}
 
 	fmt.Printf("Successfully ran function. Your results are: %+v \n", results)
@@ -110,15 +110,15 @@ func test(cmd *cobra.Command, args []string) {
 func handleData(url string, enclave *enclave, functionData []byte, inputData []byte) (*Outputs, error) {
 	encryptedFunction, err := crypto.LocalEncrypt(enclave.attestation, functionData)
 	if err != nil {
-		panic(fmt.Sprintf("unable to encrypt data %s", err))
+		log.Errorf("unable to encrypt data %s", err)
 	}
 
 	encryptedInputData, err := crypto.LocalEncrypt(enclave.attestation, inputData)
 	if err != nil {
-		panic(fmt.Sprintf("unable to encrypt data %s", err))
+		log.Errorf("unable to encrypt data %s", err)
 	}
 
-	return doTest(url, enclave.id, encryptedFunction, encryptedInputData, false)
+	return doTest(url, enclave.id, encryptedFunction, encryptedInputData)
 }
 
 func doStart(url string) (*enclave, error) {
@@ -161,9 +161,9 @@ func doStart(url string) (*enclave, error) {
 	return &enclave{id: resData.ID, attestation: *doc}, nil
 }
 
-func doTest(url string, id id.ID, functionData []byte, functionSecret []byte, serverSideEncrypted bool) (*Outputs, error) {
-	functionDataStr := base64.StdEncoding.EncodeToString(functionData)
-	inputDataStr := base64.StdEncoding.EncodeToString(functionSecret)
+func doTest(url string, id id.ID, encryptedFunction []byte, encryptedData []byte) (*Outputs, error) {
+	functionDataStr := base64.StdEncoding.EncodeToString(encryptedFunction)
+	inputDataStr := base64.StdEncoding.EncodeToString(encryptedData)
 
 	runReq := &TestRequest{
 		Function: functionDataStr,
@@ -191,7 +191,7 @@ func doTest(url string, id id.ID, functionData []byte, functionSecret []byte, se
 		return nil, fmt.Errorf("bad status code %d", res.StatusCode)
 	}
 
-	resData := &TestResponse{}
+	resData := &RunResponse{}
 	dec := json.NewDecoder(res.Body)
 	err = dec.Decode(resData)
 	if err != nil {
@@ -205,7 +205,7 @@ func getNonce() string {
 	buf := make([]byte, 16)
 
 	if _, err := rand.Reader.Read(buf); err != nil {
-		panic(err)
+		log.WithError(err).Error("failed to get nonce")
 	}
 
 	return base64.StdEncoding.EncodeToString(buf)

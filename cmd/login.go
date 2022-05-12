@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os/exec"
 	"runtime"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -42,23 +42,23 @@ func newDeviceCode() {
 	payloadStr := fmt.Sprintf("client_id=%s&scope=openid%%20profile%%20email&audience=%s", clientID, audience)
 	req, err := http.NewRequest("POST", deviceCodeURL, strings.NewReader(payloadStr))
 	if err != nil {
-		panic(fmt.Sprintf("unable to login to cape %s", err))
+		log.Errorf("unable to login to cape %s", err)
 	}
 
 	req.Header.Add("content-type", "application/x-www-form-urlencoded")
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		panic(fmt.Sprintf("unable to login to cape %s", err))
+		log.Errorf("unable to login to cape %s", err)
 	}
 
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		panic(fmt.Sprintf("unable to login to cape %s", err))
+		log.Errorf("unable to login to cape %s", err)
 	}
 
 	if res.StatusCode != 200 {
-		panic(fmt.Sprintf("unable to login to cape, error: %s", res.Status))
+		log.Errorf("unable to login to cape, error: %s", res.Status)
 	}
 
 	response := DeviceCodeResponse{}
@@ -87,6 +87,6 @@ func openbrowser(url string) {
 		err = fmt.Errorf("unsupported platform")
 	}
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("unable to open browser")
 	}
 }

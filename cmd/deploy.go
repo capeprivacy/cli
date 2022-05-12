@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 
+	log "github.com/sirupsen/logrus"
+
 	czip "github.com/capeprivacy/cli/zip"
 	"github.com/capeprivacy/go-kit/id"
 	"github.com/spf13/cobra"
@@ -41,11 +43,11 @@ func init() {
 func deploy(cmd *cobra.Command, args []string) {
 	u, err := cmd.Flags().GetString("url")
 	if err != nil {
-		panic(err)
+		log.Errorf("flag not found: %s", err)
 	}
 
 	if len(args) != 2 {
-		panic("expected two arguments, name of function and path to a directory to zip")
+		log.Error("expected two arguments, name of function and path to a directory to zip")
 	}
 
 	name := args[0]
@@ -53,21 +55,21 @@ func deploy(cmd *cobra.Command, args []string) {
 
 	file, err := os.Open(functionDir)
 	if err != nil {
-		panic(err)
+		log.Errorf("unable to read function directory: %s", err)
 	}
 
 	st, err := file.Stat()
 	if err != nil {
-		panic(err)
+		log.Errorf("unable to read function directory: %s", err)
 	}
 
 	if !st.IsDir() {
-		panic(fmt.Sprintf("expected argument %s to be a directory", functionDir))
+		log.Errorf("expected argument %s to be a directory", functionDir)
 	}
 
 	err = file.Close()
 	if err != nil {
-		panic(err)
+		log.Errorf("something went wrong: %s", err)
 	}
 
 	zipRoot := filepath.Base(functionDir)
@@ -77,24 +79,24 @@ func deploy(cmd *cobra.Command, args []string) {
 
 	err = filepath.Walk(functionDir, czip.Walker(w, zipRoot))
 	if err != nil {
-		panic(err)
+		log.Errorf("zipping directory failed: %s", err)
 	}
 
 	// explicitly close now so that the bytes are flushed and
 	// available in buf.Bytes() below.
 	err = w.Close()
 	if err != nil {
-		panic(err)
+		log.Errorf("zipping directory failed: %s", err)
 	}
 
 	enclave, err := doStart(u)
 	if err != nil {
-		panic(fmt.Sprintf("unable to start enclave %s", err))
+		log.Errorf("unable to start enclave %s", err)
 	}
 
 	id, err := doDeploy(u, enclave.id, name, buf.Bytes())
 	if err != nil {
-		panic(fmt.Sprintf("unable to deploy function %s", err))
+		log.Errorf("unable to deploy function %s", err)
 	}
 
 	fmt.Printf("Successfully deployed function. Function ID: %s", id)
