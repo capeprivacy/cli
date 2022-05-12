@@ -53,10 +53,7 @@ func run(cmd *cobra.Command, args []string) {
 
 	if len(args) != 2 {
 		log.Error("Error, invalid arguments")
-		err = cmd.Help()
-		if err != nil {
-			return
-		}
+		_ = cmd.Help()
 		return
 	}
 
