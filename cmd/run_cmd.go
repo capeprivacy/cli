@@ -135,7 +135,7 @@ func doRun(url string, id id.ID, functionID string, encryptedData []byte) (*Outp
 		return nil, err
 	}
 
-	if res.StatusCode != http.StatusCreated {
+	if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("bad status code %d", res.StatusCode)
 	}
 
