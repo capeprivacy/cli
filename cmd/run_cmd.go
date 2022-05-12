@@ -66,22 +66,48 @@ func run(cmd *cobra.Command, args []string) {
 		log.Errorf("unable to read data file: %s", err)
 	}
 
+	fmt.Println("> starting enclave ...")
 	enclave, err := doStart(u)
 	if err != nil {
 		log.Errorf("unable to start enclave: %s", err)
+		return
 	}
+
+	fmt.Println("> enclave started")
+	fmt.Println("> encrypting input data ...")
 
 	encryptedData, err := crypto.LocalEncrypt(enclave.attestation, inputData)
 	if err != nil {
 		log.Errorf("unable to encrypt data %s", err)
+		return
 	}
 
+	fmt.Println("> Processing ...")
 	results, err := doRun(u, enclave.id, functionID, encryptedData)
 	if err != nil {
-		log.Errorf("unable to handle run %s", err)
+		log.Errorf("> error processing data: %s", err)
+		return
 	}
 
-	fmt.Printf("Successfully ran function. Your results are '%s'\n", results)
+	data, err := base64.StdEncoding.DecodeString(results.Data)
+	if err != nil {
+		log.Errorf("> could not decode results.data: %v", err)
+		return
+	}
+
+	stdout, err := base64.StdEncoding.DecodeString(results.Stdout)
+	if err != nil {
+		log.Errorf("> could not decode stdout: %v", err)
+		return
+	}
+
+	stderr, err := base64.StdEncoding.DecodeString(results.Stderr)
+	if err != nil {
+		log.Errorf("> could not decode stderr: %v", err)
+		return
+	}
+
+	fmt.Printf("Success!\nData:\t%s\nStdout:\t%s\nStderr:\t%s\nExit Code:\t%s\n", data, stdout, stderr, results.ExitStatus)
 }
 
 func doRun(url string, id id.ID, functionID string, encryptedData []byte) (*Outputs, error) {
@@ -109,7 +135,7 @@ func doRun(url string, id id.ID, functionID string, encryptedData []byte) (*Outp
 		return nil, err
 	}
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode != http.StatusCreated {
 		return nil, fmt.Errorf("bad status code %d", res.StatusCode)
 	}
 

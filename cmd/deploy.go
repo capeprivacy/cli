@@ -111,13 +111,14 @@ func deploy(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	fmt.Println("enclave started ...")
 	id, err := doDeploy(u, enclave.id, name, buf.Bytes())
 	if err != nil {
 		log.Errorf("unable to deploy function %s", err)
 		return
 	}
 
-	fmt.Printf("Successfully deployed function. Function ID: %s", id)
+	fmt.Printf("Successfully deployed function. Function ID: %s\n", id)
 }
 
 func doDeploy(url string, id id.ID, name string, data []byte) (string, error) {

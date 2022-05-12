@@ -22,9 +22,7 @@ func Walker(w *zip.Writer, zipRoot string) filepath.WalkFunc {
 		}
 		defer file.Close()
 
-		basePath := filepath.Base(path)
-
-		f, err := w.Create(filepath.Join(zipRoot, basePath))
+		f, err := w.Create(path)
 		if err != nil {
 			return err
 		}
