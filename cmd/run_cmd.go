@@ -72,13 +72,13 @@ func run(cmd *cobra.Command, args []string) {
 	}
 
 	encryptedData, err := crypto.LocalEncrypt(enclave.attestation, inputData)
-
 	if err != nil {
 		log.Errorf("unable to encrypt data %s", err)
 	}
+
 	results, err := doRun(u, enclave.id, functionID, encryptedData)
 	if err != nil {
-		log.Errorf("unable to handle unencrypted data %s", err)
+		log.Errorf("unable to handle run %s", err)
 	}
 
 	fmt.Printf("Successfully ran function. Your results are '%s'\n", results)
