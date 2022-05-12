@@ -9,10 +9,9 @@ import (
 	"os"
 	"path/filepath"
 
-	log "github.com/sirupsen/logrus"
-
 	czip "github.com/capeprivacy/cli/zip"
 	"github.com/capeprivacy/go-kit/id"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -53,6 +52,10 @@ func deploy(cmd *cobra.Command, args []string) {
 	name := args[0]
 	functionDir := args[1]
 
+	if len(name) == 0 {
+		log.Error("function name cannot be empty")
+	}
+
 	file, err := os.Open(functionDir)
 	if err != nil {
 		log.Errorf("unable to read function directory: %s", err)
@@ -65,6 +68,11 @@ func deploy(cmd *cobra.Command, args []string) {
 
 	if !st.IsDir() {
 		log.Errorf("expected argument %s to be a directory", functionDir)
+	}
+
+	_, err = file.Readdirnames(1)
+	if err != nil {
+		log.Errorf("please pass in a non-empty directory: %s", err)
 	}
 
 	err = file.Close()
