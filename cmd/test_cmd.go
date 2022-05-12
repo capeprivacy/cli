@@ -13,9 +13,8 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/capeprivacy/cli/attest"
+	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/go-kit/id"
-	"github.com/google/tink/go/hybrid"
-	"github.com/google/tink/go/keyset"
 	"github.com/spf13/cobra"
 )
 
@@ -109,12 +108,12 @@ func test(cmd *cobra.Command, args []string) {
 }
 
 func handleData(url string, enclave *enclave, functionData []byte, inputData []byte) (*Outputs, error) {
-	encryptedFunction, err := doLocalEncrypt(enclave.attestation, functionData)
+	encryptedFunction, err := crypto.LocalEncrypt(enclave.attestation, functionData)
 	if err != nil {
 		log.Errorf("unable to encrypt data %s", err)
 	}
 
-	encryptedInputData, err := doLocalEncrypt(enclave.attestation, inputData)
+	encryptedInputData, err := crypto.LocalEncrypt(enclave.attestation, inputData)
 	if err != nil {
 		log.Errorf("unable to encrypt data %s", err)
 	}
@@ -200,27 +199,6 @@ func doTest(url string, id id.ID, functionData []byte, functionSecret []byte, se
 	}
 
 	return &resData.Results, nil
-}
-
-func doLocalEncrypt(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) {
-	buf := bytes.NewBuffer(doc.PublicKey)
-	reader := keyset.NewBinaryReader(buf)
-	khPub, err := keyset.ReadWithNoSecrets(reader)
-	if err != nil {
-		return nil, fmt.Errorf("read pubic key %s", err)
-	}
-
-	encrypt, err := hybrid.NewHybridEncrypt(khPub)
-	if err != nil {
-		return nil, err
-	}
-
-	ciphertext, err := encrypt.Encrypt(plaintext, nil)
-	if err != nil {
-		return nil, fmt.Errorf("unable to encrypt %s", err)
-	}
-
-	return ciphertext, nil
 }
 
 func getNonce() string {
