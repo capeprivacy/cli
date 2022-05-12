@@ -32,8 +32,8 @@ type RunRequest struct {
 }
 
 type RunResponse struct {
-	AttestationDocument Outputs `json:"attestation_document"`
-	Results             Outputs `json:"results"`
+	Attestation Outputs `json:"attestation"`
+	Results     Outputs `json:"results"`
 }
 
 type ErrorRunResponse struct {
@@ -84,8 +84,8 @@ func run(cmd *cobra.Command, args []string) {
 	fmt.Printf("Successfully ran function. Your results are '%s'\n", results)
 }
 
-func doRun(url string, id id.ID, functionID string, functionSecret []byte, serverSideEncrypted bool) (*Outputs, error) {
-	inputDataStr := base64.StdEncoding.EncodeToString(functionSecret)
+func doRun(url string, id id.ID, functionID string, encryptedData []byte, serverSideEncrypted bool) (*Outputs, error) {
+	inputDataStr := base64.StdEncoding.EncodeToString(encryptedData)
 
 	runReq := &RunRequest{
 		FunctionID: functionID,
