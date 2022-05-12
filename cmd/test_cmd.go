@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/capeprivacy/cli/attest"
-	"github.com/capeprivacy/cli/lib"
+	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/go-kit/id"
 	"github.com/spf13/cobra"
 )
@@ -108,12 +108,12 @@ func test(cmd *cobra.Command, args []string) {
 }
 
 func handleData(url string, enclave *enclave, functionData []byte, inputData []byte) (*Outputs, error) {
-	encryptedFunction, err := lib.LocalEncrypt(enclave.attestation, functionData)
+	encryptedFunction, err := crypto.LocalEncrypt(enclave.attestation, functionData)
 	if err != nil {
 		panic(fmt.Sprintf("unable to encrypt data %s", err))
 	}
 
-	encryptedInputData, err := lib.LocalEncrypt(enclave.attestation, inputData)
+	encryptedInputData, err := crypto.LocalEncrypt(enclave.attestation, inputData)
 	if err != nil {
 		panic(fmt.Sprintf("unable to encrypt data %s", err))
 	}
