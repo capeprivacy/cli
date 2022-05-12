@@ -54,6 +54,7 @@ func deploy(cmd *cobra.Command, args []string) {
 
 	if len(name) == 0 {
 		log.Error("function name cannot be empty")
+		return
 	}
 
 	file, err := os.Open(functionDir)
@@ -73,6 +74,7 @@ func deploy(cmd *cobra.Command, args []string) {
 	_, err = file.Readdirnames(1)
 	if err != nil {
 		log.Errorf("please pass in a non-empty directory: %s", err)
+		return
 	}
 
 	err = file.Close()
