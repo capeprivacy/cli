@@ -118,7 +118,7 @@ func handleData(url string, enclave *enclave, functionData []byte, inputData []b
 		log.Errorf("unable to encrypt data %s", err)
 	}
 
-	return doTest(url, enclave.id, encryptedFunction, encryptedInputData, false)
+	return doTest(url, enclave.id, encryptedFunction, encryptedInputData)
 }
 
 func doStart(url string) (*enclave, error) {
@@ -161,9 +161,9 @@ func doStart(url string) (*enclave, error) {
 	return &enclave{id: resData.ID, attestation: *doc}, nil
 }
 
-func doTest(url string, id id.ID, functionData []byte, functionSecret []byte, serverSideEncrypted bool) (*Outputs, error) {
-	functionDataStr := base64.StdEncoding.EncodeToString(functionData)
-	inputDataStr := base64.StdEncoding.EncodeToString(functionSecret)
+func doTest(url string, id id.ID, encryptedFunction []byte, encryptedData []byte) (*Outputs, error) {
+	functionDataStr := base64.StdEncoding.EncodeToString(encryptedFunction)
+	inputDataStr := base64.StdEncoding.EncodeToString(encryptedData)
 
 	runReq := &TestRequest{
 		Function: functionDataStr,

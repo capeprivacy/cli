@@ -76,7 +76,7 @@ func run(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Errorf("unable to encrypt data %s", err)
 	}
-	results, err := doRun(u, enclave.id, functionID, encryptedData, false)
+	results, err := doRun(u, enclave.id, functionID, encryptedData)
 	if err != nil {
 		log.Errorf("unable to handle unencrypted data %s", err)
 	}
@@ -84,7 +84,7 @@ func run(cmd *cobra.Command, args []string) {
 	fmt.Printf("Successfully ran function. Your results are '%s'\n", results)
 }
 
-func doRun(url string, id id.ID, functionID string, encryptedData []byte, serverSideEncrypted bool) (*Outputs, error) {
+func doRun(url string, id id.ID, functionID string, encryptedData []byte) (*Outputs, error) {
 	inputDataStr := base64.StdEncoding.EncodeToString(encryptedData)
 
 	runReq := &RunRequest{
