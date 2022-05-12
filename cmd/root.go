@@ -28,7 +28,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/capeprivacy/cape.yaml)")
-	rootCmd.PersistentFlags().StringP("url", "u", "http://localhost:8888", "URL of the maestro server")
+	rootCmd.PersistentFlags().StringP("url", "u", "http://localhost:8888", "Cape Cloud URL")
 }
 
 // initConfig reads in config file and ENV variables if set.

@@ -87,21 +87,25 @@ func test(cmd *cobra.Command, args []string) {
 	functionData, err := ioutil.ReadFile(functionFile)
 	if err != nil {
 		log.Errorf("unable to read function file: %s", err)
+		return
 	}
 
 	inputData, err := ioutil.ReadFile(dataFile)
 	if err != nil {
 		log.Errorf("unable to read data file: %s", err)
+		return
 	}
 
 	enclave, err := doStart(u)
 	if err != nil {
 		log.Errorf("unable to start enclave: %s", err)
+		return
 	}
 
 	results, err := handleData(u, enclave, functionData, inputData)
 	if err != nil {
 		log.Errorf("unable to run test %s", err)
+		return
 	}
 
 	fmt.Printf("Successfully ran function. Your results are: %+v \n", results)
@@ -111,11 +115,13 @@ func handleData(url string, enclave *enclave, functionData []byte, inputData []b
 	encryptedFunction, err := crypto.LocalEncrypt(enclave.attestation, functionData)
 	if err != nil {
 		log.Errorf("unable to encrypt data %s", err)
+		return nil, err
 	}
 
 	encryptedInputData, err := crypto.LocalEncrypt(enclave.attestation, inputData)
 	if err != nil {
 		log.Errorf("unable to encrypt data %s", err)
+		return nil, err
 	}
 
 	return doTest(url, enclave.id, encryptedFunction, encryptedInputData)

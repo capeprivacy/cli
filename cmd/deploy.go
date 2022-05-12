@@ -9,10 +9,9 @@ import (
 	"os"
 	"path/filepath"
 
-	log "github.com/sirupsen/logrus"
-
 	czip "github.com/capeprivacy/cli/zip"
 	"github.com/capeprivacy/go-kit/id"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -53,23 +52,38 @@ func deploy(cmd *cobra.Command, args []string) {
 	name := args[0]
 	functionDir := args[1]
 
+	if len(name) == 0 {
+		log.Error("function name cannot be empty")
+		return
+	}
+
 	file, err := os.Open(functionDir)
 	if err != nil {
 		log.Errorf("unable to read function directory: %s", err)
+		return
 	}
 
 	st, err := file.Stat()
 	if err != nil {
 		log.Errorf("unable to read function directory: %s", err)
+		return
 	}
 
 	if !st.IsDir() {
 		log.Errorf("expected argument %s to be a directory", functionDir)
+		return
+	}
+
+	_, err = file.Readdirnames(1)
+	if err != nil {
+		log.Errorf("please pass in a non-empty directory: %s", err)
+		return
 	}
 
 	err = file.Close()
 	if err != nil {
 		log.Errorf("something went wrong: %s", err)
+		return
 	}
 
 	zipRoot := filepath.Base(functionDir)
@@ -80,6 +94,7 @@ func deploy(cmd *cobra.Command, args []string) {
 	err = filepath.Walk(functionDir, czip.Walker(w, zipRoot))
 	if err != nil {
 		log.Errorf("zipping directory failed: %s", err)
+		return
 	}
 
 	// explicitly close now so that the bytes are flushed and
@@ -87,16 +102,19 @@ func deploy(cmd *cobra.Command, args []string) {
 	err = w.Close()
 	if err != nil {
 		log.Errorf("zipping directory failed: %s", err)
+		return
 	}
 
 	enclave, err := doStart(u)
 	if err != nil {
 		log.Errorf("unable to start enclave %s", err)
+		return
 	}
 
 	id, err := doDeploy(u, enclave.id, name, buf.Bytes())
 	if err != nil {
 		log.Errorf("unable to deploy function %s", err)
+		return
 	}
 
 	fmt.Printf("Successfully deployed function. Function ID: %s", id)
