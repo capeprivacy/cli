@@ -138,7 +138,7 @@ func doDeploy(url string, id id.ID, name string, data []byte) (string, error) {
 	endpoint := fmt.Sprintf("%s/v1/deploy/%s", url, id)
 	buffer := bytes.NewBuffer(body)
 
-	fmt.Println("uploading zip ...")
+	fmt.Println("Uploading zip ...")
 	uiprogress.Start()
 	bar := uiprogress.AddBar(100)
 	bar.AppendCompleted()
