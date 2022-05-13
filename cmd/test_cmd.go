@@ -148,7 +148,12 @@ func doStart(url string) (*enclave, error) {
 	}
 
 	if res.StatusCode != http.StatusAccepted {
-		return nil, fmt.Errorf("bad status code %d", res.StatusCode)
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return nil, fmt.Errorf("bad status code: %d", res.StatusCode)
+		}
+
+		return nil, fmt.Errorf("bad status code: %d, body: %s", res.StatusCode, body)
 	}
 
 	resData := StartResponse{}

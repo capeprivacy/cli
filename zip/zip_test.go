@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -39,7 +40,8 @@ func TestWalker(t *testing.T) {
 	}
 
 	expectedFileName := "001/file.py"
-	if r.File[0].Name != "001/file.py" {
+	// we make this in a temp dir so the which will have a wonky prefix
+	if !strings.HasSuffix(r.File[0].Name, "001/file.py") {
 		t.Fatalf("expected %s got %s", expectedFileName, r.File[0].Name)
 	}
 }
