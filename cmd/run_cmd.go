@@ -66,15 +66,15 @@ func run(cmd *cobra.Command, args []string) {
 		log.Errorf("unable to read data file: %s", err)
 	}
 
-	fmt.Println("> starting enclave ...")
+	fmt.Println("> Starting enclave ...")
 	enclave, err := doStart(u)
 	if err != nil {
 		log.Errorf("unable to start enclave: %s", err)
 		return
 	}
 
-	fmt.Println("> enclave started")
-	fmt.Println("> encrypting input data ...")
+	fmt.Println("> Enclave started")
+	fmt.Println("> Encrypting input data ...")
 
 	encryptedData, err := crypto.LocalEncrypt(enclave.attestation, inputData)
 	if err != nil {
