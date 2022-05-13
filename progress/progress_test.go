@@ -36,7 +36,7 @@ func TestProgress(t *testing.T) {
 
 	size := fi.Size()
 
-	var progress float64 = 0
+	var progress float64
 	pr := &Reader{Reader: f, Size: size, Reporter: func(p float64) {
 		if p < progress {
 			t.Errorf("progress should increase towards 1, got %f, previous: %f", p, progress)
