@@ -9,8 +9,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/capeprivacy/cli/progress"
 	czip "github.com/capeprivacy/cli/zip"
 	"github.com/capeprivacy/go-kit/id"
+	"github.com/gosuri/uiprogress"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -134,7 +136,19 @@ func doDeploy(url string, id id.ID, name string, data []byte) (string, error) {
 	}
 
 	endpoint := fmt.Sprintf("%s/v1/deploy/%s", url, id)
-	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(body))
+	buffer := bytes.NewBuffer(body)
+
+	fmt.Println("Uploading zip ...")
+	uiprogress.Start()
+	bar := uiprogress.AddBar(100)
+	bar.AppendCompleted()
+	pr := &progress.Reader{Reader: buffer, Size: int64(buffer.Len()), Reporter: func(progress float64) {
+		p := int(progress * 100)
+		if err := bar.Set(p); err != nil {
+			fmt.Println("Upload progress:", p)
+		}
+	}}
+	req, err := http.NewRequest("POST", endpoint, pr)
 	if err != nil {
 		return "", fmt.Errorf("unable to create request %s", err)
 	}

@@ -14,3 +14,5 @@ cape
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+.DS_Store
