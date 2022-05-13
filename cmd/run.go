@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/go-kit/id"
@@ -66,15 +67,15 @@ func run(cmd *cobra.Command, args []string) {
 		log.Errorf("unable to read data file: %s", err)
 	}
 
-	fmt.Println("> Starting enclave ...")
+	fmt.Fprintln(os.Stderr, "> Starting enclave ...")
 	enclave, err := doStart(u)
 	if err != nil {
 		log.Errorf("unable to start enclave: %s", err)
 		return
 	}
 
-	fmt.Println("> Enclave started")
-	fmt.Println("> Encrypting input data ...")
+	fmt.Fprintln(os.Stderr, "> Enclave started")
+	fmt.Fprintln(os.Stderr, "> Encrypting input data ...")
 
 	encryptedData, err := crypto.LocalEncrypt(enclave.attestation, inputData)
 	if err != nil {
@@ -82,7 +83,7 @@ func run(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("> Processing ...")
+	fmt.Fprintln(os.Stderr, "> Processing ...")
 	results, err := doRun(u, enclave.id, functionID, encryptedData)
 	if err != nil {
 		log.Errorf("> error processing data: %s", err)
@@ -107,7 +108,13 @@ func run(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("Success!\nData:\t%s\nStdout:\t%s\nStderr:\t%s\nExit Code:\t%s\n", data, stdout, stderr, results.ExitStatus)
+	if results.ExitStatus != "0" {
+		fmt.Fprintf(os.Stderr, "Error!\nStdout:\t%s\nStderr:\t%s\nExit Code:\t%s\n", stdout, stderr, results.ExitStatus)
+		return
+	}
+
+	fmt.Fprintf(os.Stderr, "Success!\nStdout:\t%s\nStderr:\t%s\nExit Code:\t%s\n", stdout, stderr, results.ExitStatus)
+	fmt.Println(string(data))
 }
 
 func doRun(url string, id id.ID, functionID string, encryptedData []byte) (*Outputs, error) {
