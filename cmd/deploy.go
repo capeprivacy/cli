@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -62,24 +63,30 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	functionDir := args[0]
-	name := functionDir
+	functionInput := args[0]
+	name := functionInput
 	if n != "" {
 		name = n
 	}
 
-	file, err := os.Open(functionDir)
+	file, err := os.Open(functionInput)
 	if err != nil {
-		return fmt.Errorf("unable to read function directory: %w", err)
+		return fmt.Errorf("unable to read function directory or file: %w", err)
 	}
 
 	st, err := file.Stat()
 	if err != nil {
-		return fmt.Errorf("unable to read function directory: %s", err)
+		return fmt.Errorf("unable to read function file or directory: %s", err)
 	}
-
+	isZip := false
 	if !st.IsDir() {
-		return fmt.Errorf("expected argument %s to be a directory", functionDir)
+		// Check if file ends with ".zip" extension.
+		fileExtension := filepath.Ext(functionInput)
+		if fileExtension != ".zip" {
+			return fmt.Errorf("expected argument %s to be a zip file or directory", functionInput)
+		}
+		isZip = true
+
 	}
 
 	_, err = file.Readdirnames(1)
@@ -92,21 +99,41 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("something went wrong: %w", err)
 	}
 
-	zipRoot := filepath.Base(functionDir)
-
 	buf := new(bytes.Buffer)
-	w := zip.NewWriter(buf)
 
-	err = filepath.Walk(functionDir, czip.Walker(w, zipRoot))
-	if err != nil {
-		return fmt.Errorf("zipping directory failed: %w", err)
-	}
+	if isZip {
+		f, err := os.Open(functionInput)
+		if err != nil {
+			return fmt.Errorf("unable to read function directory or file: %w", err)
+		}
+		nBytes, err := io.Copy(buf, f)
+		if nBytes <= 0 {
+			return fmt.Errorf("zip file provided is empty")
+		}
+		if err != nil {
+			return fmt.Errorf("unable to read function directory or file: %w", err)
+		}
+		err = f.Close()
+		if err != nil {
+			return fmt.Errorf("something went wrong: %w", err)
+		}
 
-	// explicitly close now so that the bytes are flushed and
-	// available in buf.Bytes() below.
-	err = w.Close()
-	if err != nil {
-		return fmt.Errorf("zipping directory failed: %w", err)
+	} else {
+		zipRoot := filepath.Base(functionInput)
+		w := zip.NewWriter(buf)
+
+		err = filepath.Walk(functionInput, czip.Walker(w, zipRoot))
+		if err != nil {
+			return fmt.Errorf("zipping directory failed: %w", err)
+		}
+
+		// explicitly close now so that the bytes are flushed and
+		// available in buf.Bytes() below.
+		err = w.Close()
+		if err != nil {
+			return fmt.Errorf("zipping directory failed: %w", err)
+		}
+
 	}
 
 	enclave, err := doStart(u)
