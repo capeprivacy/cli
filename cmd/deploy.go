@@ -131,7 +131,6 @@ func deploy(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("zipping directory failed: %w", err)
 		}
-
 	}
 
 	enclave, err := doStart(u)
