@@ -11,9 +11,10 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	czip "github.com/capeprivacy/cli/zip"
 	"github.com/capeprivacy/go-kit/id"
 	"github.com/spf13/cobra"
+
+	czip "github.com/capeprivacy/cli/zip"
 )
 
 type DeployRequest struct {
