@@ -104,7 +104,8 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	if results.ExitStatus != "0" {
-		return fmt.Errorf("Error!\nStdout:\t%s\nStderr:\t%s\nExit Code:\t%s\n", stdout, stderr, results.ExitStatus)
+		fmt.Fprintf(os.Stderr, "error!\nStdout:\t%s\nStderr:\t%s\nExit Code:\t%s\n", stdout, stderr, results.ExitStatus)
+		return nil
 	}
 
 	fmt.Fprintf(os.Stderr, "Success! Results from your function\n\tStdout:\t%s\n\tStderr:\t%s\n\tExit Code:\t%s\n", stdout, stderr, results.ExitStatus)
