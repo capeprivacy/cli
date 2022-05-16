@@ -79,18 +79,18 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("unable to read function file or directory: %s", err)
 	}
 	isZip := false
-	if !st.IsDir() {
+	if st.IsDir() {
+		_, err = file.Readdirnames(1)
+		if err != nil {
+			return fmt.Errorf("please pass in a non-empty directory: %w", err)
+		}
+	} else {
 		// Check if file ends with ".zip" extension.
 		fileExtension := filepath.Ext(functionInput)
 		if fileExtension != ".zip" {
 			return fmt.Errorf("expected argument %s to be a zip file or directory", functionInput)
 		}
 		isZip = true
-	}
-
-	_, err = file.Readdirnames(1)
-	if err != nil {
-		return fmt.Errorf("please pass in a non-empty directory: %w", err)
 	}
 
 	err = file.Close()
@@ -125,7 +125,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("zipping directory failed: %w", err)
 		}
 
-		// explicitly close now so that the bytes are flushed and
+		// Explicitly close now so that the bytes are flushed and
 		// available in buf.Bytes() below.
 		err = w.Close()
 		if err != nil {
