@@ -86,7 +86,6 @@ func deploy(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("expected argument %s to be a zip file or directory", functionInput)
 		}
 		isZip = true
-
 	}
 
 	_, err = file.Readdirnames(1)
@@ -104,20 +103,19 @@ func deploy(cmd *cobra.Command, args []string) error {
 	if isZip {
 		f, err := os.Open(functionInput)
 		if err != nil {
-			return fmt.Errorf("unable to read function directory or file: %w", err)
+			return fmt.Errorf("unable to read function file: %w", err)
 		}
 		nBytes, err := io.Copy(buf, f)
 		if nBytes <= 0 {
 			return fmt.Errorf("zip file provided is empty")
 		}
 		if err != nil {
-			return fmt.Errorf("unable to read function directory or file: %w", err)
+			return fmt.Errorf("unable to read function file: %w", err)
 		}
 		err = f.Close()
 		if err != nil {
 			return fmt.Errorf("something went wrong: %w", err)
 		}
-
 	} else {
 		zipRoot := filepath.Base(functionInput)
 		w := zip.NewWriter(buf)
