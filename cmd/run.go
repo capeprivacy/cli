@@ -8,19 +8,20 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/briandowns/spinner"
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/go-kit/id"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 // runCmd represents the request command
 var runCmd = &cobra.Command{
-	Use:   "run",
+	Use:   "run [function id] [input data]",
 	Short: "run a deployed function with data",
 	Long:  "run a deployed function with data, takes function id and path to data",
-	Run:   run,
+	RunE:  run,
 }
 
 type RunRequest struct {
@@ -47,16 +48,14 @@ func init() {
 	runCmd.PersistentFlags().StringP("token", "t", "", "token to use")
 }
 
-func run(cmd *cobra.Command, args []string) {
+func run(cmd *cobra.Command, args []string) error {
 	u, err := cmd.Flags().GetString("url")
 	if err != nil {
-		log.Errorf("flag not found: %s", err)
+		return fmt.Errorf("flag not found: %w", err)
 	}
 
 	if len(args) != 2 {
-		log.Error("Error, invalid arguments")
-		_ = cmd.Help()
-		return
+		return fmt.Errorf("you must pass a function ID and input data")
 	}
 
 	functionID := args[0]
@@ -64,57 +63,54 @@ func run(cmd *cobra.Command, args []string) {
 
 	inputData, err := ioutil.ReadFile(dataFile)
 	if err != nil {
-		log.Errorf("unable to read data file: %s", err)
+		return fmt.Errorf("unable to read data file: %w", err)
 	}
 
-	fmt.Fprintln(os.Stderr, "> Starting enclave ...")
 	enclave, err := doStart(u)
 	if err != nil {
-		log.Errorf("unable to start enclave: %s", err)
-		return
+		return fmt.Errorf("unable to start enclave: %w", err)
 	}
-
-	fmt.Fprintln(os.Stderr, "> Enclave started")
-	fmt.Fprintln(os.Stderr, "> Encrypting input data ...")
 
 	encryptedData, err := crypto.LocalEncrypt(enclave.attestation, inputData)
 	if err != nil {
-		log.Errorf("unable to encrypt data %s", err)
-		return
+		return fmt.Errorf("unable to encrypt data %w", err)
 	}
 
-	fmt.Fprintln(os.Stderr, "> Processing ...")
+	s := spinner.New(spinner.CharSets[26], 300*time.Millisecond)
+	s.Prefix = fmt.Sprintf("Running function %s with data %s ", functionID, dataFile)
+	s.Writer = os.Stderr
+	s.Start()
+
 	results, err := doRun(u, enclave.id, functionID, encryptedData)
 	if err != nil {
-		log.Errorf("> error processing data: %s", err)
-		return
+		return fmt.Errorf("error processing data: %w", err)
 	}
+
+	s.Stop()
 
 	data, err := base64.StdEncoding.DecodeString(results.Data)
 	if err != nil {
-		log.Errorf("> could not decode results.data: %v", err)
-		return
+		return fmt.Errorf("could not decode results.data: %w", err)
 	}
 
 	stdout, err := base64.StdEncoding.DecodeString(results.Stdout)
 	if err != nil {
-		log.Errorf("> could not decode stdout: %v", err)
-		return
+		return fmt.Errorf("could not decode stdout: %w", err)
 	}
 
 	stderr, err := base64.StdEncoding.DecodeString(results.Stderr)
 	if err != nil {
-		log.Errorf("> could not decode stderr: %v", err)
-		return
+		return fmt.Errorf("could not decode stderr: %w", err)
 	}
 
 	if results.ExitStatus != "0" {
-		fmt.Fprintf(os.Stderr, "Error!\nStdout:\t%s\nStderr:\t%s\nExit Code:\t%s\n", stdout, stderr, results.ExitStatus)
-		return
+		fmt.Fprintf(os.Stderr, "error!\nStdout:\t%s\nStderr:\t%s\nExit Code:\t%s\n", stdout, stderr, results.ExitStatus)
+		return nil
 	}
 
-	fmt.Fprintf(os.Stderr, "Success!\nStdout:\t%s\nStderr:\t%s\nExit Code:\t%s\n", stdout, stderr, results.ExitStatus)
+	fmt.Fprintf(os.Stderr, "Success! Results from your function\n\tStdout:\t%s\n\tStderr:\t%s\n\tExit Code:\t%s\n", stdout, stderr, results.ExitStatus)
 	fmt.Println(string(data))
+	return nil
 }
 
 func doRun(url string, id id.ID, functionID string, encryptedData []byte) (*Outputs, error) {
