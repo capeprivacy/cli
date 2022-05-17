@@ -12,10 +12,11 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/capeprivacy/cli/attest"
-	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/go-kit/id"
 	"github.com/spf13/cobra"
+
+	"github.com/capeprivacy/cli/attest"
+	"github.com/capeprivacy/cli/crypto"
 )
 
 type StartRequest struct {

@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/capeprivacy/cli/attest"
 	"github.com/google/tink/go/hybrid"
 	"github.com/google/tink/go/keyset"
+
+	"github.com/capeprivacy/cli/attest"
 )
 
 func LocalEncrypt(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) {
