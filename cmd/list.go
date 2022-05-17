@@ -40,7 +40,7 @@ func list(cmd *cobra.Command, args []string) error {
 	fmt.Print("Success! \n ID | Function Name \n")
 
 	for _, r := range results {
-		fmt.Printf("%s | %s \n, r.ID, r.Name)
+		fmt.Printf("%s | %s \n", r.ID, r.Name)
 	}
 
 	return nil
