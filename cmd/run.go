@@ -11,9 +11,10 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/go-kit/id"
 	"github.com/spf13/cobra"
+
+	"github.com/capeprivacy/cli/crypto"
 )
 
 // runCmd represents the request command
