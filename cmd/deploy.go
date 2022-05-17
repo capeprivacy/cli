@@ -106,11 +106,11 @@ func deploy(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("unable to read function file: %w", err)
 		}
 		nBytes, err := io.Copy(buf, f)
-		if nBytes <= 0 {
-			return fmt.Errorf("zip file provided is empty")
-		}
 		if err != nil {
 			return fmt.Errorf("unable to read function file: %w", err)
+		}
+		if nBytes <= 0 {
+			return fmt.Errorf("zip file provided is empty")
 		}
 		err = f.Close()
 		if err != nil {
