@@ -49,7 +49,7 @@ func doList(url string) ([]DeploymentName, error) {
 
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
-		return nil, fmt.Errorf("got error when requesting the list endpoint %s", err)
+		return nil, fmt.Errorf("unable to create list request %s", err)
 	}
 
 	res, err := http.DefaultClient.Do(req)
