@@ -37,8 +37,10 @@ func list(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("unable to list deployed function names %w", err)
 	}
 
+	fmt.Print("Success! \n ID | Function Name \n")
+
 	for _, r := range results {
-		fmt.Printf("Success! ID | Function Name \n %s | %s", r.ID, r.Name)
+		fmt.Printf("%s | %s", r.ID, r.Name)
 	}
 
 	return nil
