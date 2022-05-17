@@ -14,7 +14,7 @@ type DeploymentName struct {
 	Name string
 }
 
-// runCmd represents the request command
+// listCmd represents the request command
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "list function names",
