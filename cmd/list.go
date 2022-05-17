@@ -17,8 +17,8 @@ type DeploymentName struct {
 // listCmd represents the request command
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "list function names",
-	Long:  "list all deployed function names",
+	Short: "list deployed functions",
+	Long:  "list all deployed functions (ID and function name)",
 	RunE:  list,
 }
 
@@ -40,7 +40,7 @@ func list(cmd *cobra.Command, args []string) error {
 	fmt.Print("Success! \n ID | Function Name \n")
 
 	for _, r := range results {
-		fmt.Printf("%s | %s", r.ID, r.Name)
+		fmt.Printf("%s | %s \n, r.ID, r.Name)
 	}
 
 	return nil
