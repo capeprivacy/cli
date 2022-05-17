@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/capeprivacy/go-kit/id"
+	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 )
 
@@ -34,13 +36,15 @@ func list(cmd *cobra.Command, args []string) error {
 
 	results, err := doList(u)
 	if err != nil {
-		return fmt.Errorf("unable to list deployed function names %w", err)
+		return fmt.Errorf("unable to list deployed functions %w", err)
 	}
 
-	fmt.Print("Success! \n ID | Function Name \n")
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader([]interface{}{"Deployment ID", "Function Name"})
 
 	for _, r := range results {
-		fmt.Printf("%s | %s \n", r.ID, r.Name)
+		t.AppendRow(table.Row{r.ID, r.Name})
 	}
 
 	return nil
