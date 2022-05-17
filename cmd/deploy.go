@@ -27,7 +27,7 @@ type DeployResponse struct {
 	AttestationDocument string `json:"attestation_document"`
 }
 
-// runCmd represents the request command
+// deployCmd represents the request command
 var deployCmd = &cobra.Command{
 	Use:   "deploy [directory]",
 	Short: "deploy a function",
