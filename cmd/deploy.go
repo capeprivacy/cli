@@ -77,7 +77,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 
 	st, err := file.Stat()
 	if err != nil {
-		return fmt.Errorf("unable to read function file or directory: %s", err)
+		return fmt.Errorf("unable to read function file or directory: %w", err)
 	}
 	isZip := false
 	if st.IsDir() {
