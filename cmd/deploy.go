@@ -145,7 +145,7 @@ func doDeploy(url string, id id.ID, name string, data []byte) (string, error) {
 	}
 
 	err = setLoginCookie(req)
-	if err != nil{
+	if err != nil {
 		return "", fmt.Errorf("error setting login cookie")
 	}
 

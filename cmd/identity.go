@@ -96,10 +96,10 @@ func setLoginCookie(req *http.Request) error {
 	}
 
 	t := tokenResponse.AccessToken
-	if t == ""{
+	if t == "" {
 		return errors.New("empty access token")
 	}
 
-	req.AddCookie(&http.Cookie{Name: "login_token", Value: tokenResponse.AccessToken})
+	req.AddCookie(&http.Cookie{Name: "login_token", Value: t})
 	return nil
 }

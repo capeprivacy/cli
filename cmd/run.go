@@ -135,7 +135,7 @@ func doRun(url string, id id.ID, functionID string, encryptedData []byte) (*Outp
 	}
 
 	err = setLoginCookie(req)
-	if err != nil{
+	if err != nil {
 		return nil, fmt.Errorf("error setting login cookie")
 	}
 
