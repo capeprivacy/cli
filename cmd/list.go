@@ -47,6 +47,8 @@ func list(cmd *cobra.Command, args []string) error {
 		t.AppendRow(table.Row{r.ID, r.Name})
 	}
 
+	t.Render()
+
 	return nil
 }
 
