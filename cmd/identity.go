@@ -88,3 +88,18 @@ func getUserIdentity(accessToken string) error {
 
 	return nil
 }
+
+func setLoginCookie(req *http.Request) error {
+	tokenResponse, err := getTokenResponse()
+	if err != nil {
+		return err
+	}
+
+	t := tokenResponse.AccessToken
+	if t == ""{
+		return errors.New("empty access token")
+	}
+
+	req.AddCookie(&http.Cookie{Name: "login_token", Value: tokenResponse.AccessToken})
+	return nil
+}

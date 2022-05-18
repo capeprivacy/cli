@@ -144,6 +144,11 @@ func doDeploy(url string, id id.ID, name string, data []byte) (string, error) {
 		return "", fmt.Errorf("unable to create request %s", err)
 	}
 
+	err = setLoginCookie(req)
+	if err != nil{
+		return "", fmt.Errorf("error setting login cookie")
+	}
+
 	s := spinner.New(spinner.CharSets[26], 300*time.Millisecond)
 	s.Prefix = "Deploying function to Cape "
 	s.Start()
