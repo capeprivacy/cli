@@ -72,22 +72,7 @@ func login(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	authJSON, err := json.MarshalIndent(tokenResponse, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	err = os.MkdirAll(fmt.Sprintf("%s/%s", home, localAuthDir), os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	err = ioutil.WriteFile(fmt.Sprintf("%s/%s/%s", home, localAuthDir, localAuthFileName), authJSON, 0644)
+	err = persistTokenResponse(tokenResponse)
 	if err != nil {
 		return err
 	}
@@ -98,7 +83,7 @@ func login(cmd *cobra.Command, args []string) error {
 
 func newDeviceCode() (*DeviceCodeResponse, error) {
 	deviceCodeURL := fmt.Sprintf("%s/oauth/device/code", hostname)
-	payloadStr := fmt.Sprintf("client_id=%s&scope=openid%%20profile%%20email&audience=%s", clientID, audience)
+	payloadStr := fmt.Sprintf("client_id=%s&scope=openid%%20profile%%20email%%20offline_access&audience=%s", clientID, audience)
 	req, err := http.NewRequest("POST", deviceCodeURL, strings.NewReader(payloadStr))
 	if err != nil {
 		return nil, err
@@ -164,6 +149,95 @@ func getToken(deviceCode string) (*TokenResponse, error) {
 	}
 
 	return &response, nil
+}
+
+func persistTokenResponse(response *TokenResponse) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	authJSON, err := json.MarshalIndent(response, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(fmt.Sprintf("%s/%s", home, localAuthDir), os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(fmt.Sprintf("%s/%s/%s", home, localAuthDir, localAuthFileName), authJSON, 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getTokenResponse() (*TokenResponse, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, err
+	}
+
+	authFile, err := os.Open(fmt.Sprintf("%s/%s/%s", home, localAuthDir, localAuthFileName))
+	if err != nil {
+		return nil, err
+	}
+	defer authFile.Close()
+
+	byteValue, err := ioutil.ReadAll(authFile)
+	if err != nil {
+		return nil, err
+	}
+
+	var response TokenResponse
+	err = json.Unmarshal(byteValue, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response, nil
+}
+
+func refreshTokenResponse(refreshToken string) error {
+	deviceCodeURL := fmt.Sprintf("%s/oauth/token", hostname)
+	payloadStr := fmt.Sprintf("grant_type=refresh_token&client_id=%s&refresh_token=%s", clientID, refreshToken)
+	req, err := http.NewRequest("POST", deviceCodeURL, strings.NewReader(payloadStr))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("content-type", "application/x-www-form-urlencoded")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode != 200 {
+		return errors.New("unable to refresh authentication details")
+	}
+
+	response := TokenResponse{}
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		return err
+	}
+
+	response.RefreshToken = refreshToken
+	err = persistTokenResponse(&response)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Taken from GIST: https://gist.github.com/hyg/9c4afcd91fe24316cbf0

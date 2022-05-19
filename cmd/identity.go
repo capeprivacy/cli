@@ -1,17 +1,19 @@
 package cmd
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 
 	"github.com/spf13/cobra"
 )
 
-var apiURL = "https://newdemo.capeprivacy.com"
+var apiURL = "http://localhost:8080"
+
+type UserResponse struct {
+	ID string `json:"id"`
+}
 
 var identityCmd = &cobra.Command{
 	Use:   "identity",
@@ -24,67 +26,66 @@ func init() {
 }
 
 func identity(cmd *cobra.Command, args []string) error {
-	tokenResponse, err := getTokenResponse()
+	accessToken, err := getAccessToken()
 	if err != nil {
 		return err
 	}
 
-	err = getUserIdentity(tokenResponse.AccessToken)
+	identity, err := getUserIdentity(*accessToken)
 	if err != nil {
 		return err
 	}
 
+	fmt.Printf("cape identity: %s\n", identity)
 	return nil
 }
 
-func getTokenResponse() (*TokenResponse, error) {
-	home, err := os.UserHomeDir()
+func getAccessToken() (*string, error) {
+	tokenResponse, err := getTokenResponse()
 	if err != nil {
 		return nil, err
 	}
 
-	authFile, err := os.Open(fmt.Sprintf("%s/%s/%s", home, localAuthDir, localAuthFileName))
-	if err != nil {
-		return nil, err
-	}
-	defer authFile.Close()
-
-	byteValue, err := ioutil.ReadAll(authFile)
-	if err != nil {
-		return nil, err
+	_, err = getUserIdentity(tokenResponse.AccessToken)
+	if err == nil {
+		return &tokenResponse.AccessToken, nil
 	}
 
-	var response TokenResponse
-	err = json.Unmarshal(byteValue, &response)
+	err = refreshTokenResponse(tokenResponse.RefreshToken)
 	if err != nil {
 		return nil, err
 	}
 
-	return &response, nil
+	tokenResponse, err = getTokenResponse()
+	if err != nil {
+		return nil, err
+	}
+
+	return &tokenResponse.AccessToken, nil
 }
 
-func getUserIdentity(accessToken string) error {
-	identityURL := fmt.Sprintf("%sv1/user/identity", apiURL)
+func getUserIdentity(accessToken string) (*UserResponse, error) {
+	identityURL := fmt.Sprintf("%s/v1/user/identity", apiURL)
 	req, err := http.NewRequest("GET", identityURL, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	req.Header.Add("authorization", fmt.Sprintf("Bearer %s", accessToken))
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer res.Body.Close()
 	_, err = ioutil.ReadAll(res.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if res.StatusCode != 200 {
-		return errors.New("invalid response code received")
+		return nil, errors.New("invalid response code received")
 	}
 
-	return nil
+	return &UserResponse{ID: "TBD"}, nil
 }
