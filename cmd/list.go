@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/capeprivacy/go-kit/id"
-	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/table"
 	"github.com/spf13/cobra"
 )
 
@@ -40,14 +39,14 @@ func list(cmd *cobra.Command, args []string) error {
 	}
 
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
+	t.SetOutputMirror(cmd.OutOrStdout())
 	t.AppendHeader([]interface{}{"Deployment ID", "Function Name"})
 
 	for _, r := range results {
 		t.AppendRow(table.Row{r.ID, r.Name})
 	}
 
-	fmt.Fprint(cmd.OutOrStdout(), t.Render())
+	t.Render()
 
 	return nil
 }

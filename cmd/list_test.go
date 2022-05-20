@@ -36,7 +36,6 @@ func TestList(t *testing.T) {
 	}
 
 	tbl := b.String()
-
 	sp := strings.Split(tbl, "|")
 	spp := strings.Split(strings.Join(sp, ""), "+---------------+---------------+")
 
@@ -47,7 +46,7 @@ func TestList(t *testing.T) {
 		}
 	}
 
-	got := parsed[1:]
+	got := parsed[1:2]
 	want := []string{"abc123cool-funcabc456cool-func2"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("unexpected table values. got: %s, want: %s", got, want)
