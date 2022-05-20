@@ -46,9 +46,7 @@ func TestList(t *testing.T) {
 		}
 	}
 
-	got := parsed[1:2]
-	want := []string{"abc123cool-funcabc456cool-func2"}
-	if !reflect.DeepEqual(got, want) {
+	if got, want := parsed[1:2], []string{"abc123cool-funcabc456cool-func2"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("unexpected table values. got: %s, want: %s", got, want)
 	}
 }
