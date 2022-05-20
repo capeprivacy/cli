@@ -8,7 +8,9 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/briandowns/spinner"
@@ -33,7 +35,7 @@ type DeployResponse struct {
 var deployCmd = &cobra.Command{
 	Use:   "deploy [directory | zip file]",
 	Short: "deploy a function",
-	Long: `Deploy a function to Cape. 
+	Long: `Deploy a function to Cape.
 
 This will return an ID that can later be used to invoke the deployed function
 with cape run (see cape run -h for details).
@@ -169,6 +171,14 @@ func doDeploy(url string, id id.ID, name string, data []byte) (string, error) {
 	}
 
 	s := spinner.New(spinner.CharSets[26], 300*time.Millisecond)
+	defer s.Stop()
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		s.Stop()
+		os.Exit(1)
+	}()
 	s.Prefix = "Deploying function to Cape "
 	s.Start()
 
@@ -176,8 +186,6 @@ func doDeploy(url string, id id.ID, name string, data []byte) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("request failed %s", err)
 	}
-
-	s.Stop()
 
 	if res.StatusCode != http.StatusCreated {
 		return "", fmt.Errorf("bad status code %d", res.StatusCode)
