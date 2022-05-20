@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -37,16 +38,16 @@ func TestList(t *testing.T) {
 
 	tbl := b.String()
 	sp := strings.Split(tbl, "|")
-	spp := strings.Split(strings.Join(sp, ""), "+---------------+---------------+")
 
 	parsed := []string{}
-	for _, str := range spp {
-		if str != "" {
-			parsed = append(parsed, strings.ReplaceAll(strings.ReplaceAll(strings.TrimSpace(str), " ", ""), "\n", ""))
+	for _, str := range sp {
+		if !strings.Contains(str, "+-") && str != "\n" {
+			fmt.Printf("hello! %s hello\n", str)
+			parsed = append(parsed, strings.ReplaceAll(strings.ReplaceAll(str, " ", ""), "\n", ""))
 		}
 	}
 
-	if got, want := parsed[1:2], []string{"abc123cool-funcabc456cool-func2"}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("unexpected table values. got: %s, want: %s", got, want)
+	if got, want := parsed, []string{"DEPLOYMENT_ID", "FUNCTION_NAME", "abc123", "cool-func", "abc456", "cool-func2"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("unexpected table headers and values. got: %s, want: %s", got, want)
 	}
 }

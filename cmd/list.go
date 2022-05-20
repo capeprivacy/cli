@@ -40,7 +40,7 @@ func list(cmd *cobra.Command, args []string) error {
 
 	t := table.NewWriter()
 	t.SetOutputMirror(cmd.OutOrStdout())
-	t.AppendHeader([]interface{}{"Deployment ID", "Function Name"})
+	t.AppendHeader([]interface{}{"deployment_id", "function_name"})
 
 	for _, r := range results {
 		t.AppendRow(table.Row{r.ID, r.Name})
