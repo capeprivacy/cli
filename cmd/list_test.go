@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -42,7 +41,6 @@ func TestList(t *testing.T) {
 	parsed := []string{}
 	for _, str := range sp {
 		if !strings.Contains(str, "+-") && str != "\n" {
-			fmt.Printf("hello! %s hello\n", str)
 			parsed = append(parsed, strings.ReplaceAll(strings.ReplaceAll(str, " ", ""), "\n", ""))
 		}
 	}
