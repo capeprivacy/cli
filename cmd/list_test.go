@@ -2,23 +2,17 @@ package cmd
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"strings"
 	"testing"
-
-	gHTTP "github.com/capeprivacy/go-kit/http"
 )
 
 func TestList(t *testing.T) {
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		deployments := []DeploymentName{
-			{"abc123", "cool-func"},
-			{"abc456", "cool-func2"},
-		}
-
-		gHTTP.RespondWithJSON(w, http.StatusOK, deployments)
+		fmt.Fprintln(w, `[{"ID":"abc123","Name":"cool-func"},{"ID":"abc456","Name":"cool-func2"}]`)
 	}))
 
 	defer s.Close()
