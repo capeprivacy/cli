@@ -8,22 +8,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gorilla/mux"
-
 	gHTTP "github.com/capeprivacy/go-kit/http"
 )
 
 func TestList(t *testing.T) {
-	r := mux.NewRouter()
-	r.HandleFunc("/v1/list", func(w http.ResponseWriter, r *http.Request) {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		deployments := []DeploymentName{
 			{"abc123", "cool-func"},
 			{"abc456", "cool-func2"},
 		}
 
 		gHTTP.RespondWithJSON(w, http.StatusOK, deployments)
-	})
-	s := httptest.NewServer(r)
+	}))
+
 	defer s.Close()
 
 	b := new(bytes.Buffer)
