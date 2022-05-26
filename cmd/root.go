@@ -15,7 +15,7 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "cape",
 	Short: "Cape command",
-	Long:  `Cape command cape command cape command`,
+	Long:  `Cape command line tool`,
 }
 
 // ExecuteCLI adds all child commands to the root command and sets flags appropriately.

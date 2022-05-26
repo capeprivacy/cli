@@ -43,7 +43,7 @@ func getTokenResponse() (*TokenResponse, error) {
 		return nil, err
 	}
 
-	authFile, err := os.Open(fmt.Sprintf("%s/%s/%s", home, C.Login.LocalAuthDir, C.Login.LocalAuthFileName))
+	authFile, err := os.Open(fmt.Sprintf("%s/%s/%s", home, C.LocalAuthDir, C.LocalAuthFileName))
 	if err != nil {
 		return nil, err
 	}
