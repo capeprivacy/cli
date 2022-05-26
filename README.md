@@ -19,3 +19,13 @@ Successfully ran function. Your results are '<RESULTS GO HERE>'
 ```
 go build -o cape main.go
 ```
+## Config
+For login purposes the following environment variables can be configured:
+```
+CLI_HOSTNAME                String    https://maestro-dev.us.auth0.com
+CLI_CLIENT_ID               String    yQnobkOr1pvdDAyXwNojkNV2IPbNfXxx
+CLI_AUDIENCE                String    https://newdemo.capeprivacy.com/v1/
+CLI_LOCAL_AUTH_DIR          String    .cape
+CLI_LOCAL_AUTH_FILE_NAME    String    auth
+```
+
