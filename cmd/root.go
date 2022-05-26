@@ -15,7 +15,7 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "cape",
 	Short: "Cape command",
-	Long:  `Cape command cape command cape command`,
+	Long:  `Cape commandline tool`,
 }
 
 // ExecuteCLI adds all child commands to the root command and sets flags appropriately.
@@ -33,6 +33,16 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	viper.SetEnvPrefix("CLI")
+	viper.BindEnv("HOSTNAME")
+	viper.BindEnv("CLIENT_ID")
+	viper.BindEnv("AUDIENCE")
+	viper.BindEnv("LOCAL_AUTH_DIR")
+	viper.BindEnv("LOCAL_AUTH_FILE_NAME")
+
+	// Testing
+	audience := viper.Get("AUDIENCE")
+	fmt.Printf("audience is: %s", audience)
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
@@ -45,10 +55,10 @@ func initConfig() {
 		viper.AddConfigPath(home + "/.config/capeprivacy")
 		viper.SetConfigType("yaml")
 		viper.SetConfigName("cape")
+		viper.WriteConfig()
 	}
-
+	viper.SafeWriteConfigAs("./")
 	viper.AutomaticEnv() // read in environment variables that match
-
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
