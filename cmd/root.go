@@ -47,12 +47,10 @@ func initConfig() {
 	viper.SetDefault("LOCAL_AUTH_FILE_NAME", "auth")
 
 	if cfgFile != "" {
-		fmt.Println("found config file")
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
 	} else {
 		// Find home directory.
-		fmt.Println("trying to write config now")
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
@@ -67,7 +65,6 @@ func initConfig() {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
 	// GetString takes into account the prefix if enviornment variables are specified.
-	fmt.Print(viper.GetString("LOCAL_AUTH_DIR"))
 	C.Audience = viper.GetString("AUDIENCE")
 	C.Hostname = viper.GetString("HOSTNAME")
 	C.ClientID = viper.GetString("CLIENT_ID")
