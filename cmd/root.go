@@ -33,21 +33,26 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	// Set up environment configs.
 	viper.SetEnvPrefix("CLI")
 	viper.BindEnv("HOSTNAME")
+	viper.SetDefault("HOSTNAME", "https://maestro-dev.us.auth0.com")
 	viper.BindEnv("CLIENT_ID")
+	viper.SetDefault("CLIENT_ID", "yQnobkOr1pvdDAyXwNojkNV2IPbNfXxx")
 	viper.BindEnv("AUDIENCE")
+	viper.SetDefault("AUDIENCE", "https://newdemo.capeprivacy.com/v1/")
 	viper.BindEnv("LOCAL_AUTH_DIR")
+	viper.SetDefault("LOCAL_AUTH_DIR", ".cape")
 	viper.BindEnv("LOCAL_AUTH_FILE_NAME")
+	viper.SetDefault("LOCAL_AUTH_FILE_NAME", "auth")
 
-	// Testing
-	audience := viper.Get("AUDIENCE")
-	fmt.Printf("audience is: %s", audience)
 	if cfgFile != "" {
+		fmt.Println("found config file")
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
 	} else {
 		// Find home directory.
+		fmt.Println("trying to write config now")
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
@@ -55,12 +60,17 @@ func initConfig() {
 		viper.AddConfigPath(home + "/.config/capeprivacy")
 		viper.SetConfigType("yaml")
 		viper.SetConfigName("cape")
-		viper.WriteConfig()
 	}
-	viper.SafeWriteConfigAs("./")
 	viper.AutomaticEnv() // read in environment variables that match
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
+	// GetString takes into account the prefix if enviornment variables are specified.
+	fmt.Print(viper.GetString("LOCAL_AUTH_DIR"))
+	C.Audience = viper.GetString("AUDIENCE")
+	C.Hostname = viper.GetString("HOSTNAME")
+	C.ClientID = viper.GetString("CLIENT_ID")
+	C.LocalAuthDir = viper.GetString("LOCAL_AUTH_DIR")
+	C.LocalAuthFileName = viper.GetString("LOCAL_AUTH_FILE_NAME")
 }
