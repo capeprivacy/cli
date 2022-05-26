@@ -14,16 +14,12 @@ import (
 
 	"github.com/avast/retry-go"
 
+	"github.com/capeprivacy/cli/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-// TODO: Add stage specific values.
-var hostname = "https://maestro-dev.us.auth0.com"
-var clientID = "yQnobkOr1pvdDAyXwNojkNV2IPbNfXxx"
-var audience = "https://newdemo.capeprivacy.com/v1/"
-var localAuthDir = ".cape"
-var localAuthFileName = "auth"
+var C config.Config
 
 type DeviceCodeResponse struct {
 	VerificationURIComplete string `json:"verification_uri_complete"`
@@ -82,12 +78,12 @@ func login(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	err = os.MkdirAll(fmt.Sprintf("%s/%s", home, localAuthDir), os.ModePerm)
+	err = os.MkdirAll(fmt.Sprintf("%s/%s", home, C.Login.LocalAuthDir), os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(fmt.Sprintf("%s/%s/%s", home, localAuthDir, localAuthFileName), authJSON, 0644)
+	err = ioutil.WriteFile(fmt.Sprintf("%s/%s/%s", home, C.Login.LocalAuthDir, C.Login.LocalAuthFileName), authJSON, 0644)
 	if err != nil {
 		return err
 	}
@@ -97,8 +93,8 @@ func login(cmd *cobra.Command, args []string) error {
 }
 
 func newDeviceCode() (*DeviceCodeResponse, error) {
-	deviceCodeURL := fmt.Sprintf("%s/oauth/device/code", hostname)
-	payloadStr := fmt.Sprintf("client_id=%s&scope=openid%%20profile%%20email&audience=%s", clientID, audience)
+	deviceCodeURL := fmt.Sprintf("%s/oauth/device/code", C.Login.Hostname)
+	payloadStr := fmt.Sprintf("client_id=%s&scope=openid%%20profile%%20email&audience=%s", C.Login.ClientID, C.Login.Audience)
 	req, err := http.NewRequest("POST", deviceCodeURL, strings.NewReader(payloadStr))
 	if err != nil {
 		return nil, err
@@ -137,8 +133,8 @@ func newDeviceCode() (*DeviceCodeResponse, error) {
 }
 
 func getToken(deviceCode string) (*TokenResponse, error) {
-	tokenURL := fmt.Sprintf("%s/oauth/token", hostname)
-	payload := strings.NewReader(fmt.Sprintf("grant_type=urn%%3Aietf%%3Aparams%%3Aoauth%%3Agrant-type%%3Adevice_code&device_code=%s&client_id=%s", deviceCode, clientID))
+	tokenURL := fmt.Sprintf("%s/oauth/token", C.Login.Hostname)
+	payload := strings.NewReader(fmt.Sprintf("grant_type=urn%%3Aietf%%3Aparams%%3Aoauth%%3Agrant-type%%3Adevice_code&device_code=%s&client_id=%s", deviceCode, C.Login.ClientID))
 	req, _ := http.NewRequest("POST", tokenURL, payload)
 
 	req.Header.Add("content-type", "application/x-www-form-urlencoded")
