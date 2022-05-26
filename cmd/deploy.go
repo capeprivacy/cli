@@ -75,7 +75,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 	return Deploy(u, name, functionInput)
 }
 
-func Deploy(url string, functionInput string, fname string) error {
+func Deploy(url string, functionInput string, functionName string) error {
 	file, err := os.Open(functionInput)
 	if err != nil {
 		return fmt.Errorf("unable to read function directory or file: %w", err)
@@ -145,7 +145,7 @@ func Deploy(url string, functionInput string, fname string) error {
 		return fmt.Errorf("unable to start enclave %w", err)
 	}
 
-	id, err := doDeploy(url, enclave.id, fname, buf.Bytes())
+	id, err := doDeploy(url, enclave.id, functionName, buf.Bytes())
 	if err != nil {
 		return fmt.Errorf("unable to deploy function %w", err)
 	}
