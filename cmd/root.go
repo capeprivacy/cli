@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/spf13/viper"
@@ -35,15 +36,30 @@ func init() {
 func initConfig() {
 	// Set up environment configs.
 	viper.SetEnvPrefix("CLI")
-	viper.BindEnv("HOSTNAME")
+	if err := viper.BindEnv("HOSTNAME"); err != nil {
+		log.Error("failed to bind environment variable.")
+		return
+	}
 	viper.SetDefault("HOSTNAME", "https://maestro-dev.us.auth0.com")
-	viper.BindEnv("CLIENT_ID")
+	if err := viper.BindEnv("CLIENT_ID"); err != nil {
+		log.Error("failed to bind environment variable.")
+		return
+	}
 	viper.SetDefault("CLIENT_ID", "yQnobkOr1pvdDAyXwNojkNV2IPbNfXxx")
-	viper.BindEnv("AUDIENCE")
+	if err := viper.BindEnv("AUDIENCE"); err != nil {
+		log.Error("failed to bind environment variable.")
+		return
+	}
 	viper.SetDefault("AUDIENCE", "https://newdemo.capeprivacy.com/v1/")
-	viper.BindEnv("LOCAL_AUTH_DIR")
+	if err := viper.BindEnv("LOCAL_AUTH_DIR"); err != nil {
+		log.Error("failed to bind environment variable.")
+		return
+	}
 	viper.SetDefault("LOCAL_AUTH_DIR", ".cape")
-	viper.BindEnv("LOCAL_AUTH_FILE_NAME")
+	if err := viper.BindEnv("LOCAL_AUTH_FILE_NAME"); err != nil {
+		log.Error("failed to bind environment variable.")
+		return
+	}
 	viper.SetDefault("LOCAL_AUTH_FILE_NAME", "auth")
 
 	if cfgFile != "" {
@@ -64,7 +80,7 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
-	// GetString takes into account the prefix if enviornment variables are specified.
+	// GetString takes into account the prefix if environment variables are specified.
 	C.Audience = viper.GetString("AUDIENCE")
 	C.Hostname = viper.GetString("HOSTNAME")
 	C.ClientID = viper.GetString("CLIENT_ID")
