@@ -8,7 +8,9 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/briandowns/spinner"
@@ -33,7 +35,7 @@ type DeployResponse struct {
 var deployCmd = &cobra.Command{
 	Use:   "deploy [directory | zip file]",
 	Short: "deploy a function",
-	Long: `Deploy a function to Cape. 
+	Long: `Deploy a function to Cape.
 
 This will return an ID that can later be used to invoke the deployed function
 with cape run (see cape run -h for details).
@@ -70,6 +72,10 @@ func deploy(cmd *cobra.Command, args []string) error {
 		name = n
 	}
 
+	return Deploy(u, name, functionInput)
+}
+
+func Deploy(url string, functionInput string, functionName string) error {
 	file, err := os.Open(functionInput)
 	if err != nil {
 		return fmt.Errorf("unable to read function directory or file: %w", err)
@@ -134,12 +140,12 @@ func deploy(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	enclave, err := doStart(u)
+	enclave, err := doStart(url)
 	if err != nil {
 		return fmt.Errorf("unable to start enclave %w", err)
 	}
 
-	id, err := doDeploy(u, enclave.id, name, buf.Bytes())
+	id, err := doDeploy(url, enclave.id, functionName, buf.Bytes())
 	if err != nil {
 		return fmt.Errorf("unable to deploy function %w", err)
 	}
@@ -174,6 +180,14 @@ func doDeploy(url string, id id.ID, name string, data []byte) (string, error) {
 	}
 
 	s := spinner.New(spinner.CharSets[26], 300*time.Millisecond)
+	defer s.Stop()
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		s.Stop()
+		os.Exit(1)
+	}()
 	s.Prefix = "Deploying function to Cape "
 	s.Start()
 
@@ -181,8 +195,6 @@ func doDeploy(url string, id id.ID, name string, data []byte) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("request failed %s", err)
 	}
-
-	s.Stop()
 
 	if res.StatusCode != http.StatusCreated {
 		return "", fmt.Errorf("bad status code %d", res.StatusCode)
