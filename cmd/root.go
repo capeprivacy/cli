@@ -57,7 +57,7 @@ func initConfig() {
 	}
 	home, err := os.UserHomeDir()
 	cobra.CheckErr(err)
-	viper.SetDefault("LOCAL_AUTH_DIR", home+"/.cape")
+	viper.SetDefault("LOCAL_AUTH_DIR", home+"/.config/cape")
 	if err := viper.BindEnv("LOCAL_AUTH_FILE_NAME"); err != nil {
 		log.Error("failed to bind environment variable.")
 		cobra.CheckErr(err)
