@@ -39,7 +39,6 @@ func initConfig() {
 	if err := viper.BindEnv("HOSTNAME"); err != nil {
 		log.Error("failed to bind environment variable.")
 		cobra.CheckErr(err)
-
 	}
 	viper.SetDefault("HOSTNAME", "https://maestro-dev.us.auth0.com")
 	if err := viper.BindEnv("CLIENT_ID"); err != nil {
@@ -50,7 +49,6 @@ func initConfig() {
 	if err := viper.BindEnv("AUDIENCE"); err != nil {
 		log.Error("failed to bind environment variable.")
 		cobra.CheckErr(err)
-
 	}
 	viper.SetDefault("AUDIENCE", "https://newdemo.capeprivacy.com/v1/")
 	if err := viper.BindEnv("LOCAL_AUTH_DIR"); err != nil {
@@ -63,7 +61,6 @@ func initConfig() {
 	if err := viper.BindEnv("LOCAL_AUTH_FILE_NAME"); err != nil {
 		log.Error("failed to bind environment variable.")
 		cobra.CheckErr(err)
-
 	}
 	viper.SetDefault("LOCAL_AUTH_FILE_NAME", "auth")
 
