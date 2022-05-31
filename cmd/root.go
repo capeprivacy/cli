@@ -38,27 +38,32 @@ func initConfig() {
 	viper.SetEnvPrefix("CLI")
 	if err := viper.BindEnv("HOSTNAME"); err != nil {
 		log.Error("failed to bind environment variable.")
-		return
+		cobra.CheckErr(err)
+
 	}
 	viper.SetDefault("HOSTNAME", "https://maestro-dev.us.auth0.com")
 	if err := viper.BindEnv("CLIENT_ID"); err != nil {
 		log.Error("failed to bind environment variable.")
-		return
+		cobra.CheckErr(err)
 	}
 	viper.SetDefault("CLIENT_ID", "yQnobkOr1pvdDAyXwNojkNV2IPbNfXxx")
 	if err := viper.BindEnv("AUDIENCE"); err != nil {
 		log.Error("failed to bind environment variable.")
-		return
+		cobra.CheckErr(err)
+
 	}
 	viper.SetDefault("AUDIENCE", "https://newdemo.capeprivacy.com/v1/")
 	if err := viper.BindEnv("LOCAL_AUTH_DIR"); err != nil {
 		log.Error("failed to bind environment variable.")
-		return
+		cobra.CheckErr(err)
 	}
-	viper.SetDefault("LOCAL_AUTH_DIR", ".cape")
+	home, err := os.UserHomeDir()
+	cobra.CheckErr(err)
+	viper.SetDefault("LOCAL_AUTH_DIR", home+"/.cape")
 	if err := viper.BindEnv("LOCAL_AUTH_FILE_NAME"); err != nil {
 		log.Error("failed to bind environment variable.")
-		return
+		cobra.CheckErr(err)
+
 	}
 	viper.SetDefault("LOCAL_AUTH_FILE_NAME", "auth")
 
@@ -66,10 +71,6 @@ func initConfig() {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
 	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
-
 		// Search config in home directory with name ".client" (without extension).
 		viper.AddConfigPath(home + "/.config/capeprivacy")
 		viper.SetConfigType("yaml")
