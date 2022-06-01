@@ -89,7 +89,7 @@ func getUserIdentity(accessToken string) error {
 	return nil
 }
 
-func setLoginCookie(req *http.Request) error {
+func addBearerToken(req *http.Request) error {
 	tokenResponse, err := getTokenResponse()
 	if err != nil {
 		return err
@@ -100,6 +100,6 @@ func setLoginCookie(req *http.Request) error {
 		return errors.New("empty access token")
 	}
 
-	req.AddCookie(&http.Cookie{Name: "login_token", Value: t})
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", t))
 	return nil
 }

@@ -174,7 +174,7 @@ func doDeploy(url string, id id.ID, name string, data []byte) (string, error) {
 		return "", fmt.Errorf("unable to create request %s", err)
 	}
 
-	err = setLoginCookie(req)
+	err = addBearerToken(req)
 	if err != nil {
 		return "", fmt.Errorf("error setting login cookie")
 	}
