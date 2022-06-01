@@ -85,6 +85,7 @@ func Deploy(url string, functionInput string, functionName string) error {
 	if err != nil {
 		return fmt.Errorf("unable to read function file or directory: %w", err)
 	}
+	// There is a linter error for isZip but it should be ignored since it's a conditional variable.
 	isZip := false
 	if st.IsDir() {
 		_, err = file.Readdirnames(1)

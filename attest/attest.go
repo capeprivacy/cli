@@ -62,11 +62,7 @@ func verifySignature(cert *x509.Certificate, msg *cose.Sign1Message) error {
 		return err
 	}
 
-	if err := msg.Verify([]byte{}, verifier); err != nil {
-		return err
-	}
-
-	return nil
+	return msg.Verify([]byte{}, verifier)
 }
 
 func verifyCertChain(cert *x509.Certificate, cabundle [][]byte) error {
