@@ -62,6 +62,10 @@ func run(cmd *cobra.Command, args []string) error {
 	functionID := args[0]
 	dataFile := args[1]
 
+	return Run(u, dataFile, functionID)
+}
+
+func Run(u string, dataFile string, functionID string) error {
 	inputData, err := ioutil.ReadFile(dataFile)
 	if err != nil {
 		return fmt.Errorf("unable to read data file: %w", err)
