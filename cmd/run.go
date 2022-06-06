@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -121,31 +120,23 @@ func Run(u string, dataFile string, functionID string) error {
 func doRun(url string, id id.ID, functionID string, encryptedData []byte) (*Outputs, error) {
 	inputDataStr := base64.StdEncoding.EncodeToString(encryptedData)
 
-	runReq := &RunRequest{
+	reqData := &RunRequest{
 		FunctionID: functionID,
 		Input:      inputDataStr,
 		Nonce:      getNonce(),
 	}
 
-	body, err := json.Marshal(runReq)
+	body, err := json.Marshal(reqData)
 	if err != nil {
 		return nil, err
 	}
 
 	endpoint := fmt.Sprintf("%s/v1/run/%s", url, id)
-	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(body))
-	if err != nil {
-		return nil, err
-	}
 
-	err = addBearerToken(req)
+	client := New(&http.Client{})
+	res, err := client.Post(endpoint, body)
 	if err != nil {
-		return nil, fmt.Errorf("error setting login cookie")
-	}
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("request failed %s", err)
 	}
 
 	if res.StatusCode != http.StatusOK {

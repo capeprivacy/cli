@@ -176,16 +176,6 @@ func doDeploy(url string, id id.ID, name string, data []byte) (string, error) {
 	endpoint := fmt.Sprintf("%s/v1/deploy/%s", url, id)
 	buffer := bytes.NewBuffer(body)
 
-	req, err := http.NewRequest("POST", endpoint, buffer)
-	if err != nil {
-		return "", fmt.Errorf("unable to create request %s", err)
-	}
-
-	err = addBearerToken(req)
-	if err != nil {
-		return "", fmt.Errorf("error setting login cookie")
-	}
-
 	s := spinner.New(spinner.CharSets[26], 300*time.Millisecond)
 	defer s.Stop()
 	c := make(chan os.Signal, 1)
@@ -198,7 +188,8 @@ func doDeploy(url string, id id.ID, name string, data []byte) (string, error) {
 	s.Prefix = "Deploying function to Cape "
 	s.Start()
 
-	res, err := http.DefaultClient.Do(req)
+	client := New(&http.Client{})
+	res, err := client.Post(endpoint, buffer)
 	if err != nil {
 		return "", fmt.Errorf("request failed %s", err)
 	}

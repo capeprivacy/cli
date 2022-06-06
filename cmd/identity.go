@@ -88,18 +88,3 @@ func getUserIdentity(accessToken string) error {
 
 	return nil
 }
-
-func addBearerToken(req *http.Request) error {
-	tokenResponse, err := getTokenResponse()
-	if err != nil {
-		return err
-	}
-
-	t := tokenResponse.AccessToken
-	if t == "" {
-		return errors.New("empty access token")
-	}
-
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", t))
-	return nil
-}
