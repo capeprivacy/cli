@@ -24,35 +24,35 @@ type HTTPClient interface {
 	Post(path string, payload interface{}) (*http.Response, error)
 }
 
-func (c *Client) Get (path string) (*http.Response, error) {
+func (c *Client) Get(path string) (*http.Response, error) {
 	req, err := c.newRequest(http.MethodGet, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GET request: %w", err)
 	}
 
 	resp, err := c.doRequest(req)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
 	return resp, nil
 }
 
-func (c *Client) Post (path string, payload interface{}) (*http.Response, error) {
+func (c *Client) Post(path string, payload interface{}) (*http.Response, error) {
 	req, err := c.newRequest(http.MethodGet, path, payload)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GET request: %w", err)
 	}
 
 	resp, err := c.doRequest(req)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
 	return resp, nil
 }
 
-func (c *Client) newRequest (method, endpoint string, payload interface{}) (*http.Request, error) {
+func (c *Client) newRequest(method, endpoint string, payload interface{}) (*http.Request, error) {
 	var reqBody io.Reader
 	if payload != nil {
 		bodyBytes, err := json.Marshal(payload)
