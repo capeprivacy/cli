@@ -72,38 +72,45 @@ func deploy(cmd *cobra.Command, args []string) error {
 		name = n
 	}
 
-	return Deploy(u, name, functionInput)
+	dID, err := Deploy(u, name, functionInput)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Success! Deployed function to Cape\nFunction ID ➜ %s\n", dID)
+
+	return nil
 }
 
-func Deploy(url string, functionInput string, functionName string) error {
+func Deploy(url string, functionInput string, functionName string) (string, error) {
 	file, err := os.Open(functionInput)
 	if err != nil {
-		return fmt.Errorf("unable to read function directory or file: %w", err)
+		return "", fmt.Errorf("unable to read function directory or file: %w", err)
 	}
 
 	st, err := file.Stat()
 	if err != nil {
-		return fmt.Errorf("unable to read function file or directory: %w", err)
+		return "", fmt.Errorf("unable to read function file or directory: %w", err)
 	}
 	// There is a linter error for isZip but it should be ignored since it's a conditional variable.
 	isZip := false
 	if st.IsDir() {
 		_, err = file.Readdirnames(1)
 		if err != nil {
-			return fmt.Errorf("please pass in a non-empty directory: %w", err)
+			return "", fmt.Errorf("please pass in a non-empty directory: %w", err)
 		}
 	} else {
 		// Check if file ends with ".zip" extension.
 		fileExtension := filepath.Ext(functionInput)
 		if fileExtension != ".zip" {
-			return fmt.Errorf("expected argument %s to be a zip file or directory", functionInput)
+			return "", fmt.Errorf("expected argument %s to be a zip file or directory", functionInput)
 		}
 		isZip = true
 	}
 
 	err = file.Close()
 	if err != nil {
-		return fmt.Errorf("something went wrong: %w", err)
+		return "", fmt.Errorf("something went wrong: %w", err)
 	}
 
 	buf := new(bytes.Buffer)
@@ -111,18 +118,18 @@ func Deploy(url string, functionInput string, functionName string) error {
 	if isZip {
 		f, err := os.Open(functionInput)
 		if err != nil {
-			return fmt.Errorf("unable to read function file: %w", err)
+			return "", fmt.Errorf("unable to read function file: %w", err)
 		}
 		nBytes, err := io.Copy(buf, f)
 		if err != nil {
-			return fmt.Errorf("unable to read function file: %w", err)
+			return "", fmt.Errorf("unable to read function file: %w", err)
 		}
 		if nBytes <= 0 {
-			return fmt.Errorf("zip file provided is empty")
+			return "", fmt.Errorf("zip file provided is empty")
 		}
 		err = f.Close()
 		if err != nil {
-			return fmt.Errorf("something went wrong: %w", err)
+			return "", fmt.Errorf("something went wrong: %w", err)
 		}
 	} else {
 		zipRoot := filepath.Base(functionInput)
@@ -130,29 +137,28 @@ func Deploy(url string, functionInput string, functionName string) error {
 
 		err = filepath.Walk(functionInput, czip.Walker(w, zipRoot))
 		if err != nil {
-			return fmt.Errorf("zipping directory failed: %w", err)
+			return "", fmt.Errorf("zipping directory failed: %w", err)
 		}
 
 		// Explicitly close now so that the bytes are flushed and
 		// available in buf.Bytes() below.
 		err = w.Close()
 		if err != nil {
-			return fmt.Errorf("zipping directory failed: %w", err)
+			return "", fmt.Errorf("zipping directory failed: %w", err)
 		}
 	}
 
 	enclave, err := doStart(url)
 	if err != nil {
-		return fmt.Errorf("unable to start enclave %w", err)
+		return "", fmt.Errorf("unable to start enclave %w", err)
 	}
 
 	id, err := doDeploy(url, enclave.id, functionName, buf.Bytes())
 	if err != nil {
-		return fmt.Errorf("unable to deploy function %w", err)
+		return "", fmt.Errorf("unable to deploy function %w", err)
 	}
 
-	fmt.Printf("Success! Deployed function to Cape\nFunction ID ➜ %s\n", id)
-	return nil
+	return id, nil
 }
 
 func doDeploy(url string, id id.ID, name string, data []byte) (string, error) {
