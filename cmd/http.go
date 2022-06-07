@@ -39,7 +39,7 @@ func (c *Client) Get(path string) (*http.Response, error) {
 }
 
 func (c *Client) Post(path string, payload interface{}) (*http.Response, error) {
-	req, err := c.newRequest(http.MethodGet, path, payload)
+	req, err := c.newRequest(http.MethodPost, path, payload)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GET request: %w", err)
 	}
