@@ -1,19 +1,15 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
-	"time"
 
-	"github.com/briandowns/spinner"
-	"github.com/capeprivacy/go-kit/id"
+	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
 )
 
@@ -35,8 +31,11 @@ type RunRequest struct {
 }
 
 type RunResponse struct {
-	Attestation Outputs `json:"attestation"`
-	Results     Outputs `json:"results"`
+	Data []byte `json:"data"`
+}
+
+type AttestationResponse struct {
+	AttestationDoc string `json:"attestation_doc"`
 }
 
 type ErrorRunResponse struct {
@@ -71,88 +70,60 @@ func Run(u string, dataFile string, functionID string) error {
 		return fmt.Errorf("unable to read data file: %w", err)
 	}
 
-	enclave, err := doStart(u)
-	if err != nil {
-		return fmt.Errorf("unable to start enclave: %w", err)
-	}
-
-	encryptedData, err := crypto.LocalEncrypt(enclave.attestation, inputData)
-	if err != nil {
-		return fmt.Errorf("unable to encrypt data %w", err)
-	}
-
-	s := spinner.New(spinner.CharSets[26], 300*time.Millisecond)
-	s.Prefix = fmt.Sprintf("Running function %s with data %s ", functionID, dataFile)
-	s.Writer = os.Stderr
-	s.Start()
-
-	results, err := doRun(u, enclave.id, functionID, encryptedData)
+	results, err := doRun(u, functionID, inputData)
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)
 	}
 
-	s.Stop()
-
-	data, err := base64.StdEncoding.DecodeString(results.Data)
-	if err != nil {
-		return fmt.Errorf("could not decode results.data: %w", err)
-	}
-
-	stdout, err := base64.StdEncoding.DecodeString(results.Stdout)
-	if err != nil {
-		return fmt.Errorf("could not decode stdout: %w", err)
-	}
-
-	stderr, err := base64.StdEncoding.DecodeString(results.Stderr)
-	if err != nil {
-		return fmt.Errorf("could not decode stderr: %w", err)
-	}
-
-	if results.ExitStatus != "0" {
-		fmt.Fprintf(os.Stderr, "error!\nStdout:\t%s\nStderr:\t%s\nExit Code:\t%s\n", stdout, stderr, results.ExitStatus)
-		return nil
-	}
-
-	fmt.Fprintf(os.Stderr, "Success! Results from your function\n\tStdout:\t%s\n\tStderr:\t%s\n\tExit Code:\t%s\n", stdout, stderr, results.ExitStatus)
-	fmt.Println(string(data))
+	fmt.Fprintf(os.Stderr, "Success! Results from your function")
+	fmt.Println(string(results))
 	return nil
 }
 
-func doRun(url string, id id.ID, functionID string, encryptedData []byte) (*Outputs, error) {
-	inputDataStr := base64.StdEncoding.EncodeToString(encryptedData)
+func doRun(url string, functionID string, data []byte) ([]byte, error) {
+	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
 
-	runReq := &RunRequest{
-		FunctionID: functionID,
-		Input:      inputDataStr,
-		Nonce:      getNonce(),
+	c, res, err := websocket.DefaultDialer.Dial(endpoint, nil)
+	if err != nil {
+		log.Println("error dialing websocket", res)
+		return nil, err
 	}
 
-	body, err := json.Marshal(runReq)
+	_, docB64, err := c.ReadMessage()
+	if err != nil {
+		log.Println("error reading attestation doc")
+		return nil, err
+	}
+
+	doc, err := attest.Attest(docB64)
+	if err != nil {
+		log.Println("error attesting")
+		return nil, err
+	}
+
+	encryptedData, err := crypto.LocalEncrypt(*doc, data)
+	if err != nil {
+		log.Println("error encrypting")
+		return nil, err
+	}
+
+	webWriter, err := c.NextWriter(websocket.BinaryMessage)
 	if err != nil {
 		return nil, err
 	}
 
-	endpoint := fmt.Sprintf("%s/v1/run/%s", url, id)
-	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(body))
+	_, err = webWriter.Write(encryptedData)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("bad status code %d", res.StatusCode)
-	}
+	webWriter.Close()
 
 	resData := &RunResponse{}
-	dec := json.NewDecoder(res.Body)
-	err = dec.Decode(resData)
+	err = c.ReadJSON(&resData)
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
 
-	return &resData.Results, nil
+	return resData.Data, nil
 }

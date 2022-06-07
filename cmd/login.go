@@ -123,7 +123,7 @@ func newDeviceCode() (*DeviceCodeResponse, error) {
 		return nil, err
 	}
 	if len(response.VerificationURIComplete) == 0 {
-		return nil, errors.New("Unknown response detected")
+		return nil, errors.New("unknown response detected")
 	}
 
 	fmt.Printf("Your CLI confirmation code is: %s\n", response.UserCode)
@@ -150,7 +150,7 @@ func getToken(deviceCode string) (*TokenResponse, error) {
 	}
 
 	if res.StatusCode != 200 {
-		return nil, errors.New("Authorization pending")
+		return nil, errors.New("authorization pending")
 	}
 
 	response := TokenResponse{}
