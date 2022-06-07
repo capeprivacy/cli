@@ -24,7 +24,8 @@ var runCmd = &cobra.Command{
 type RunRequest struct {
 	// Nonce is used by the client to verify the nonce received back in
 	// the attestation doc
-	Nonce string `json:"nonce"`
+	Nonce     string `json:"nonce"`
+	AuthToken string `json:"auth_token"`
 }
 
 type RunResponse struct {
@@ -86,7 +87,7 @@ func doRun(url string, functionID string, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	req := RunRequest{Nonce: getNonce()}
+	req := RunRequest{Nonce: getNonce(), AuthToken: getAuthToken()}
 	err = c.WriteJSON(req)
 	if err != nil {
 		log.Println("error writing deploy request")

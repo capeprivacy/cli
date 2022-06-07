@@ -8,7 +8,6 @@ require (
 	github.com/capeprivacy/go-kit v0.0.0-20220420152147-667383169b7a
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/google/tink/go v1.6.1
-	github.com/gorilla/mux v1.8.0
 	github.com/jedib0t/go-pretty/v6 v6.3.1
 	github.com/spf13/cobra v1.4.0
 )
