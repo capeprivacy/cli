@@ -25,7 +25,8 @@ import (
 )
 
 type DeployRequest struct {
-	Nonce string `json:"nonce"`
+	Nonce     string `json:"nonce"`
+	AuthToken string `json:"auth_token"`
 }
 
 type DeployResponse struct {
@@ -172,7 +173,7 @@ func doDeploy(url string, name string, reader io.Reader) (string, error) {
 		return "", err
 	}
 
-	req := DeployRequest{Nonce: getNonce()}
+	req := DeployRequest{Nonce: getNonce(), AuthToken: getAuthToken()}
 	err = conn.WriteJSON(req)
 	if err != nil {
 		log.Println("error writing deploy request")
@@ -222,4 +223,17 @@ func getNonce() string {
 	}
 
 	return base64.StdEncoding.EncodeToString(buf)
+}
+
+func getAuthToken() string {
+	tokenResponse, err := getTokenResponse()
+	if err != nil {
+		log.WithError(err).Error("failed to get auth token")
+	}
+
+	t := tokenResponse.AccessToken
+	if t == "" {
+		log.Errorf("empty access token")
+	}
+	return t
 }
