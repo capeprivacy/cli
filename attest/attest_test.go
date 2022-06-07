@@ -204,7 +204,7 @@ func TestAttest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	newDoc, err := Attest(base64.StdEncoding.EncodeToString(sign1))
+	newDoc, err := Attest(sign1)
 	if err != nil {
 		t.Fatal(err)
 	}

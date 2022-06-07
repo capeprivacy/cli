@@ -3,7 +3,6 @@ package attest
 import (
 	"crypto/ecdsa"
 	"crypto/x509"
-	"encoding/base64"
 	"fmt"
 	"time"
 
@@ -91,13 +90,8 @@ func verifyCertChain(cert *x509.Certificate, cabundle [][]byte) error {
 	return nil
 }
 
-func Attest(attestation string) (*AttestationDoc, error) {
-	d, err := base64.StdEncoding.DecodeString(attestation)
-	if err != nil {
-		return nil, err
-	}
-
-	msg, err := createSign1(d)
+func Attest(attestation []byte) (*AttestationDoc, error) {
+	msg, err := createSign1(attestation)
 	if err != nil {
 		return nil, err
 	}

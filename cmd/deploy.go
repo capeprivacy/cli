@@ -3,32 +3,33 @@ package cmd
 import (
 	"archive/zip"
 	"bytes"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"syscall"
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/capeprivacy/go-kit/id"
+	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	"github.com/capeprivacy/cli/attest"
 	czip "github.com/capeprivacy/cli/zip"
 )
 
 type DeployRequest struct {
-	Data  []byte `json:"data"`
-	Name  string `json:"name"`
 	Nonce string `json:"nonce"`
 }
 
 type DeployResponse struct {
-	ID                  string `json:"id"`
-	AttestationDocument string `json:"attestation_document"`
+	ID string `json:"id"`
 }
 
 // deployCmd represents the request command
@@ -113,25 +114,17 @@ func Deploy(url string, functionInput string, functionName string) (string, erro
 		return "", fmt.Errorf("something went wrong: %w", err)
 	}
 
-	buf := new(bytes.Buffer)
+	var reader io.Reader
 
 	if isZip {
 		f, err := os.Open(functionInput)
 		if err != nil {
 			return "", fmt.Errorf("unable to read function file: %w", err)
 		}
-		nBytes, err := io.Copy(buf, f)
-		if err != nil {
-			return "", fmt.Errorf("unable to read function file: %w", err)
-		}
-		if nBytes <= 0 {
-			return "", fmt.Errorf("zip file provided is empty")
-		}
-		err = f.Close()
-		if err != nil {
-			return "", fmt.Errorf("something went wrong: %w", err)
-		}
+
+		reader = f
 	} else {
+		buf := new(bytes.Buffer)
 		zipRoot := filepath.Base(functionInput)
 		w := zip.NewWriter(buf)
 
@@ -146,14 +139,11 @@ func Deploy(url string, functionInput string, functionName string) (string, erro
 		if err != nil {
 			return "", fmt.Errorf("zipping directory failed: %w", err)
 		}
+
+		reader = buf
 	}
 
-	enclave, err := doStart(url)
-	if err != nil {
-		return "", fmt.Errorf("unable to start enclave %w", err)
-	}
-
-	id, err := doDeploy(url, enclave.id, functionName, buf.Bytes())
+	id, err := doDeploy(url, functionName, reader)
 	if err != nil {
 		return "", fmt.Errorf("unable to deploy function %w", err)
 	}
@@ -161,25 +151,8 @@ func Deploy(url string, functionInput string, functionName string) (string, erro
 	return id, nil
 }
 
-func doDeploy(url string, id id.ID, name string, data []byte) (string, error) {
-	reqData := DeployRequest{
-		Name:  name,
-		Data:  data,
-		Nonce: getNonce(),
-	}
-
-	body, err := json.Marshal(reqData)
-	if err != nil {
-		return "", err
-	}
-
-	endpoint := fmt.Sprintf("%s/v1/deploy/%s", url, id)
-	buffer := bytes.NewBuffer(body)
-
-	req, err := http.NewRequest("POST", endpoint, buffer)
-	if err != nil {
-		return "", fmt.Errorf("unable to create request %s", err)
-	}
+func doDeploy(url string, name string, reader io.Reader) (string, error) {
+	endpoint := path.Join(url, "v1", "deploy")
 
 	s := spinner.New(spinner.CharSets[26], 300*time.Millisecond)
 	defer s.Stop()
@@ -193,13 +166,41 @@ func doDeploy(url string, id id.ID, name string, data []byte) (string, error) {
 	s.Prefix = "Deploying function to Cape "
 	s.Start()
 
-	res, err := http.DefaultClient.Do(req)
+	conn, res, err := websocket.DefaultDialer.Dial(endpoint, nil)
 	if err != nil {
-		return "", fmt.Errorf("request failed %s", err)
+		log.Println("error dialing websocket", res)
+		return "", err
 	}
 
-	if res.StatusCode != http.StatusCreated {
-		return "", fmt.Errorf("bad status code %d", res.StatusCode)
+	req := DeployRequest{Nonce: getNonce()}
+	err = conn.WriteJSON(req)
+	if err != nil {
+		log.Println("error writing deploy request")
+		return "", err
+	}
+
+	_, docB64, err := conn.ReadMessage()
+	if err != nil {
+		log.Println("error reading attestation doc")
+		return "", err
+	}
+
+	_, err = attest.Attest(docB64)
+	if err != nil {
+		log.Println("error attesting")
+		return "", err
+	}
+
+	writer, err := conn.NextWriter(websocket.BinaryMessage)
+	if err != nil {
+		log.Println("error getting writer for function")
+		return "", err
+	}
+
+	_, err = io.Copy(writer, reader)
+	if err != nil {
+		log.Println("error copying function to websocket")
+		return "", err
 	}
 
 	resData := DeployResponse{}
@@ -211,4 +212,14 @@ func doDeploy(url string, id id.ID, name string, data []byte) (string, error) {
 	}
 
 	return resData.ID, nil
+}
+
+func getNonce() string {
+	buf := make([]byte, 16)
+
+	if _, err := rand.Reader.Read(buf); err != nil {
+		log.WithError(err).Error("failed to get nonce")
+	}
+
+	return base64.StdEncoding.EncodeToString(buf)
 }
