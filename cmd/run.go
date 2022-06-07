@@ -22,9 +22,6 @@ var runCmd = &cobra.Command{
 }
 
 type RunRequest struct {
-	FunctionID string `json:"function_id"`
-	Input      string `json:"input"`
-
 	// Nonce is used by the client to verify the nonce received back in
 	// the attestation doc
 	Nonce string `json:"nonce"`
@@ -86,6 +83,13 @@ func doRun(url string, functionID string, data []byte) ([]byte, error) {
 	c, res, err := websocket.DefaultDialer.Dial(endpoint, nil)
 	if err != nil {
 		log.Println("error dialing websocket", res)
+		return nil, err
+	}
+
+	req := RunRequest{Nonce: getNonce()}
+	err = c.WriteJSON(req)
+	if err != nil {
+		log.Println("error writing deploy request")
 		return nil, err
 	}
 
