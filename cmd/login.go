@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -79,7 +79,7 @@ func login(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(path.Join(C.LocalAuthDir, C.LocalAuthFileName), authJSON, 0644)
+	err = ioutil.WriteFile(filepath.Join(C.LocalAuthDir, C.LocalAuthFileName), authJSON, 0644)
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func login(cmd *cobra.Command, args []string) error {
 }
 
 func newDeviceCode() (*DeviceCodeResponse, error) {
-	deviceCodeURL := path.Join(C.Hostname, "/oauth/device/code")
+	deviceCodeURL := fmt.Sprintf("%s/oauth/device/code", C.Hostname)
 	payloadStr := fmt.Sprintf("client_id=%s&scope=openid%%20profile%%20email&audience=%s", C.ClientID, C.Audience)
 	req, err := http.NewRequest("POST", deviceCodeURL, strings.NewReader(payloadStr))
 	if err != nil {
@@ -129,7 +129,7 @@ func newDeviceCode() (*DeviceCodeResponse, error) {
 }
 
 func getToken(deviceCode string) (*TokenResponse, error) {
-	tokenURL := path.Join(C.Hostname, "/oauth/token")
+	tokenURL := fmt.Sprintf("%s/oauth/token", C.Hostname)
 	payload := strings.NewReader(fmt.Sprintf("grant_type=urn%%3Aietf%%3Aparams%%3Aoauth%%3Agrant-type%%3Adevice_code&device_code=%s&client_id=%s", deviceCode, C.ClientID))
 	req, _ := http.NewRequest("POST", tokenURL, payload)
 

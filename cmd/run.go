@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -80,7 +79,7 @@ func Run(u string, dataFile string, functionID string) error {
 }
 
 func doRun(url string, functionID string, data []byte) ([]byte, error) {
-	endpoint := path.Join(url, "/v1/run/", functionID)
+	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
 
 	c, res, err := websocket.DefaultDialer.Dial(endpoint, nil)
 	if err != nil {
