@@ -35,6 +35,7 @@ func init() {
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	// Set up environment configs.
+	fmt.Printf("WHERE AM I")
 	viper.SetEnvPrefix("CLI")
 	if err := viper.BindEnv("HOSTNAME"); err != nil {
 		log.Error("failed to bind environment variable.")
@@ -79,8 +80,10 @@ func initConfig() {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
 	// GetString takes into account the prefix if environment variables are specified.
+	fmt.Printf("WHERE AM I")
 	C.Audience = viper.GetString("AUDIENCE")
 	C.Hostname = viper.GetString("HOSTNAME")
+	fmt.Printf("hostname is: %s", C.Hostname)
 	C.ClientID = viper.GetString("CLIENT_ID")
 	C.LocalAuthDir = viper.GetString("LOCAL_AUTH_DIR")
 	C.LocalAuthFileName = viper.GetString("LOCAL_AUTH_FILE_NAME")
