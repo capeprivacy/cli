@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -68,22 +69,17 @@ func login(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
 	authJSON, err := json.MarshalIndent(tokenResponse, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	err = os.MkdirAll(fmt.Sprintf("%s/%s", home, C.LocalAuthDir), os.ModePerm)
+	err = os.MkdirAll(C.LocalAuthDir, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(fmt.Sprintf("%s/%s/%s", home, C.LocalAuthDir, C.LocalAuthFileName), authJSON, 0644)
+	err = ioutil.WriteFile(filepath.Join(C.LocalAuthDir, C.LocalAuthFileName), authJSON, 0644)
 	if err != nil {
 		return err
 	}

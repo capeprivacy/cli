@@ -153,7 +153,6 @@ func Deploy(url string, functionInput string, functionName string) (string, erro
 
 func doDeploy(url string, name string, reader io.Reader) (string, error) {
 	endpoint := fmt.Sprintf("%s/v1/deploy", url)
-
 	s := spinner.New(spinner.CharSets[26], 300*time.Millisecond)
 	defer s.Stop()
 	c := make(chan os.Signal, 1)
