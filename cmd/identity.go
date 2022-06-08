@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 
 	"github.com/spf13/cobra"
 )
@@ -38,12 +39,8 @@ func identity(cmd *cobra.Command, args []string) error {
 }
 
 func getTokenResponse() (*TokenResponse, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
-	}
 
-	authFile, err := os.Open(fmt.Sprintf("%s/%s/%s", home, C.LocalAuthDir, C.LocalAuthFileName))
+	authFile, err := os.Open(path.Join(C.LocalAuthDir, C.LocalAuthFileName))
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +61,7 @@ func getTokenResponse() (*TokenResponse, error) {
 }
 
 func getUserIdentity(accessToken string) error {
-	identityURL := fmt.Sprintf("%sv1/user/identity", apiURL)
+	identityURL := path.Join(apiURL, "v1/user/identity")
 	req, err := http.NewRequest("GET", identityURL, nil)
 	if err != nil {
 		return err

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path"
 
 	"github.com/capeprivacy/go-kit/id"
 	"github.com/jedib0t/go-pretty/v6/table"
@@ -52,7 +53,7 @@ func list(cmd *cobra.Command, args []string) error {
 }
 
 func doList(url string) ([]DeploymentName, error) {
-	endpoint := fmt.Sprintf("%s/v1/list", url)
+	endpoint := path.Join(url, "/v1/list")
 
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {

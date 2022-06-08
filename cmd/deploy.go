@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"syscall"
 	"time"
@@ -152,7 +153,7 @@ func Deploy(url string, functionInput string, functionName string) (string, erro
 }
 
 func doDeploy(url string, name string, reader io.Reader) (string, error) {
-	endpoint := fmt.Sprintf("%s/v1/deploy", url)
+	endpoint := path.Join(url, "/v1/deploy")
 
 	s := spinner.New(spinner.CharSets[26], 300*time.Millisecond)
 	defer s.Stop()
