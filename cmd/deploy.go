@@ -5,9 +5,9 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -165,9 +165,9 @@ func doDeploy(url string, name string, reader io.Reader) (string, error) {
 	s.Prefix = "Deploying function to Cape "
 	s.Start()
 
-	conn, res, err := websocket.DefaultDialer.Dial(endpoint, nil)
+	conn, _, err := websocket.DefaultDialer.Dial(endpoint, nil)
 	if err != nil {
-		log.Println("error dialing websocket", res)
+		log.Println("error dialing websocket", err)
 		return "", err
 	}
 
@@ -196,18 +196,22 @@ func doDeploy(url string, name string, reader io.Reader) (string, error) {
 		return "", err
 	}
 
-	_, err = io.Copy(writer, reader)
+	fn, err := ioutil.ReadAll(reader)
 	if err != nil {
-		log.Println("error copying function to websocket")
+		writer.Close()
 		return "", err
 	}
 
-	resData := DeployResponse{}
-
-	dec := json.NewDecoder(res.Body)
-	err = dec.Decode(&resData)
+	_, err = writer.Write(fn)
 	if err != nil {
-		return "", fmt.Errorf("unable to decode response %s", err)
+		return "", err
+	}
+
+	writer.Close()
+
+	resData := DeployResponse{}
+	if err := conn.ReadJSON(&resData); err != nil {
+		return "", err
 	}
 
 	return resData.ID, nil
