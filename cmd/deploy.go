@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"crypto/rand"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -160,12 +161,17 @@ func doDeploy(url string, name string, reader io.Reader) (string, error) {
 	go func() {
 		<-c
 		s.Stop()
-		os.Exit(1)
+		os.Exit(0)
 	}()
 	s.Prefix = "Deploying function to Cape "
 	s.Start()
+	dialer := websocket.Dialer{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
 
-	conn, _, err := websocket.DefaultDialer.Dial(endpoint, nil)
+	conn, _, err := dialer.Dial(endpoint, nil)
 	if err != nil {
 		log.Println("error dialing websocket", err)
 		return "", err
