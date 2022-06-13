@@ -87,7 +87,17 @@ func doRun(url string, functionID string, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	req := RunRequest{Nonce: getNonce(), AuthToken: getAuthToken()}
+	nonce, err := getNonce()
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := getAuthToken()
+	if err != nil {
+		return nil, err
+	}
+
+	req := RunRequest{Nonce: nonce, AuthToken: token}
 	err = c.WriteJSON(req)
 	if err != nil {
 		log.Println("error writing deploy request")

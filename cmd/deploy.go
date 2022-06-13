@@ -145,7 +145,7 @@ func Deploy(url string, functionInput string, functionName string) (string, erro
 
 	id, err := doDeploy(url, functionName, reader)
 	if err != nil {
-		return "", fmt.Errorf("unable to deploy function %w", err)
+		return "", fmt.Errorf("unable to deploy function: %w", err)
 	}
 
 	return id, nil
@@ -171,7 +171,17 @@ func doDeploy(url string, name string, reader io.Reader) (string, error) {
 		return "", err
 	}
 
-	req := DeployRequest{Nonce: getNonce(), AuthToken: getAuthToken()}
+	nonce, err := getNonce()
+	if err != nil {
+		return "", err
+	}
+
+	token, err := getAuthToken()
+	if err != nil {
+		return "", err
+	}
+
+	req := DeployRequest{Nonce: nonce, AuthToken: token}
 	err = conn.WriteJSON(req)
 	if err != nil {
 		log.Println("error writing deploy request")
@@ -217,25 +227,25 @@ func doDeploy(url string, name string, reader io.Reader) (string, error) {
 	return resData.ID, nil
 }
 
-func getNonce() string {
+func getNonce() (string, error) {
 	buf := make([]byte, 16)
 
 	if _, err := rand.Reader.Read(buf); err != nil {
-		log.WithError(err).Error("failed to get nonce")
+		return "", fmt.Errorf("failed to get nonce: %v", err)
 	}
 
-	return base64.StdEncoding.EncodeToString(buf)
+	return base64.StdEncoding.EncodeToString(buf), nil
 }
 
-func getAuthToken() string {
+func getAuthToken() (string, error) {
 	tokenResponse, err := getTokenResponse()
 	if err != nil {
-		log.WithError(err).Error("failed to get auth token")
+		return "", fmt.Errorf("failed to get auth token (did you run 'cape login'?): %v", err)
 	}
 
 	t := tokenResponse.AccessToken
 	if t == "" {
-		log.Errorf("empty access token")
+		return "", fmt.Errorf("empty access token (did you run 'cape login'?): %v", err)
 	}
-	return t
+	return t, nil
 }
