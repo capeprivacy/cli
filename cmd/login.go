@@ -123,7 +123,9 @@ func newDeviceCode() (*DeviceCodeResponse, error) {
 	}
 
 	fmt.Printf("Your CLI confirmation code is: %s\n", response.UserCode)
-	openbrowser(response.VerificationURIComplete)
+	fmt.Printf("Visit this URL to complete the login process: %s\n", response.VerificationURIComplete)
+	// Since we're printing the URL, we can safely ignore any error attempting to open the browser
+	_ = openbrowser(response.VerificationURIComplete)
 
 	return &response, nil
 }
@@ -158,21 +160,15 @@ func getToken(deviceCode string) (*TokenResponse, error) {
 	return &response, nil
 }
 
-// Taken from GIST: https://gist.github.com/hyg/9c4afcd91fe24316cbf0
-func openbrowser(url string) {
-	var err error
-
+// Based on GIST: https://gist.github.com/hyg/9c4afcd91fe24316cbf0
+func openbrowser(url string) error {
 	switch runtime.GOOS {
 	case "linux":
-		err = exec.Command("xdg-open", url).Start()
+		return exec.Command("xdg-open", url).Start()
 	case "windows":
-		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+		return exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
 	case "darwin":
-		err = exec.Command("open", url).Start()
-	default:
-		err = fmt.Errorf("unsupported platform")
+		return exec.Command("open", url).Start()
 	}
-	if err != nil {
-		log.Fatal("unable to open browser")
-	}
+	return fmt.Errorf("unsupported platform")
 }
