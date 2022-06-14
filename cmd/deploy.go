@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -188,36 +187,23 @@ func doDeploy(url string, name string, reader io.Reader) (string, error) {
 		return "", err
 	}
 
-	_, docB64, err := conn.ReadMessage()
+	var msg Message
+	err = conn.ReadJSON(&msg)
 	if err != nil {
 		log.Println("error reading attestation doc")
 		return "", err
 	}
 
-	_, err = attest.Attest(docB64)
+	_, err = attest.Attest(msg.Message)
 	if err != nil {
 		log.Println("error attesting")
 		return "", err
 	}
 
-	writer, err := conn.NextWriter(websocket.BinaryMessage)
-	if err != nil {
-		log.Println("error getting writer for function")
-		return "", err
-	}
-
-	fn, err := ioutil.ReadAll(reader)
-	if err != nil {
-		writer.Close()
-		return "", err
-	}
-
-	_, err = writer.Write(fn)
+	err = writeFunction(conn, reader)
 	if err != nil {
 		return "", err
 	}
-
-	writer.Close()
 
 	resData := DeployResponse{}
 	if err := conn.ReadJSON(&resData); err != nil {
@@ -225,6 +211,22 @@ func doDeploy(url string, name string, reader io.Reader) (string, error) {
 	}
 
 	return resData.ID, nil
+}
+
+func writeFunction(conn *websocket.Conn, reader io.Reader) error {
+	writer, err := conn.NextWriter(websocket.BinaryMessage)
+	if err != nil {
+		log.Println("error getting writer for function")
+		return err
+	}
+	defer writer.Close()
+
+	_, err = io.Copy(writer, reader)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getNonce() (string, error) {
