@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -34,6 +35,11 @@ type RunResponse struct {
 
 type AttestationResponse struct {
 	AttestationDoc string `json:"attestation_doc"`
+}
+
+type Message struct {
+	Type    string `json:"type"`
+	Message []byte `json:"message"`
 }
 
 type ErrorRunResponse struct {
@@ -81,7 +87,13 @@ func Run(u string, dataFile string, functionID string) error {
 func doRun(url string, functionID string, data []byte) ([]byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
 
-	c, res, err := websocket.DefaultDialer.Dial(endpoint, nil)
+	dialer := websocket.Dialer{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+
+	c, res, err := dialer.Dial(endpoint, nil)
 	if err != nil {
 		log.Println("error dialing websocket", res)
 		return nil, err
@@ -104,13 +116,14 @@ func doRun(url string, functionID string, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	_, docB64, err := c.ReadMessage()
+	var msg Message
+	err = c.ReadJSON(&msg)
 	if err != nil {
 		log.Println("error reading attestation doc")
 		return nil, err
 	}
 
-	doc, err := attest.Attest(docB64)
+	doc, err := attest.Attest(msg.Message)
 	if err != nil {
 		log.Println("error attesting")
 		return nil, err
@@ -122,23 +135,31 @@ func doRun(url string, functionID string, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	webWriter, err := c.NextWriter(websocket.BinaryMessage)
+	err = writeData(c, encryptedData)
 	if err != nil {
 		return nil, err
 	}
-
-	_, err = webWriter.Write(encryptedData)
-	if err != nil {
-		return nil, err
-	}
-
-	webWriter.Close()
 
 	resData := &RunResponse{}
 	err = c.ReadJSON(&resData)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	return resData.Data, nil
+}
+
+func writeData(conn *websocket.Conn, data []byte) error {
+	w, err := conn.NextWriter(websocket.BinaryMessage)
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+
+	_, err = w.Write(data)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
