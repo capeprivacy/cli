@@ -29,7 +29,8 @@ type RunRequest struct {
 }
 
 type RunResponse struct {
-	Data []byte `json:"data"`
+	Type    string `json:"type"`
+	Message []byte `json:"message"`
 }
 
 type AttestationResponse struct {
@@ -144,7 +145,7 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 		return nil, err
 	}
 
-	return resData.Data, nil
+	return resData.Message, nil
 }
 
 func writeData(conn *websocket.Conn, data []byte) error {
