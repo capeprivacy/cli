@@ -17,7 +17,7 @@ Successfully ran function. Your results are '<RESULTS GO HERE>'
 ## Build
 
 ```
-go build -o cape main.go
+go build ./cmd/cape
 ```
 
 ## Config

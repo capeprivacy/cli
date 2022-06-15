@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/capeprivacy/cli/cmd"
+	"github.com/capeprivacy/cli/cmd/cape/cmd"
 )
 
 func main() {
