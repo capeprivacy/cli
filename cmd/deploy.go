@@ -4,9 +4,11 @@ import (
 	"archive/zip"
 	"bytes"
 	"crypto/rand"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -66,13 +68,18 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	insecure, err := cmd.Flags().GetBool("insecure")
+	if err != nil {
+		return err
+	}
+
 	functionInput := args[0]
 	name := functionInput
 	if n != "" {
 		name = n
 	}
 
-	dID, err := Deploy(u, name, functionInput)
+	dID, err := Deploy(u, name, functionInput, insecure)
 	if err != nil {
 		return err
 	}
@@ -82,7 +89,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func Deploy(url string, functionInput string, functionName string) (string, error) {
+func Deploy(url string, functionInput string, functionName string, insecure bool) (string, error) {
 	file, err := os.Open(functionInput)
 	if err != nil {
 		return "", fmt.Errorf("unable to read function directory or file: %w", err)
@@ -92,7 +99,7 @@ func Deploy(url string, functionInput string, functionName string) (string, erro
 	if err != nil {
 		return "", fmt.Errorf("unable to read function file or directory: %w", err)
 	}
-	// There is a linter error for isZip but it should be ignored since it's a conditional variable.
+
 	isZip := false
 	if st.IsDir() {
 		_, err = file.Readdirnames(1)
@@ -142,7 +149,7 @@ func Deploy(url string, functionInput string, functionName string) (string, erro
 		reader = buf
 	}
 
-	id, err := doDeploy(url, functionName, reader)
+	id, err := doDeploy(url, functionName, reader, insecure)
 	if err != nil {
 		return "", fmt.Errorf("unable to deploy function: %w", err)
 	}
@@ -150,10 +157,11 @@ func Deploy(url string, functionInput string, functionName string) (string, erro
 	return id, nil
 }
 
-func doDeploy(url string, name string, reader io.Reader) (string, error) {
+func doDeploy(url string, name string, reader io.Reader, insecure bool) (string, error) {
 	endpoint := fmt.Sprintf("%s/v1/deploy", url)
 	s := spinner.New(spinner.CharSets[26], 300*time.Millisecond)
 	defer s.Stop()
+
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
@@ -164,7 +172,7 @@ func doDeploy(url string, name string, reader io.Reader) (string, error) {
 	s.Prefix = "Deploying function to Cape "
 	s.Start()
 
-	conn, _, err := websocket.DefaultDialer.Dial(endpoint, nil)
+	conn, _, err := websocketDial(endpoint, insecure)
 	if err != nil {
 		log.Println("error dialing websocket", err)
 		return "", err
@@ -211,6 +219,16 @@ func doDeploy(url string, name string, reader io.Reader) (string, error) {
 	}
 
 	return resData.ID, nil
+}
+
+func websocketDial(url string, insecure bool) (*websocket.Conn, *http.Response, error) {
+	if insecure {
+		websocket.DefaultDialer.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
+
+	return websocket.DefaultDialer.Dial(url, nil)
 }
 
 func writeFunction(conn *websocket.Conn, reader io.Reader) error {
