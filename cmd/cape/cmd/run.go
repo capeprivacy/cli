@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -58,6 +57,11 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("flag not found: %w", err)
 	}
 
+	insecure, err := cmd.Flags().GetBool("insecure")
+	if err != nil {
+		return fmt.Errorf("flag not found: %w", err)
+	}
+
 	if len(args) != 2 {
 		return fmt.Errorf("you must pass a function ID and input data")
 	}
@@ -65,16 +69,16 @@ func run(cmd *cobra.Command, args []string) error {
 	functionID := args[0]
 	dataFile := args[1]
 
-	return Run(u, dataFile, functionID)
+	return Run(u, dataFile, functionID, insecure)
 }
 
-func Run(u string, dataFile string, functionID string) error {
+func Run(u string, dataFile string, functionID string, insecure bool) error {
 	inputData, err := ioutil.ReadFile(dataFile)
 	if err != nil {
 		return fmt.Errorf("unable to read data file: %w", err)
 	}
 
-	results, err := doRun(u, functionID, inputData)
+	results, err := doRun(u, functionID, inputData, insecure)
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)
 	}
@@ -84,16 +88,10 @@ func Run(u string, dataFile string, functionID string) error {
 	return nil
 }
 
-func doRun(url string, functionID string, data []byte) ([]byte, error) {
+func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
 
-	dialer := websocket.Dialer{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
-
-	c, res, err := dialer.Dial(endpoint, nil)
+	c, res, err := websocketDial(endpoint, insecure)
 	if err != nil {
 		log.Println("error dialing websocket", res)
 		return nil, err
