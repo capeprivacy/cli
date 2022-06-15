@@ -84,7 +84,7 @@ func Run(u string, dataFile string, functionID string, insecure bool) error {
 		return fmt.Errorf("error processing data: %w", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "Success! Results from your function")
+	fmt.Fprintf(os.Stderr, "Success! Results from your function: ")
 	fmt.Println(string(results))
 	return nil
 }
