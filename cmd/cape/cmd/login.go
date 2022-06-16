@@ -49,22 +49,7 @@ func init() {
 }
 
 func login(cmd *cobra.Command, args []string) error {
-	tr, err := Login(C.Hostname, C.ClientID, C.Audience)
-	if err != nil {
-		return err
-	}
-
-	authJSON, err := json.MarshalIndent(tr, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	err = os.MkdirAll(C.LocalAuthDir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	err = ioutil.WriteFile(filepath.Join(C.LocalAuthDir, C.LocalAuthFileName), authJSON, 0644)
+	err := Login(C.Hostname, C.ClientID, C.Audience, C.LocalAuthDir, C.LocalAuthFileName)
 	if err != nil {
 		return err
 	}
@@ -73,7 +58,42 @@ func login(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func Login(hostname string, clientID string, audience string) (*TokenResponse, error) {
+func Login(hostname string, clientID string, audience string, dir string, filename string) error {
+	tr, err := generateTokenResponse(hostname, clientID, audience)
+	if err != nil {
+		log.WithField("err", err).Error("unable to generate token response")
+		return err
+	}
+
+	err = generateTokenFile(tr, dir, filename)
+	if err != nil {
+		log.WithField("err", err).Error("unable to generate token file")
+		return err
+	}
+
+	return nil
+}
+
+func generateTokenFile(tr *TokenResponse, dir string, filename string) error {
+	authJSON, err := json.MarshalIndent(tr, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(filepath.Join(dir, filename), authJSON, 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func generateTokenResponse(hostname string, clientID string, audience string) (*TokenResponse, error) {
 	deviceCodeResponse, err := newDeviceCode(hostname, clientID, audience)
 	if err != nil {
 		return nil, err
