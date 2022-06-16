@@ -49,27 +49,12 @@ func init() {
 }
 
 func login(cmd *cobra.Command, args []string) error {
-	deviceCodeResponse, err := newDeviceCode()
+	tr, err := Login(C.Hostname, C.ClientID, C.Audience)
 	if err != nil {
 		return err
 	}
 
-	var tokenResponse *TokenResponse
-	err = retry.Do(
-		func() error {
-			response, err := getToken(deviceCodeResponse.DeviceCode)
-			tokenResponse = response
-			return err
-		},
-		retry.Attempts(uint(deviceCodeResponse.ExpiresIn/deviceCodeResponse.Interval)),
-		retry.DelayType(retry.FixedDelay),
-		retry.Delay(time.Duration(deviceCodeResponse.Interval)*time.Second),
-	)
-	if err != nil {
-		return err
-	}
-
-	authJSON, err := json.MarshalIndent(tokenResponse, "", "  ")
+	authJSON, err := json.MarshalIndent(tr, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -88,9 +73,32 @@ func login(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func newDeviceCode() (*DeviceCodeResponse, error) {
-	deviceCodeURL := fmt.Sprintf("%s/oauth/device/code", C.Hostname)
-	payloadStr := fmt.Sprintf("client_id=%s&scope=openid%%20profile%%20email&audience=%s", C.ClientID, C.Audience)
+func Login(hostname string, clientID string, audience string) (*TokenResponse, error) {
+	deviceCodeResponse, err := newDeviceCode(hostname, clientID, audience)
+	if err != nil {
+		return nil, err
+	}
+
+	var tokenResponse *TokenResponse
+	err = retry.Do(
+		func() error {
+			response, err := getToken(deviceCodeResponse.DeviceCode)
+			tokenResponse = response
+			return err
+		},
+		retry.Attempts(uint(deviceCodeResponse.ExpiresIn/deviceCodeResponse.Interval)),
+		retry.DelayType(retry.FixedDelay),
+		retry.Delay(time.Duration(deviceCodeResponse.Interval)*time.Second),
+	)
+	if err != nil {
+		return nil, err
+	}
+	return tokenResponse, nil
+}
+
+func newDeviceCode(hostname string, clientID string, audience string) (*DeviceCodeResponse, error) {
+	deviceCodeURL := fmt.Sprintf("%s/oauth/device/code", hostname)
+	payloadStr := fmt.Sprintf("client_id=%s&scope=openid%%20profile%%20email&audience=%s", clientID, audience)
 	req, err := http.NewRequest("POST", deviceCodeURL, strings.NewReader(payloadStr))
 	if err != nil {
 		return nil, err
