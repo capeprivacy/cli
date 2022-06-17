@@ -158,9 +158,9 @@ func newDeviceCode(hostname string, clientID string, audience string) (*DeviceCo
 	return &response, nil
 }
 
-func getToken(hostname string, deviceCode string) (*TokenResponse, error) {
+func getToken(hostname string, clientID string, deviceCode string) (*TokenResponse, error) {
 	tokenURL := fmt.Sprintf("%s/oauth/token", hostname)
-	payload := strings.NewReader(fmt.Sprintf("grant_type=urn%%3Aietf%%3Aparams%%3Aoauth%%3Agrant-type%%3Adevice_code&device_code=%s&client_id=%s", deviceCode, C.ClientID))
+	payload := strings.NewReader(fmt.Sprintf("grant_type=urn%%3Aietf%%3Aparams%%3Aoauth%%3Agrant-type%%3Adevice_code&device_code=%s&client_id=%s", deviceCode, clientID))
 	req, _ := http.NewRequest("POST", tokenURL, payload)
 
 	req.Header.Add("content-type", "application/x-www-form-urlencoded")
