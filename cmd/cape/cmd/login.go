@@ -102,7 +102,7 @@ func generateTokenResponse(hostname string, clientID string, audience string) (*
 	var tokenResponse *TokenResponse
 	err = retry.Do(
 		func() error {
-			response, err := getToken(deviceCodeResponse.DeviceCode)
+			response, err := getToken(hostname, deviceCodeResponse.DeviceCode)
 			tokenResponse = response
 			return err
 		},
@@ -158,8 +158,8 @@ func newDeviceCode(hostname string, clientID string, audience string) (*DeviceCo
 	return &response, nil
 }
 
-func getToken(deviceCode string) (*TokenResponse, error) {
-	tokenURL := fmt.Sprintf("%s/oauth/token", C.Hostname)
+func getToken(hostname string, deviceCode string) (*TokenResponse, error) {
+	tokenURL := fmt.Sprintf("%s/oauth/token", hostname)
 	payload := strings.NewReader(fmt.Sprintf("grant_type=urn%%3Aietf%%3Aparams%%3Aoauth%%3Agrant-type%%3Adevice_code&device_code=%s&client_id=%s", deviceCode, C.ClientID))
 	req, _ := http.NewRequest("POST", tokenURL, payload)
 
