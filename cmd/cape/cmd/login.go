@@ -102,7 +102,7 @@ func generateTokenResponse(hostname string, clientID string, audience string) (*
 	var tokenResponse *TokenResponse
 	err = retry.Do(
 		func() error {
-			response, err := getToken(hostname, deviceCodeResponse.DeviceCode)
+			response, err := getToken(hostname, clientID, deviceCodeResponse.DeviceCode)
 			tokenResponse = response
 			return err
 		},
