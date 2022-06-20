@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	log "github.com/sirupsen/logrus"
@@ -11,12 +12,33 @@ import (
 )
 
 var cfgFile string
+var debugEnabled bool
+
+func debug(w io.Writer, format string, a ...any) {
+	if !debugEnabled {
+		return
+	}
+
+	_, err := w.Write(append([]byte(fmt.Sprintf("[debug] "+format, a...)), []byte("\n")...))
+	if err != nil {
+		panic(err)
+	}
+}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "cape",
 	Short: "Cape command",
 	Long:  `Cape commandline tool`,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		v, err := cmd.Flags().GetBool("verbose")
+		if err != nil {
+			return err
+		}
+
+		debugEnabled = v
+		return nil
+	},
 }
 
 // ExecuteCLI adds all child commands to the root command and sets flags appropriately.
@@ -31,6 +53,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/capeprivacy/cape.yaml)")
 	rootCmd.PersistentFlags().StringP("url", "u", "https://newdemo.capeprivacy.com", "Cape Cloud URL")
 	rootCmd.PersistentFlags().Bool("insecure", false, "!!! For development only !!! Disable TLS certification.")
+	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
 }
 
 // initConfig reads in config file and ENV variables if set.

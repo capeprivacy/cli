@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -174,7 +176,8 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 
 	conn, _, err := websocketDial(endpoint, insecure)
 	if err != nil {
-		log.Println("error dialing websocket", err)
+		s.Stop()
+		debug(os.Stderr, "error dialing websocket %v", err)
 		return "", err
 	}
 
@@ -182,6 +185,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	if err != nil {
 		return "", err
 	}
+	debug(os.Stderr, "Generated nonce <%s>", nonce)
 
 	token, err := getAuthToken()
 	if err != nil {
@@ -189,6 +193,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	}
 
 	req := DeployRequest{Nonce: nonce, AuthToken: token}
+	debug(os.Stderr, "Sending deploy request: %v", req)
 	err = conn.WriteJSON(req)
 	if err != nil {
 		log.Println("error writing deploy request")
@@ -202,12 +207,15 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 		return "", err
 	}
 
+	debug(os.Stderr, "Verifying attestation document")
 	_, err = attest.Attest(msg.Message)
 	if err != nil {
 		log.Println("error attesting")
 		return "", err
 	}
 
+	debug(os.Stderr, "Attestation process passed")
+	debug(os.Stderr, "Sending encrypted function code to Cape")
 	err = writeFunction(conn, reader)
 	if err != nil {
 		return "", err
@@ -217,18 +225,38 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	if err := conn.ReadJSON(&resData); err != nil {
 		return "", err
 	}
+	debug(os.Stderr, "Cape received function code")
 
 	return resData.ID, nil
 }
 
-func websocketDial(url string, insecure bool) (*websocket.Conn, *http.Response, error) {
+func websocketDial(urlStr string, insecure bool) (*websocket.Conn, *http.Response, error) {
+	if strings.HasPrefix(urlStr, "https://") {
+		u, err := url.Parse(urlStr)
+		if err != nil {
+			return nil, nil, err
+		}
+		u.Scheme = "wss"
+		urlStr = u.String()
+	}
+
+	if strings.HasPrefix(urlStr, "http://") {
+		u, err := url.Parse(urlStr)
+		if err != nil {
+			return nil, nil, err
+		}
+		u.Scheme = "ws"
+		urlStr = u.String()
+	}
+
+	debug(os.Stderr, "connecting to %s with insecure flag %t", urlStr, insecure)
 	if insecure {
 		websocket.DefaultDialer.TLSClientConfig = &tls.Config{
 			InsecureSkipVerify: true,
 		}
 	}
 
-	return websocket.DefaultDialer.Dial(url, nil)
+	return websocket.DefaultDialer.Dial(urlStr, nil)
 }
 
 func writeFunction(conn *websocket.Conn, reader io.Reader) error {

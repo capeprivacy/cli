@@ -74,6 +74,7 @@ func run(cmd *cobra.Command, args []string) error {
 }
 
 func Run(u string, dataFile string, functionID string, insecure bool) error {
+	debug(os.Stderr, "reading data from %s", dataFile)
 	inputData, err := ioutil.ReadFile(dataFile)
 	if err != nil {
 		return fmt.Errorf("unable to read data file: %w", err)
@@ -92,9 +93,10 @@ func Run(u string, dataFile string, functionID string, insecure bool) error {
 func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
 
-	c, res, err := websocketDial(endpoint, insecure)
+	debug(os.Stderr, "connecting to %s", endpoint)
+	c, _, err := websocketDial(endpoint, insecure)
 	if err != nil {
-		log.Println("error dialing websocket", res)
+		debug(os.Stderr, "error dialing websocket: %v", err)
 		return nil, err
 	}
 
@@ -102,6 +104,7 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 	if err != nil {
 		return nil, err
 	}
+	debug(os.Stderr, "generated nonce: %s", nonce)
 
 	token, err := getAuthToken()
 	if err != nil {
@@ -122,24 +125,28 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 		return nil, err
 	}
 
+	debug(os.Stderr, "Verifying attestation document")
 	doc, err := attest.Attest(msg.Message)
 	if err != nil {
 		log.Println("error attesting")
 		return nil, err
 	}
 
+	debug(os.Stderr, "Encrypting data")
 	encryptedData, err := crypto.LocalEncrypt(*doc, data)
 	if err != nil {
 		log.Println("error encrypting")
 		return nil, err
 	}
 
+	debug(os.Stderr, "Sending data")
 	err = writeData(c, encryptedData)
 	if err != nil {
 		return nil, err
 	}
 
 	resData := &RunResponse{}
+	debug(os.Stderr, "Receiving results")
 	err = c.ReadJSON(&resData)
 	if err != nil {
 		return nil, err
