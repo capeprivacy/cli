@@ -14,7 +14,7 @@ import (
 var cfgFile string
 var debugEnabled bool
 
-func debug(w io.Writer, format string, a ...any) {
+func debug(w io.Writer, format string, a ...interface{}) {
 	if !debugEnabled {
 		return
 	}
