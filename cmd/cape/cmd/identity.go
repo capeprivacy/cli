@@ -25,7 +25,7 @@ func init() {
 }
 
 func identity(cmd *cobra.Command, args []string) error {
-	tokenResponse, err := getTokenResponse()
+	tokenResponse, err := getTokenResponse(C.LocalAuthDir, C.LocalAuthFileName)
 	if err != nil {
 		return err
 	}
@@ -38,8 +38,8 @@ func identity(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func getTokenResponse() (*TokenResponse, error) {
-	authFile, err := os.Open(filepath.Join(C.LocalAuthDir, C.LocalAuthFileName))
+func getTokenResponse(dir string, filename string) (*TokenResponse, error) {
+	authFile, err := os.Open(filepath.Join(dir, filename))
 	if err != nil {
 		return nil, err
 	}

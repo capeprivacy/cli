@@ -79,7 +79,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 		name = n
 	}
 
-	dID, err := Deploy(u, name, functionInput, insecure)
+	dID, err := Deploy(u, name, functionInput, insecure, C.LocalAuthDir, C.LocalAuthFileName)
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func Deploy(url string, functionInput string, functionName string, insecure bool) (string, error) {
+func Deploy(url string, functionInput string, functionName string, insecure bool, dir string, filename string) (string, error) {
 	file, err := os.Open(functionInput)
 	if err != nil {
 		return "", fmt.Errorf("unable to read function directory or file: %w", err)
@@ -149,7 +149,7 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 		reader = buf
 	}
 
-	id, err := doDeploy(url, functionName, reader, insecure)
+	id, err := doDeploy(url, functionName, reader, insecure, dir, filename)
 	if err != nil {
 		return "", fmt.Errorf("unable to deploy function: %w", err)
 	}
@@ -157,7 +157,7 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 	return id, nil
 }
 
-func doDeploy(url string, name string, reader io.Reader, insecure bool) (string, error) {
+func doDeploy(url string, name string, reader io.Reader, insecure bool, dir string, filename string) (string, error) {
 	endpoint := fmt.Sprintf("%s/v1/deploy", url)
 	s := spinner.New(spinner.CharSets[26], 300*time.Millisecond)
 	defer s.Stop()
@@ -183,7 +183,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 		return "", err
 	}
 
-	token, err := getAuthToken()
+	token, err := getAuthToken(dir, filename)
 	if err != nil {
 		return "", err
 	}
@@ -257,8 +257,8 @@ func getNonce() (string, error) {
 	return base64.StdEncoding.EncodeToString(buf), nil
 }
 
-func getAuthToken() (string, error) {
-	tokenResponse, err := getTokenResponse()
+func getAuthToken(dir string, filename string) (string, error) {
+	tokenResponse, err := getTokenResponse(dir, filename)
 	if err != nil {
 		return "", fmt.Errorf("failed to get auth token (did you run 'cape login'?): %v", err)
 	}

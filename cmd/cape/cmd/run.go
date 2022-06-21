@@ -70,16 +70,16 @@ func run(cmd *cobra.Command, args []string) error {
 	functionID := args[0]
 	dataFile := args[1]
 
-	return Run(u, dataFile, functionID, insecure)
+	return Run(u, dataFile, functionID, insecure, C.LocalAuthDir, C.LocalAuthFileName)
 }
 
-func Run(u string, dataFile string, functionID string, insecure bool) error {
+func Run(u string, dataFile string, functionID string, insecure bool, dir string, filename string) error {
 	inputData, err := ioutil.ReadFile(dataFile)
 	if err != nil {
 		return fmt.Errorf("unable to read data file: %w", err)
 	}
 
-	results, err := doRun(u, functionID, inputData, insecure)
+	results, err := doRun(u, functionID, inputData, insecure, dir, filename)
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)
 	}
@@ -89,7 +89,7 @@ func Run(u string, dataFile string, functionID string, insecure bool) error {
 	return nil
 }
 
-func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, error) {
+func doRun(url string, functionID string, data []byte, insecure bool, dir string, filename string) ([]byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
 
 	c, res, err := websocketDial(endpoint, insecure)
@@ -103,7 +103,7 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 		return nil, err
 	}
 
-	token, err := getAuthToken()
+	token, err := getAuthToken(dir, filename)
 	if err != nil {
 		return nil, err
 	}
