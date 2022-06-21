@@ -53,7 +53,7 @@ func TestNoArgs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got, want := string(stdout.Bytes()), usage; !strings.HasPrefix(got, want) {
+	if got, want := stdout.String(), usage; !strings.HasPrefix(got, want) {
 		t.Fatalf("didn't get expected response, got %s, wanted %s", got, want)
 	}
 }
@@ -65,7 +65,7 @@ func TestOneArg(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got, want := string(stdout.Bytes()), usage; !strings.HasPrefix(got, want) {
+	if got, want := stdout.String(), usage; !strings.HasPrefix(got, want) {
 		t.Fatalf("didn't get expected response, got %s, wanted %s", got, want)
 	}
 }
@@ -77,7 +77,7 @@ func TestThreeArgs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got, want := string(stdout.Bytes()), usage; !strings.HasPrefix(got, want) {
+	if got, want := stdout.String(), usage; !strings.HasPrefix(got, want) {
 		t.Fatalf("didn't get expected response, got %s, wanted %s", got, want)
 	}
 }
@@ -89,11 +89,11 @@ func TestBadFunction(t *testing.T) {
 		t.Fatal(errors.New("received no error when we should have"))
 	}
 
-	if got, want := string(stderr.Bytes()), "Error: zipping directory failed: lstat testdata/notafunction: no such file or directory\n"; got != want {
+	if got, want := stderr.String(), "Error: zipping directory failed: lstat testdata/notafunction: no such file or directory\n"; got != want {
 		t.Errorf("didn't get expected stderr, got %s, wanted %s", got, want)
 	}
 
-	if got, want := string(stdout.Bytes()), usage; !strings.HasPrefix(got, want) {
+	if got, want := stdout.String(), usage; !strings.HasPrefix(got, want) {
 		t.Fatalf("didn't get expected response, got %s, wanted %s", got, want)
 	}
 }
@@ -111,11 +111,11 @@ func TestServerError(t *testing.T) {
 		t.Fatal(errors.New("received no error when we should have"))
 	}
 
-	if got, want := string(stderr.Bytes()), fmt.Sprintf("Error: %s\n", errMsg); got != want {
+	if got, want := stderr.String(), fmt.Sprintf("Error: %s\n", errMsg); got != want {
 		t.Fatalf("didn't get expected stderr, got %s, wanted %s", got, want)
 	}
 
-	if got, want := string(stdout.Bytes()), usage; !strings.HasPrefix(got, want) {
+	if got, want := stdout.String(), usage; !strings.HasPrefix(got, want) {
 		t.Fatalf("didn't get expected response, got %s, wanted %s", got, want)
 	}
 }
@@ -136,11 +136,11 @@ func TestSuccess(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got, want := string(stderr.Bytes()), ""; got != want {
+	if got, want := stderr.String(), ""; got != want {
 		t.Fatalf("didn't get expected stderr, got %s, wanted %s", got, want)
 	}
 
-	if got, want := string(stdout.Bytes()), results; got != want {
+	if got, want := stdout.String(), results; got != want {
 		t.Fatalf("didn't get expected stdout, got %s, wanted %s", got, want)
 	}
 
@@ -200,10 +200,10 @@ func TestWSConnection(t *testing.T) {
 	cmd.SetArgs([]string{"test", "testdata/my_fn", "hello world", "--url", s.URL})
 
 	if err := cmd.Execute(); err != nil {
-		t.Fatalf("received unexpected error: %v, stderr: %s, stdout: %s", err, string(stderr.Bytes()), string(stdout.Bytes()))
+		t.Fatalf("received unexpected error: %v, stderr: %s, stdout: %s", err, stderr.String(), stdout.String())
 	}
 
-	if got, want := string(stdout.Bytes()), "hi!"; !reflect.DeepEqual(got, want) {
+	if got, want := stdout.String(), "hi!"; !reflect.DeepEqual(got, want) {
 		t.Fatalf("didn't get expected results\ngot\n\t%s\nwanted\n\t%s", got, want)
 	}
 }
@@ -220,7 +220,7 @@ func TestHelp(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got, want := string(stdOut.Bytes()), help; !strings.HasPrefix(got, want) {
+	if got, want := stdOut.String(), help; !strings.HasPrefix(got, want) {
 		t.Fatalf("didn't get expected output, got %s, wanted %s", got, want)
 	}
 }
