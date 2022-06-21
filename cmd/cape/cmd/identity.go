@@ -60,7 +60,7 @@ func getTokenResponse() (*TokenResponse, error) {
 }
 
 func getUserIdentity(accessToken string) error {
-	identityURL := fmt.Sprintf("%sv1/user/identity", apiURL)
+	identityURL := fmt.Sprintf("%s/v1/user/identity", apiURL)
 	req, err := http.NewRequest("GET", identityURL, nil)
 	if err != nil {
 		return err
