@@ -18,6 +18,11 @@ builds:
       - amd64
       - arm64
     binary: cape
+    ldflags:
+      # -s and -w were defaults in goreleaser so keeping them here.
+      # I think main motivation for using them is to shrink the binary size
+      # by removing unneeded symbol information.
+      - -s -w -X github.com/capeprivacy/cli/cmd/cape/cmd.version={{.Version}}
 archives:
   - name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
