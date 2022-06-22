@@ -11,8 +11,9 @@ import (
 
 var testCmd = &cobra.Command{
 	Use:   "test [directory | zip file] [input]",
-	Short: "test your function with Cape",
-
+	Short: "Test your function with Cape",
+	Long: "Test your function with Cape\n" +
+		"Results are output to stdout so you can easily pipe them elsewhere",
 	RunE: Test,
 }
 

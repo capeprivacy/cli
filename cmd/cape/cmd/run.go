@@ -17,8 +17,9 @@ import (
 var runCmd = &cobra.Command{
 	Use:   "run [function id] [input data]",
 	Short: "run a deployed function with data",
-	Long:  "run a deployed function with data, takes function id and path to data",
-	RunE:  run,
+	Long: "Run a deployed function with data, takes function id and path to data.\n" +
+		"Results are output to stdout so you can easily pipe them elsewhere",
+	RunE: run,
 }
 
 type RunRequest struct {
@@ -84,7 +85,7 @@ func Run(u string, dataFile string, functionID string, insecure bool) error {
 		return fmt.Errorf("error processing data: %w", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "Success! Results from your function: ")
+	fmt.Fprintf(os.Stderr, "Success! Results from your function:\n")
 	fmt.Println(string(results))
 	return nil
 }
