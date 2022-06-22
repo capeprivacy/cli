@@ -35,7 +35,7 @@ type DeployResponse struct {
 
 // deployCmd represents the request command
 var deployCmd = &cobra.Command{
-	Use:   "deploy [directory | zip file]",
+	Use:   "deploy directory | zip_file",
 	Short: "deploy a function",
 	Long: `Deploy a function to Cape.
 
