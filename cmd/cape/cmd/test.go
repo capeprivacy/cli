@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"net/url"
 
 	"github.com/capeprivacy/cli/capetest"
@@ -63,13 +64,11 @@ func Test(cmd *cobra.Command, args []string) error {
 	if len(args) == 2 {
 		input = []byte(args[1])
 	} else {
-		scanner := bufio.NewScanner(stdin)
-		for scanner.Scan() {
-			input = append(input, scanner.Bytes()...)
-		}
-		if err := scanner.Err(); err != nil {
+		buf := new(bytes.Buffer)
+		if _, err := io.Copy(buf, stdin); err != nil {
 			return err
 		}
+		input = buf.Bytes()
 	}
 
 	res, err := test(capetest.TestRequest{Function: fnZip, Input: input}, wsURL(u), insecure)

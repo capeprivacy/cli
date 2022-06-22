@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -173,13 +173,11 @@ func readStdinOrFile(args []string, in io.Reader) ([]byte, error) {
 		}
 		input = inputData
 	} else {
-		scanner := bufio.NewScanner(in)
-		for scanner.Scan() {
-			input = append(input, scanner.Bytes()...)
-		}
-		if err := scanner.Err(); err != nil {
+		buf := new(bytes.Buffer)
+		if _, err := io.Copy(buf, in); err != nil {
 			return nil, err
 		}
+		input = buf.Bytes()
 	}
 
 	return input, nil
