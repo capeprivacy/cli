@@ -6,6 +6,29 @@ Cape CLI
 
 ### Install
 
+#### Without Go
+
+If you have golang installed you can alternatively use [go to install Cape](#with-go).
+
+In a browser go to https://github.com/capeprivacy/cli/releases and choose a release and OS/Architecture
+package you'd like to download and download it.
+
+`curl` can also be used to donwload the files, like:
+
+```
+curl -O https://github.com/capeprivacy/cli/releases/download/v0.0.1/cape_0.0.1_Linux_x86_64.tar.gz
+```
+
+Then untar the binary into `/usr/bin` or another location that is in your `$PATH`.
+
+```
+$ tar -C /usr/bin -xzf cape_0.0.1_Linux_x86_64.tar.gz
+```
+
+`sudo` may be required on the above command.
+
+#### With Go
+
 Cape CLI can be simply installed with:
 
 ```
