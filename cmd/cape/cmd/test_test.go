@@ -18,10 +18,11 @@ import (
 
 const (
 	help = `Test your function with Cape
+Test will also read input data from stdin, example: "echo '1234' | cape run id".
 Results are output to stdout so you can easily pipe them elsewhere
 
 Usage:
-  cape test [directory | zip file] [input] [flags]
+  cape test directory [input] [flags]
 
 Flags:
   -h, --help   help for test
@@ -29,7 +30,7 @@ Flags:
 `
 
 	usage = `Usage:
-  cape test [directory | zip file] [input] [flags]
+  cape test directory [input] [flags]
 
 Flags:
   -h, --help   help for test
@@ -50,18 +51,6 @@ func getCmd() (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
 func TestNoArgs(t *testing.T) {
 	cmd, stdout, _ := getCmd()
 	cmd.SetArgs([]string{"test"})
-	if err := cmd.Execute(); err != nil {
-		t.Fatal(err)
-	}
-
-	if got, want := stdout.String(), usage; !strings.HasPrefix(got, want) {
-		t.Fatalf("didn't get expected response, got %s, wanted %s", got, want)
-	}
-}
-
-func TestOneArg(t *testing.T) {
-	cmd, stdout, _ := getCmd()
-	cmd.SetArgs([]string{"test", "testdata/my_fn"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
@@ -132,6 +121,46 @@ func TestSuccess(t *testing.T) {
 		gotFn, gotInput = testReq.Function, testReq.Input
 		return &capetest.RunResults{Message: []byte(results)}, nil
 	}
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	if got, want := stderr.String(), ""; got != want {
+		t.Fatalf("didn't get expected stderr, got %s, wanted %s", got, want)
+	}
+
+	if got, want := stdout.String(), results; got != want {
+		t.Fatalf("didn't get expected stdout, got %s, wanted %s", got, want)
+	}
+
+	want, err := czip.Create("testdata/my_fn")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := gotFn, want; !reflect.DeepEqual(got, want) {
+		t.Fatalf("didn't get expected function bytes\ngot\n\t%v\nwanted\n\t%v", got, want)
+	}
+
+	if got, want := string(gotInput), "hello world"; got != want {
+		t.Fatalf("didn't get expected input, got %s, wanted %s", got, want)
+	}
+}
+
+func TestSuccessStdin(t *testing.T) {
+	cmd, stdout, stderr := getCmd()
+	cmd.SetArgs([]string{"test", "testdata/my_fn"})
+
+	results := "success!"
+	var gotFn []byte
+	var gotInput []byte
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*capetest.RunResults, error) {
+		gotFn, gotInput = testReq.Function, testReq.Input
+		return &capetest.RunResults{Message: []byte(results)}, nil
+	}
+
+	buf := bytes.NewBuffer([]byte("hello world"))
+	cmd.SetIn(buf)
 
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
