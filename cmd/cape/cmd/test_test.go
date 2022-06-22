@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	help = `test your function with Cape
+	help = `Test your function with Cape
+Results are output to stdout so you can easily pipe them elsewhere
 
 Usage:
   cape test [directory | zip file] [input] [flags]
