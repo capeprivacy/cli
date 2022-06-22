@@ -20,7 +20,8 @@ builds:
     binary: cape
 archives:
   - name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-    files: [] # don't include any additional files
+    files:
+      - none*
     replacements:
       darwin: Darwin
       linux: Linux
