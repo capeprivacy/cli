@@ -19,11 +19,12 @@ builds:
       - arm64
     binary: cape
 archives:
-  - replacements:
+  - name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files: [] # don't include any additional files
+    replacements:
       darwin: Darwin
       linux: Linux
       windows: Windows
-      386: i386
       amd64: x86_64
 checksum:
   name_template: 'checksums.txt'
