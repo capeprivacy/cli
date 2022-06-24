@@ -63,7 +63,7 @@ func Test(cmd *cobra.Command, args []string) error {
 		input = buf.Bytes()
 	}
 
-	token, err := getAuthToken()
+	token, err := authToken()
 	if err != nil {
 		return err
 	}
@@ -80,4 +80,5 @@ func Test(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+var authToken = getAuthToken
 var test = capetest.CapeTest

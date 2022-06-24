@@ -104,7 +104,13 @@ func TestServerError(t *testing.T) {
 	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*capetest.RunResults, error) {
 		return nil, errors.New(errMsg)
 	}
-	defer func() { test = capetest.CapeTest }()
+	authToken = func() (string, error) {
+		return "so logged in", nil
+	}
+	defer func() {
+		test = capetest.CapeTest
+		authToken = getAuthToken
+	}()
 
 	if err := cmd.Execute(); err == nil {
 		t.Fatal(errors.New("received no error when we should have"))
@@ -130,7 +136,13 @@ func TestSuccess(t *testing.T) {
 		gotFn, gotInput = testReq.Function, testReq.Input
 		return &capetest.RunResults{Message: []byte(results)}, nil
 	}
-	defer func() { test = capetest.CapeTest }()
+	authToken = func() (string, error) {
+		return "so logged in", nil
+	}
+	defer func() {
+		test = capetest.CapeTest
+		authToken = getAuthToken
+	}()
 
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
@@ -168,7 +180,13 @@ func TestSuccessStdin(t *testing.T) {
 		gotFn, gotInput = testReq.Function, testReq.Input
 		return &capetest.RunResults{Message: []byte(results)}, nil
 	}
-	defer func() { test = capetest.CapeTest }()
+	authToken = func() (string, error) {
+		return "so logged in", nil
+	}
+	defer func() {
+		test = capetest.CapeTest
+		authToken = getAuthToken
+	}()
 
 	buf := bytes.NewBuffer([]byte("hello world"))
 	cmd.SetIn(buf)
@@ -216,7 +234,13 @@ func TestWSConnection(t *testing.T) {
 
 		return &capetest.RunResults{Message: m.Message}, nil
 	}
-	defer func() { test = capetest.CapeTest }()
+	authToken = func() (string, error) {
+		return "so logged in", nil
+	}
+	defer func() {
+		test = capetest.CapeTest
+		authToken = getAuthToken
+	}()
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		upgrader := websocket.Upgrader{
@@ -257,7 +281,13 @@ func TestEndpoint(t *testing.T) {
 		endpointHit = endpoint
 		return &capetest.RunResults{Message: []byte("good job")}, nil
 	}
-	defer func() { test = capetest.CapeTest }()
+	authToken = func() (string, error) {
+		return "so logged in", nil
+	}
+	defer func() {
+		test = capetest.CapeTest
+		authToken = getAuthToken
+	}()
 
 	cmd, stdout, stderr := getCmd()
 	cmd.SetArgs([]string{"test", "testdata/my_fn", "hello world", "--url", "cape.com"})
