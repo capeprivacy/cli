@@ -1,18 +1,19 @@
 package cmd
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
 
 var apiURL = "https://newdemo.capeprivacy.com"
+
+type UserResponse struct {
+	ID string `json:"id"`
+}
 
 var identityCmd = &cobra.Command{
 	Use:   "identity",
@@ -25,62 +26,66 @@ func init() {
 }
 
 func identity(cmd *cobra.Command, args []string) error {
-	tokenResponse, err := getTokenResponse()
+	accessToken, err := getAccessToken()
 	if err != nil {
 		return err
 	}
 
-	err = getUserIdentity(tokenResponse.AccessToken)
+	identity, err := getUserIdentity(*accessToken)
 	if err != nil {
 		return err
 	}
 
+	fmt.Printf("cape identity: %s\n", identity)
 	return nil
 }
 
-func getTokenResponse() (*TokenResponse, error) {
-	authFile, err := os.Open(filepath.Join(C.LocalConfigDir, C.LocalAuthFileName))
-	if err != nil {
-		return nil, err
-	}
-	defer authFile.Close()
-
-	byteValue, err := ioutil.ReadAll(authFile)
+func getAccessToken() (*string, error) {
+	tokenResponse, err := getTokenResponse()
 	if err != nil {
 		return nil, err
 	}
 
-	var response TokenResponse
-	err = json.Unmarshal(byteValue, &response)
+	_, err = getUserIdentity(tokenResponse.AccessToken)
+	if err == nil {
+		return &tokenResponse.AccessToken, nil
+	}
+
+	err = refreshTokenResponse(tokenResponse.RefreshToken)
 	if err != nil {
 		return nil, err
 	}
 
-	return &response, nil
+	tokenResponse, err = getTokenResponse()
+	if err != nil {
+		return nil, err
+	}
+
+	return &tokenResponse.AccessToken, nil
 }
 
-func getUserIdentity(accessToken string) error {
+func getUserIdentity(accessToken string) (*UserResponse, error) {
 	identityURL := fmt.Sprintf("%s/v1/user/identity", apiURL)
 	req, err := http.NewRequest("GET", identityURL, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	req.Header.Add("authorization", fmt.Sprintf("Bearer %s", accessToken))
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer res.Body.Close()
 	_, err = ioutil.ReadAll(res.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if res.StatusCode != 200 {
-		return errors.New("invalid response code received")
+		return nil, errors.New("invalid response code received")
 	}
 
-	return nil
+	return &UserResponse{ID: "TBD"}, nil
 }
