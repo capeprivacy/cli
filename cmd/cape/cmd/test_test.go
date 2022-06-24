@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"reflect"
 	"strings"
 	"testing"
@@ -46,6 +47,13 @@ func getCmd() (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
 	cmd.SetErr(stderr)
 
 	return cmd, stdout, stderr
+}
+
+func wsURL(origURL string) string {
+	u, _ := url.Parse(origURL)
+	u.Scheme = "ws"
+
+	return u.String()
 }
 
 func TestNoArgs(t *testing.T) {
@@ -96,6 +104,7 @@ func TestServerError(t *testing.T) {
 	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*capetest.RunResults, error) {
 		return nil, errors.New(errMsg)
 	}
+	defer func() { test = capetest.CapeTest }()
 
 	if err := cmd.Execute(); err == nil {
 		t.Fatal(errors.New("received no error when we should have"))
@@ -121,6 +130,7 @@ func TestSuccess(t *testing.T) {
 		gotFn, gotInput = testReq.Function, testReq.Input
 		return &capetest.RunResults{Message: []byte(results)}, nil
 	}
+	defer func() { test = capetest.CapeTest }()
 
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
@@ -158,6 +168,7 @@ func TestSuccessStdin(t *testing.T) {
 		gotFn, gotInput = testReq.Function, testReq.Input
 		return &capetest.RunResults{Message: []byte(results)}, nil
 	}
+	defer func() { test = capetest.CapeTest }()
 
 	buf := bytes.NewBuffer([]byte("hello world"))
 	cmd.SetIn(buf)
@@ -205,6 +216,7 @@ func TestWSConnection(t *testing.T) {
 
 		return &capetest.RunResults{Message: m.Message}, nil
 	}
+	defer func() { test = capetest.CapeTest }()
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		upgrader := websocket.Upgrader{
@@ -227,7 +239,7 @@ func TestWSConnection(t *testing.T) {
 
 	defer s.Close()
 	cmd, stdout, stderr := getCmd()
-	cmd.SetArgs([]string{"test", "testdata/my_fn", "hello world", "--url", s.URL})
+	cmd.SetArgs([]string{"test", "testdata/my_fn", "hello world", "--url", wsURL(s.URL)})
 
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("received unexpected error: %v, stderr: %s, stdout: %s", err, stderr.String(), stdout.String())
@@ -238,19 +250,36 @@ func TestWSConnection(t *testing.T) {
 	}
 }
 
+func TestEndpoint(t *testing.T) {
+	// ensure that `cape test` hits the `/v1/test` endpoint
+	endpointHit := ""
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*capetest.RunResults, error) {
+		endpointHit = endpoint
+		return &capetest.RunResults{Message: []byte("good job")}, nil
+	}
+	defer func() { test = capetest.CapeTest }()
+
+	cmd, stdout, stderr := getCmd()
+	cmd.SetArgs([]string{"test", "testdata/my_fn", "hello world", "--url", "cape.com"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Unexpected error: %v, stdout: %s, stderr: %s", err, stdout.String(), stderr.String())
+	}
+
+	if got, want := endpointHit, "cape.com/v1/test"; got != want {
+		t.Fatalf("didn't get expected endpoint, got %s, wanted %s", got, want)
+	}
+}
+
 func TestHelp(t *testing.T) {
-	stdErr := new(bytes.Buffer)
-	stdOut := new(bytes.Buffer)
-	cmd := rootCmd
-	cmd.SetOut(stdOut)
-	cmd.SetErr(stdErr)
+	cmd, stdout, _ := getCmd()
 	cmd.SetArgs([]string{"test", "-h"})
 
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
-	if got, want := stdOut.String(), help; !strings.HasPrefix(got, want) {
+	if got, want := stdout.String(), help; !strings.HasPrefix(got, want) {
 		t.Fatalf("didn't get expected output, got %s, wanted %s", got, want)
 	}
 }

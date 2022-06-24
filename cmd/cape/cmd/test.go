@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"net/url"
 
 	"github.com/capeprivacy/cli/capetest"
 	czip "github.com/capeprivacy/cli/zip"
@@ -22,13 +21,6 @@ var testCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(testCmd)
-}
-
-func wsURL(origURL string) string {
-	u, _ := url.Parse(origURL)
-	u.Scheme = "ws"
-
-	return u.String()
 }
 
 func Test(cmd *cobra.Command, args []string) error {
@@ -71,7 +63,12 @@ func Test(cmd *cobra.Command, args []string) error {
 		input = buf.Bytes()
 	}
 
-	res, err := test(capetest.TestRequest{Function: fnZip, Input: input}, wsURL(u), insecure)
+	token, err := getAuthToken()
+	if err != nil {
+		return err
+	}
+
+	res, err := test(capetest.TestRequest{Function: fnZip, Input: input, AuthToken: token}, u+"/v1/test", insecure)
 	if err != nil {
 		return err
 	}

@@ -97,7 +97,7 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 		return nil, err
 	}
 
-	nonce, err := getNonce()
+	nonce, err := crypto.GetNonce()
 	if err != nil {
 		return nil, err
 	}
