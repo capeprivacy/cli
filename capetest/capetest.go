@@ -10,12 +10,13 @@ import (
 )
 
 type TestRequest struct {
-	Function []byte
-	Input    []byte
+	Function  []byte
+	Input     []byte
+	AuthToken string
 }
 
 type StartRequest struct {
-	Nonce     []byte `json:"nonce"`
+	Nonce     string `json:"nonce"`
 	AuthToken string `json:"auth_token"`
 }
 
@@ -46,7 +47,15 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults,
 		return nil, err
 	}
 
-	startReq := StartRequest{}
+	nonce, err := crypto.GetNonce()
+	if err != nil {
+		return nil, err
+	}
+
+	startReq := StartRequest{
+		AuthToken: testReq.AuthToken,
+		Nonce:     nonce,
+	}
 	if err := conn.WriteJSON(startReq); err != nil {
 		return nil, err
 	}

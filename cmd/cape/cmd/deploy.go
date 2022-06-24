@@ -3,9 +3,7 @@ package cmd
 import (
 	"archive/zip"
 	"bytes"
-	"crypto/rand"
 	"crypto/tls"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,6 +14,7 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
+	"github.com/capeprivacy/cli/crypto"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -178,7 +177,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 		return "", err
 	}
 
-	nonce, err := getNonce()
+	nonce, err := crypto.GetNonce()
 	if err != nil {
 		return "", err
 	}
@@ -245,16 +244,6 @@ func writeFunction(conn *websocket.Conn, reader io.Reader) error {
 	}
 
 	return nil
-}
-
-func getNonce() (string, error) {
-	buf := make([]byte, 16)
-
-	if _, err := rand.Reader.Read(buf); err != nil {
-		return "", fmt.Errorf("failed to get nonce: %v", err)
-	}
-
-	return base64.StdEncoding.EncodeToString(buf), nil
 }
 
 func getAuthToken() (string, error) {
