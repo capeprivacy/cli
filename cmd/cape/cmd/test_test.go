@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"reflect"
 	"strings"
 	"testing"
@@ -17,10 +18,12 @@ import (
 )
 
 const (
-	help = `test your function with Cape
+	help = `Test your function with Cape
+Test will also read input data from stdin, example: "echo '1234' | cape run id".
+Results are output to stdout so you can easily pipe them elsewhere
 
 Usage:
-  cape test [directory | zip file] [input] [flags]
+  cape test directory [input] [flags]
 
 Flags:
   -h, --help   help for test
@@ -28,7 +31,7 @@ Flags:
 `
 
 	usage = `Usage:
-  cape test [directory | zip file] [input] [flags]
+  cape test directory [input] [flags]
 
 Flags:
   -h, --help   help for test
@@ -46,6 +49,13 @@ func getCmd() (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
 	return cmd, stdout, stderr
 }
 
+func wsURL(origURL string) string {
+	u, _ := url.Parse(origURL)
+	u.Scheme = "ws"
+
+	return u.String()
+}
+
 func TestNoArgs(t *testing.T) {
 	cmd, stdout, _ := getCmd()
 	cmd.SetArgs([]string{"test"})
@@ -53,19 +63,7 @@ func TestNoArgs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got, want := string(stdout.Bytes()), usage; !strings.HasPrefix(got, want) {
-		t.Fatalf("didn't get expected response, got %s, wanted %s", got, want)
-	}
-}
-
-func TestOneArg(t *testing.T) {
-	cmd, stdout, _ := getCmd()
-	cmd.SetArgs([]string{"test", "testdata/my_fn"})
-	if err := cmd.Execute(); err != nil {
-		t.Fatal(err)
-	}
-
-	if got, want := string(stdout.Bytes()), usage; !strings.HasPrefix(got, want) {
+	if got, want := stdout.String(), usage; !strings.HasPrefix(got, want) {
 		t.Fatalf("didn't get expected response, got %s, wanted %s", got, want)
 	}
 }
@@ -77,7 +75,7 @@ func TestThreeArgs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got, want := string(stdout.Bytes()), usage; !strings.HasPrefix(got, want) {
+	if got, want := stdout.String(), usage; !strings.HasPrefix(got, want) {
 		t.Fatalf("didn't get expected response, got %s, wanted %s", got, want)
 	}
 }
@@ -89,11 +87,11 @@ func TestBadFunction(t *testing.T) {
 		t.Fatal(errors.New("received no error when we should have"))
 	}
 
-	if got, want := string(stderr.Bytes()), "Error: zipping directory failed: lstat testdata/notafunction: no such file or directory\n"; got != want {
+	if got, want := stderr.String(), "Error: zipping directory failed: lstat testdata/notafunction: no such file or directory\n"; got != want {
 		t.Errorf("didn't get expected stderr, got %s, wanted %s", got, want)
 	}
 
-	if got, want := string(stdout.Bytes()), usage; !strings.HasPrefix(got, want) {
+	if got, want := stdout.String(), usage; !strings.HasPrefix(got, want) {
 		t.Fatalf("didn't get expected response, got %s, wanted %s", got, want)
 	}
 }
@@ -106,16 +104,23 @@ func TestServerError(t *testing.T) {
 	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*capetest.RunResults, error) {
 		return nil, errors.New(errMsg)
 	}
+	authToken = func() (string, error) {
+		return "so logged in", nil
+	}
+	defer func() {
+		test = capetest.CapeTest
+		authToken = getAuthToken
+	}()
 
 	if err := cmd.Execute(); err == nil {
 		t.Fatal(errors.New("received no error when we should have"))
 	}
 
-	if got, want := string(stderr.Bytes()), fmt.Sprintf("Error: %s\n", errMsg); got != want {
+	if got, want := stderr.String(), fmt.Sprintf("Error: %s\n", errMsg); got != want {
 		t.Fatalf("didn't get expected stderr, got %s, wanted %s", got, want)
 	}
 
-	if got, want := string(stdout.Bytes()), usage; !strings.HasPrefix(got, want) {
+	if got, want := stdout.String(), usage; !strings.HasPrefix(got, want) {
 		t.Fatalf("didn't get expected response, got %s, wanted %s", got, want)
 	}
 }
@@ -131,16 +136,70 @@ func TestSuccess(t *testing.T) {
 		gotFn, gotInput = testReq.Function, testReq.Input
 		return &capetest.RunResults{Message: []byte(results)}, nil
 	}
+	authToken = func() (string, error) {
+		return "so logged in", nil
+	}
+	defer func() {
+		test = capetest.CapeTest
+		authToken = getAuthToken
+	}()
 
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
-	if got, want := string(stderr.Bytes()), ""; got != want {
+	if got, want := stderr.String(), ""; got != want {
 		t.Fatalf("didn't get expected stderr, got %s, wanted %s", got, want)
 	}
 
-	if got, want := string(stdout.Bytes()), results; got != want {
+	if got, want := stdout.String(), results; got != want {
+		t.Fatalf("didn't get expected stdout, got %s, wanted %s", got, want)
+	}
+
+	want, err := czip.Create("testdata/my_fn")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := gotFn, want; !reflect.DeepEqual(got, want) {
+		t.Fatalf("didn't get expected function bytes\ngot\n\t%v\nwanted\n\t%v", got, want)
+	}
+
+	if got, want := string(gotInput), "hello world"; got != want {
+		t.Fatalf("didn't get expected input, got %s, wanted %s", got, want)
+	}
+}
+
+func TestSuccessStdin(t *testing.T) {
+	cmd, stdout, stderr := getCmd()
+	cmd.SetArgs([]string{"test", "testdata/my_fn"})
+
+	results := "success!"
+	var gotFn []byte
+	var gotInput []byte
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*capetest.RunResults, error) {
+		gotFn, gotInput = testReq.Function, testReq.Input
+		return &capetest.RunResults{Message: []byte(results)}, nil
+	}
+	authToken = func() (string, error) {
+		return "so logged in", nil
+	}
+	defer func() {
+		test = capetest.CapeTest
+		authToken = getAuthToken
+	}()
+
+	buf := bytes.NewBuffer([]byte("hello world"))
+	cmd.SetIn(buf)
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	if got, want := stderr.String(), ""; got != want {
+		t.Fatalf("didn't get expected stderr, got %s, wanted %s", got, want)
+	}
+
+	if got, want := stdout.String(), results; got != want {
 		t.Fatalf("didn't get expected stdout, got %s, wanted %s", got, want)
 	}
 
@@ -175,6 +234,13 @@ func TestWSConnection(t *testing.T) {
 
 		return &capetest.RunResults{Message: m.Message}, nil
 	}
+	authToken = func() (string, error) {
+		return "so logged in", nil
+	}
+	defer func() {
+		test = capetest.CapeTest
+		authToken = getAuthToken
+	}()
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		upgrader := websocket.Upgrader{
@@ -197,30 +263,53 @@ func TestWSConnection(t *testing.T) {
 
 	defer s.Close()
 	cmd, stdout, stderr := getCmd()
-	cmd.SetArgs([]string{"test", "testdata/my_fn", "hello world", "--url", s.URL})
+	cmd.SetArgs([]string{"test", "testdata/my_fn", "hello world", "--url", wsURL(s.URL)})
 
 	if err := cmd.Execute(); err != nil {
-		t.Fatalf("received unexpected error: %v, stderr: %s, stdout: %s", err, string(stderr.Bytes()), string(stdout.Bytes()))
+		t.Fatalf("received unexpected error: %v, stderr: %s, stdout: %s", err, stderr.String(), stdout.String())
 	}
 
-	if got, want := string(stdout.Bytes()), "hi!"; !reflect.DeepEqual(got, want) {
+	if got, want := stdout.String(), "hi!"; !reflect.DeepEqual(got, want) {
 		t.Fatalf("didn't get expected results\ngot\n\t%s\nwanted\n\t%s", got, want)
 	}
 }
 
+func TestEndpoint(t *testing.T) {
+	// ensure that `cape test` hits the `/v1/test` endpoint
+	endpointHit := ""
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*capetest.RunResults, error) {
+		endpointHit = endpoint
+		return &capetest.RunResults{Message: []byte("good job")}, nil
+	}
+	authToken = func() (string, error) {
+		return "so logged in", nil
+	}
+	defer func() {
+		test = capetest.CapeTest
+		authToken = getAuthToken
+	}()
+
+	cmd, stdout, stderr := getCmd()
+	cmd.SetArgs([]string{"test", "testdata/my_fn", "hello world", "--url", "cape.com"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Unexpected error: %v, stdout: %s, stderr: %s", err, stdout.String(), stderr.String())
+	}
+
+	if got, want := endpointHit, "cape.com/v1/test"; got != want {
+		t.Fatalf("didn't get expected endpoint, got %s, wanted %s", got, want)
+	}
+}
+
 func TestHelp(t *testing.T) {
-	stdErr := new(bytes.Buffer)
-	stdOut := new(bytes.Buffer)
-	cmd := rootCmd
-	cmd.SetOut(stdOut)
-	cmd.SetErr(stdErr)
+	cmd, stdout, _ := getCmd()
 	cmd.SetArgs([]string{"test", "-h"})
 
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
-	if got, want := string(stdOut.Bytes()), help; !strings.HasPrefix(got, want) {
+	if got, want := stdout.String(), help; !strings.HasPrefix(got, want) {
 		t.Fatalf("didn't get expected output, got %s, wanted %s", got, want)
 	}
 }

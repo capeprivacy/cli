@@ -49,54 +49,9 @@ func init() {
 }
 
 func login(cmd *cobra.Command, args []string) error {
-	err := Login(C.Hostname, C.ClientID, C.Audience, C.LocalAuthDir, C.LocalAuthFileName)
+	deviceCodeResponse, err := newDeviceCode()
 	if err != nil {
 		return err
-	}
-
-	fmt.Println("Congratulations, you're all set!")
-	return nil
-}
-
-func Login(hostname string, clientID string, audience string, dir string, filename string) error {
-	tr, err := generateTokenResponse(hostname, clientID, audience)
-	if err != nil {
-		log.WithField("err", err).Error("unable to generate token response")
-		return err
-	}
-
-	err = generateTokenFile(tr, dir, filename)
-	if err != nil {
-		log.WithField("err", err).Error("unable to generate token file")
-		return err
-	}
-
-	return nil
-}
-
-func generateTokenFile(tr *TokenResponse, dir string, filename string) error {
-	authJSON, err := json.MarshalIndent(tr, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	err = ioutil.WriteFile(filepath.Join(dir, filename), authJSON, 0644)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func generateTokenResponse(hostname string, clientID string, audience string) (*TokenResponse, error) {
-	deviceCodeResponse, err := newDeviceCode(hostname, clientID, audience)
-	if err != nil {
-		return nil, err
 	}
 
 	var tokenResponse *TokenResponse
@@ -111,14 +66,31 @@ func generateTokenResponse(hostname string, clientID string, audience string) (*
 		retry.Delay(time.Duration(deviceCodeResponse.Interval)*time.Second),
 	)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return tokenResponse, nil
+
+	authJSON, err := json.MarshalIndent(tokenResponse, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(C.LocalAuthDir, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(filepath.Join(C.LocalAuthDir, C.LocalAuthFileName), authJSON, 0644)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Congratulations, you're all set!")
+	return nil
 }
 
-func newDeviceCode(hostname string, clientID string, audience string) (*DeviceCodeResponse, error) {
-	deviceCodeURL := fmt.Sprintf("%s/oauth/device/code", hostname)
-	payloadStr := fmt.Sprintf("client_id=%s&scope=openid%%20profile%%20email&audience=%s", clientID, audience)
+func newDeviceCode() (*DeviceCodeResponse, error) {
+	deviceCodeURL := fmt.Sprintf("%s/oauth/device/code", C.Hostname)
+	payloadStr := fmt.Sprintf("client_id=%s&scope=openid%%20profile%%20email&audience=%s", C.ClientID, C.Audience)
 	req, err := http.NewRequest("POST", deviceCodeURL, strings.NewReader(payloadStr))
 	if err != nil {
 		return nil, err

@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 
@@ -15,10 +17,12 @@ import (
 
 // runCmd represents the request command
 var runCmd = &cobra.Command{
-	Use:   "run [function id] [input data]",
+	Use:   "run function_id [input data]",
 	Short: "run a deployed function with data",
-	Long:  "run a deployed function with data, takes function id and path to data",
-	RunE:  run,
+	Long: "Run a deployed function with data, takes function id and path to data.\n" +
+		"Run will also read input data from stdin, example: \"echo '1234' | cape run id\".\n" +
+		"Results are output to stdout so you can easily pipe them elsewhere.",
+	RunE: run,
 }
 
 type RunRequest struct {
@@ -63,29 +67,24 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("flag not found: %w", err)
 	}
 
-	if len(args) != 2 {
-		return fmt.Errorf("you must pass a function ID and input data")
+	if len(args) < 1 {
+		return fmt.Errorf("you must pass a function ID")
 	}
 
 	functionID := args[0]
-	dataFile := args[1]
 
-	return Run(u, dataFile, functionID, insecure)
-}
+	input, err := readStdinOrFile(args, cmd.InOrStdin())
 
-func Run(u string, dataFile string, functionID string, insecure bool) error {
-	debug(os.Stderr, "reading data from %s", dataFile)
-	inputData, err := ioutil.ReadFile(dataFile)
 	if err != nil {
-		return fmt.Errorf("unable to read data file: %w", err)
+		return err
 	}
 
-	results, err := doRun(u, functionID, inputData, insecure)
+	results, err := doRun(u, functionID, input, insecure)
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "Success! Results from your function: ")
+	fmt.Fprintf(os.Stderr, "Success! Results from your function:\n")
 	fmt.Println(string(results))
 	return nil
 }
@@ -100,7 +99,7 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 		return nil, err
 	}
 
-	nonce, err := getNonce()
+	nonce, err := crypto.GetNonce()
 	if err != nil {
 		return nil, err
 	}
@@ -168,4 +167,25 @@ func writeData(conn *websocket.Conn, data []byte) error {
 	}
 
 	return nil
+}
+
+// attempts to read from stdin first and then from a given
+// file in the second args if it exists.
+func readStdinOrFile(args []string, in io.Reader) ([]byte, error) {
+	var input []byte
+	if len(args) == 2 {
+		inputData, err := ioutil.ReadFile(args[1])
+		if err != nil {
+			return nil, fmt.Errorf("unable to read data file: %w", err)
+		}
+		input = inputData
+	} else {
+		buf := new(bytes.Buffer)
+		if _, err := io.Copy(buf, in); err != nil {
+			return nil, err
+		}
+		input = buf.Bytes()
+	}
+
+	return input, nil
 }

@@ -3,9 +3,7 @@ package cmd
 import (
 	"archive/zip"
 	"bytes"
-	"crypto/rand"
 	"crypto/tls"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,6 +16,7 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
+	"github.com/capeprivacy/cli/crypto"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -37,7 +36,7 @@ type DeployResponse struct {
 
 // deployCmd represents the request command
 var deployCmd = &cobra.Command{
-	Use:   "deploy [directory | zip file]",
+	Use:   "deploy directory | zip_file",
 	Short: "deploy a function",
 	Long: `Deploy a function to Cape.
 
@@ -177,23 +176,23 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	conn, _, err := websocketDial(endpoint, insecure)
 	if err != nil {
 		s.Stop()
-		debug(os.Stderr, "error dialing websocket %v", err)
+		log.WithError(err).Error("error dialing websocket")
 		return "", err
 	}
 
-	nonce, err := getNonce()
+	nonce, err := crypto.GetNonce()
 	if err != nil {
 		return "", err
 	}
-	debug(os.Stderr, "Generated nonce <%s>", nonce)
 
 	token, err := getAuthToken()
 	if err != nil {
 		return "", err
 	}
 
+	log.WithFields(log.Fields{"nonce": nonce, "auth_token": token}).Debug("sending deploy request")
+
 	req := DeployRequest{Nonce: nonce, AuthToken: token}
-	debug(os.Stderr, "Sending deploy request: %v", req)
 	err = conn.WriteJSON(req)
 	if err != nil {
 		log.Println("error writing deploy request")
@@ -207,15 +206,15 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 		return "", err
 	}
 
-	debug(os.Stderr, "Verifying attestation document")
+	log.WithField("Attestation Document", msg.Message).Debug("Running attestation process")
+
 	_, err = attest.Attest(msg.Message)
 	if err != nil {
 		log.Println("error attesting")
 		return "", err
 	}
 
-	debug(os.Stderr, "Attestation process passed")
-	debug(os.Stderr, "Sending encrypted function code to Cape")
+	log.Debug("Attestation process passed")
 	err = writeFunction(conn, reader)
 	if err != nil {
 		return "", err
@@ -225,7 +224,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	if err := conn.ReadJSON(&resData); err != nil {
 		return "", err
 	}
-	debug(os.Stderr, "Cape received function code")
+	log.Debug("Cape received function code")
 
 	return resData.ID, nil
 }
@@ -249,7 +248,6 @@ func websocketDial(urlStr string, insecure bool) (*websocket.Conn, *http.Respons
 		urlStr = u.String()
 	}
 
-	debug(os.Stderr, "connecting to %s with insecure flag %t", urlStr, insecure)
 	if insecure {
 		websocket.DefaultDialer.TLSClientConfig = &tls.Config{
 			InsecureSkipVerify: true,
@@ -273,16 +271,6 @@ func writeFunction(conn *websocket.Conn, reader io.Reader) error {
 	}
 
 	return nil
-}
-
-func getNonce() (string, error) {
-	buf := make([]byte, 16)
-
-	if _, err := rand.Reader.Read(buf); err != nil {
-		return "", fmt.Errorf("failed to get nonce: %v", err)
-	}
-
-	return base64.StdEncoding.EncodeToString(buf), nil
 }
 
 func getAuthToken() (string, error) {

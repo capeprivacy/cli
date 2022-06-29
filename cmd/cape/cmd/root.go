@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"os"
 
 	log "github.com/sirupsen/logrus"
@@ -11,19 +10,9 @@ import (
 	"github.com/spf13/viper"
 )
 
+var version = "unknown"
+
 var cfgFile string
-var debugEnabled bool
-
-func debug(w io.Writer, format string, a ...interface{}) {
-	if !debugEnabled {
-		return
-	}
-
-	_, err := w.Write(append([]byte(fmt.Sprintf("[debug] "+format, a...)), []byte("\n")...))
-	if err != nil {
-		panic(err)
-	}
-}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -36,7 +25,10 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
-		debugEnabled = v
+		if v {
+			log.SetLevel(log.DebugLevel)
+		}
+
 		return nil
 	},
 }
@@ -52,8 +44,8 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/capeprivacy/cape.yaml)")
 	rootCmd.PersistentFlags().StringP("url", "u", "https://newdemo.capeprivacy.com", "Cape Cloud URL")
-	rootCmd.PersistentFlags().Bool("insecure", false, "!!! For development only !!! Disable TLS certification.")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
+	rootCmd.PersistentFlags().Bool("insecure", false, "!!! For development only !!! Disable TLS certificate verification.")
 }
 
 // initConfig reads in config file and ENV variables if set.
