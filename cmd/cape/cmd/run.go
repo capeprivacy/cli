@@ -81,11 +81,14 @@ func run(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("unable to read data file: %w", err)
 		}
+	} else if len(args) == 2 {
+		// read input from  command line string
+		input = []byte(args[1])
 	} else {
-		// read input from stdin or string
+		// read input from stdin
 		buf := new(bytes.Buffer)
 		if _, err := io.Copy(buf, cmd.InOrStdin()); err != nil {
-			return fmt.Errorf("unable to read data from command line string or stdin: %w", err)
+			return fmt.Errorf("unable to read data from stdin: %w", err)
 		}
 		input = buf.Bytes()
 	}
