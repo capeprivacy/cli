@@ -4,24 +4,21 @@ go 1.18
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
-	github.com/briandowns/spinner v1.18.1
 	github.com/capeprivacy/go-kit v0.0.0-20220420152147-667383169b7a
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/google/tink/go v1.6.1
 	github.com/jedib0t/go-pretty/v6 v6.3.1
+	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.4.0
 )
 
 require (
-	github.com/fatih/color v1.13.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
-	github.com/mattn/go-colorable v0.1.12 // indirect
-	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect

@@ -4,6 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func GetNonce() (string, error) {
@@ -13,5 +15,7 @@ func GetNonce() (string, error) {
 		return "", fmt.Errorf("failed to get nonce: %v", err)
 	}
 
-	return base64.StdEncoding.EncodeToString(buf), nil
+	nonce := base64.StdEncoding.EncodeToString(buf)
+	log.Debugf("* Generated Nonce: %s", nonce)
+	return nonce, nil
 }

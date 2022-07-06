@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/fxamacker/cbor/v2"
+	log "github.com/sirupsen/logrus"
 	"github.com/veraison/go-cose"
 )
 
@@ -91,27 +92,37 @@ func verifyCertChain(cert *x509.Certificate, cabundle [][]byte) error {
 }
 
 func Attest(attestation []byte) (*AttestationDoc, error) {
+	log.Debugf("* Verifying Attestation Document")
+	log.Debugf("\t* Creating sign1 from attestation bytes")
 	msg, err := createSign1(attestation)
 	if err != nil {
 		return nil, err
 	}
 
 	doc := &AttestationDoc{}
+	log.Debugf("\t* Unmarshalling cbor document")
 	err = cbor.Unmarshal(msg.Payload, doc)
 	if err != nil {
+		log.Errorf("Error unmarshalling cbor document: %v", err)
 		return nil, err
 	}
 
+	log.Debugf("\t* Generated attestation document")
+	log.Debugf("\t* Parsing x509 certificates")
 	cert, err := x509.ParseCertificate(doc.Certificate)
 	if err != nil {
 		return nil, err
 	}
 
+	log.Debugf("\t* Verifying signature")
 	if err := verifySignature(cert, msg); err != nil {
+		log.Errorf("Error verifying signature: %v", err)
 		return nil, err
 	}
 
+	log.Debugf("\t* Verifying certificate chain")
 	if err := verifyCertChain(cert, doc.Cabundle); err != nil {
+		log.Errorf("Error verifying certificate chain: %v", err)
 		return nil, err
 	}
 

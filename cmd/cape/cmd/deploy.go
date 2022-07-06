@@ -8,14 +8,11 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"syscall"
-	"time"
 
-	"github.com/briandowns/spinner"
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/gorilla/websocket"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -83,7 +80,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Success! Deployed function to Cape\nFunction ID ➜ %s\n", dID)
+	log.Infof("Success! Deployed function to Cape\nFunction ID ➜ %s\n", dID)
 
 	return nil
 }
@@ -158,23 +155,11 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 
 func doDeploy(url string, name string, reader io.Reader, insecure bool) (string, error) {
 	endpoint := fmt.Sprintf("%s/v1/deploy", url)
-	s := spinner.New(spinner.CharSets[26], 300*time.Millisecond)
-	defer s.Stop()
 
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		s.Stop()
-		os.Exit(1)
-	}()
-	s.Prefix = "Deploying function to Cape "
-	s.Start()
-
+	log.Info("Deploying function to Cape ...")
 	conn, _, err := websocketDial(endpoint, insecure)
 	if err != nil {
-		log.Println("error dialing websocket", err)
-		return "", err
+		return "", errors.Wrap(err, "error dialing websocket")
 	}
 
 	nonce, err := crypto.GetNonce()
@@ -188,25 +173,26 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	}
 
 	req := DeployRequest{Nonce: nonce, AuthToken: token}
+	log.Debugf("> DeployRequest: %v", req)
 	err = conn.WriteJSON(req)
 	if err != nil {
-		log.Println("error writing deploy request")
-		return "", err
+		return "", errors.Wrap(err, "error writing deploy request")
 	}
 
 	var msg Message
 	err = conn.ReadJSON(&msg)
 	if err != nil {
-		log.Println("error reading attestation doc")
+		log.Errorf("error reading attestation doc: %v", err)
 		return "", err
 	}
-
+	log.Debug("< Attestation document")
 	_, err = attest.Attest(msg.Message)
 	if err != nil {
-		log.Println("error attesting")
+		log.Errorf("error attesting: %v", err)
 		return "", err
 	}
 
+	log.Debugf("> Sending function")
 	err = writeFunction(conn, reader)
 	if err != nil {
 		return "", err
@@ -216,6 +202,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	if err := conn.ReadJSON(&resData); err != nil {
 		return "", err
 	}
+	log.Debugf("< Deploy Response %v", resData)
 
 	return resData.ID, nil
 }
@@ -227,13 +214,25 @@ func websocketDial(url string, insecure bool) (*websocket.Conn, *http.Response, 
 		}
 	}
 
-	return websocket.DefaultDialer.Dial(url, nil)
+	str := fmt.Sprintf("* Dialing %s", url)
+	if insecure {
+		str += " (insecure)"
+	}
+
+	log.Debug(str)
+	c, r, err := websocket.DefaultDialer.Dial(url, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	log.Debugf("* Websocket connection established")
+	return c, r, nil
 }
 
 func writeFunction(conn *websocket.Conn, reader io.Reader) error {
 	writer, err := conn.NextWriter(websocket.BinaryMessage)
 	if err != nil {
-		log.Println("error getting writer for function")
+		log.Errorf("error getting writer for function: %v", err)
 		return err
 	}
 	defer writer.Close()
@@ -256,5 +255,7 @@ func getAuthToken() (string, error) {
 	if t == "" {
 		return "", fmt.Errorf("empty access token (did you run 'cape login'?): %v", err)
 	}
+
+	log.Debugf("* Loaded Auth Token: %s", t)
 	return t, nil
 }
