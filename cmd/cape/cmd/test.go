@@ -15,7 +15,7 @@ var testCmd = &cobra.Command{
 	Use:   "test directory [input]",
 	Short: "Test your function with Cape",
 	Long: "Test your function with Cape\n" +
-		"Test will also read input data from stdin, example: \"echo '1234' | cape test func\".\n" +
+		"Test will also read input data from stdin, example: \"echo '1234' | cape test dir\".\n" +
 		"Results are output to stdout so you can easily pipe them elsewhere",
 	RunE: Test,
 }
@@ -23,7 +23,7 @@ var testCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(testCmd)
 
-	testCmd.PersistentFlags().StringP("file", "f", "input.csv", "input data file")
+	testCmd.PersistentFlags().StringP("file", "f", "", "input data file")
 }
 
 func Test(cmd *cobra.Command, args []string) error {
@@ -52,9 +52,12 @@ func Test(cmd *cobra.Command, args []string) error {
 
 	var input []byte
 	file, err := cmd.Flags().GetString("file")
+	if err != nil {
+		return fmt.Errorf("error retrieving file flag")
+	}
 
 	switch {
-	case err == nil:
+	case file != "":
 		// input file was provided
 		input, err = ioutil.ReadFile(file)
 		if err != nil {

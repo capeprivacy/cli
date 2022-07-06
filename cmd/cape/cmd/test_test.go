@@ -19,14 +19,15 @@ import (
 
 const (
 	help = `Test your function with Cape
-Test will also read input data from stdin, example: "echo '1234' | cape run id".
+Test will also read input data from stdin, example: "echo '1234' | cape test dir".
 Results are output to stdout so you can easily pipe them elsewhere
 
 Usage:
   cape test directory [input] [flags]
 
 Flags:
-  -h, --help   help for test
+  -f, --file string   input data file
+  -h, --help          help for test
 
 `
 
@@ -34,7 +35,8 @@ Flags:
   cape test directory [input] [flags]
 
 Flags:
-  -h, --help   help for test
+  -f, --file string   input data file
+  -h, --help          help for test
 
 `
 )
