@@ -51,6 +51,7 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/capeprivacy/cape.yaml)")
 	rootCmd.PersistentFlags().StringP("url", "u", "https://newdemo.capeprivacy.com", "Cape Cloud URL")
+	rootCmd.PersistentFlags().StringP("file", "f", "input.csv", "input data file")
 	rootCmd.PersistentFlags().Bool("insecure", false, "!!! For development only !!! Disable TLS certificate verification.")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
 }
