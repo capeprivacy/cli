@@ -110,7 +110,7 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults,
 	if err := conn.ReadJSON(&res); err != nil {
 		return nil, err
 	}
-	log.Debug("< Test Response: %v", res)
+	log.Debugf("< Test Response: %v", res)
 
 	return &res, nil
 }
