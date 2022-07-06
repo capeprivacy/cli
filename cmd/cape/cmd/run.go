@@ -166,7 +166,7 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("Run response: %v", resData)
+	log.Debugf("< Run response")
 
 	return resData.Message, nil
 }
