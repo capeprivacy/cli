@@ -27,7 +27,9 @@ func LocalEncrypt(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	log.Debug("\t* Encrypting input")
+	keyInfo := khPub.KeysetInfo().GetKeyInfo()
+
+	log.Debugf("\t* Encrypting input (KeyInfo type: %s)", keyInfo[0].String())
 	ciphertext, err := encrypt.Encrypt(plaintext, nil)
 	if err != nil {
 		return nil, fmt.Errorf("unable to encrypt %s", err)

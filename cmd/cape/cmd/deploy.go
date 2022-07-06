@@ -256,6 +256,5 @@ func getAuthToken() (string, error) {
 		return "", fmt.Errorf("empty access token (did you run 'cape login'?): %v", err)
 	}
 
-	log.Debugf("* Loaded Auth Token: %s", t)
 	return t, nil
 }

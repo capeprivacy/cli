@@ -120,7 +120,8 @@ func Attest(attestation []byte) (*AttestationDoc, error) {
 		return nil, err
 	}
 
-	log.Debugf("\t* Verifying certificate chain")
+	log.Debugf("\t* Verifying certificate chain (Country: %s, Organization: %s, Locality: %s, Province: %s, Common Name: %s)",
+		cert.Issuer.Country, cert.Issuer.Organization, cert.Issuer.Locality, cert.Issuer.Province, cert.Issuer.CommonName)
 	if err := verifyCertChain(cert, doc.Cabundle); err != nil {
 		log.Errorf("Error verifying certificate chain: %v", err)
 		return nil, err
