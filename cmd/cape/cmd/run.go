@@ -73,9 +73,26 @@ func run(cmd *cobra.Command, args []string) error {
 
 	functionID := args[0]
 
-	input, err := readStdinOrFile(args, cmd.InOrStdin())
-	if err != nil {
-		return err
+	var input []byte
+	file, err := cmd.Flags().GetString("file")
+
+	switch {
+	case err == nil:
+		// input file was provided
+		input, err = ioutil.ReadFile(file)
+		if err != nil {
+			return fmt.Errorf("unable to read data file: %w", err)
+		}
+	case len(args) == 2:
+		// read input from  command line string
+		input = []byte(args[1])
+	default:
+		// read input from stdin
+		buf := new(bytes.Buffer)
+		if _, err := io.Copy(buf, cmd.InOrStdin()); err != nil {
+			return fmt.Errorf("unable to read data from stdin: %w", err)
+		}
+		input = buf.Bytes()
 	}
 
 	results, err := doRun(u, functionID, input, insecure)
@@ -160,25 +177,4 @@ func writeData(conn *websocket.Conn, data []byte) error {
 	}
 
 	return nil
-}
-
-// attempts to read from stdin first and then from a given
-// file in the second args if it exists.
-func readStdinOrFile(args []string, in io.Reader) ([]byte, error) {
-	var input []byte
-	if len(args) == 2 {
-		inputData, err := ioutil.ReadFile(args[1])
-		if err != nil {
-			return nil, fmt.Errorf("unable to read data file: %w", err)
-		}
-		input = inputData
-	} else {
-		buf := new(bytes.Buffer)
-		if _, err := io.Copy(buf, in); err != nil {
-			return nil, err
-		}
-		input = buf.Bytes()
-	}
-
-	return input, nil
 }
