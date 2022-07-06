@@ -70,7 +70,7 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults,
 		AuthToken: testReq.AuthToken,
 		Nonce:     nonce,
 	}
-	log.Debugf("> Start Request: %v", startReq)
+	log.Debug("> Start Request")
 	if err := conn.WriteJSON(startReq); err != nil {
 		return nil, err
 	}

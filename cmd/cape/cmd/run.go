@@ -125,7 +125,7 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 	}
 
 	req := RunRequest{Nonce: nonce, AuthToken: token}
-	log.Debugf("> RunRequest: %v", req)
+	log.Debug("> Run Request")
 	err = c.WriteJSON(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "error writing deploy request")

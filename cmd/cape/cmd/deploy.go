@@ -173,7 +173,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	}
 
 	req := DeployRequest{Nonce: nonce, AuthToken: token}
-	log.Debugf("> DeployRequest: %v", req)
+	log.Debug("> Deploy Request")
 	err = conn.WriteJSON(req)
 	if err != nil {
 		return "", errors.Wrap(err, "error writing deploy request")
