@@ -54,6 +54,7 @@ func init() {
 	rootCmd.AddCommand(runCmd)
 
 	runCmd.PersistentFlags().StringP("token", "t", "", "token to use")
+	runCmd.PersistentFlags().StringP("file", "f", "input.csv", "input data file")
 }
 
 func run(cmd *cobra.Command, args []string) error {
