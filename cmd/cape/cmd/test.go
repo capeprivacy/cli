@@ -15,7 +15,7 @@ var testCmd = &cobra.Command{
 	Use:   "test directory [input]",
 	Short: "Test your function with Cape",
 	Long: "Test your function with Cape\n" +
-		"Test will also read input data from stdin, example: \"echo '1234' | cape run id\".\n" +
+		"Test will also read input data from stdin, example: \"echo '1234' | cape test func\".\n" +
 		"Results are output to stdout so you can easily pipe them elsewhere",
 	RunE: Test,
 }
