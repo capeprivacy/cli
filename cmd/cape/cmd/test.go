@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 
 	"github.com/capeprivacy/cli/capetest"
 	czip "github.com/capeprivacy/cli/zip"
@@ -21,6 +22,8 @@ var testCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(testCmd)
+
+	testCmd.PersistentFlags().StringP("file", "f", "input.csv", "input data file")
 }
 
 func Test(cmd *cobra.Command, args []string) error {
@@ -47,18 +50,24 @@ func Test(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	stdin := cmd.InOrStdin()
-	if err != nil {
-		return err
-	}
-
 	var input []byte
-	if len(args) == 2 {
+	file, err := cmd.Flags().GetString("file")
+
+	switch {
+	case err == nil:
+		// input file was provided
+		input, err = ioutil.ReadFile(file)
+		if err != nil {
+			return fmt.Errorf("unable to read data file: %w", err)
+		}
+	case len(args) == 2:
+		// read input from  command line string
 		input = []byte(args[1])
-	} else {
+	default:
+		// read input from stdin
 		buf := new(bytes.Buffer)
-		if _, err := io.Copy(buf, stdin); err != nil {
-			return err
+		if _, err := io.Copy(buf, cmd.InOrStdin()); err != nil {
+			return fmt.Errorf("unable to read data from stdin: %w", err)
 		}
 		input = buf.Bytes()
 	}
