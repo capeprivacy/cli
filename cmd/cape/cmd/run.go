@@ -75,16 +75,18 @@ func run(cmd *cobra.Command, args []string) error {
 
 	var input []byte
 	file, err := cmd.Flags().GetString("file")
-	if err == nil {
+
+	switch {
+	case err == nil:
 		// input file was provided
 		input, err = ioutil.ReadFile(file)
 		if err != nil {
 			return fmt.Errorf("unable to read data file: %w", err)
 		}
-	} else if len(args) == 2 {
+	case len(args) == 2:
 		// read input from  command line string
 		input = []byte(args[1])
-	} else {
+	default:
 		// read input from stdin
 		buf := new(bytes.Buffer)
 		if _, err := io.Copy(buf, cmd.InOrStdin()); err != nil {
