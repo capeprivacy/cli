@@ -54,6 +54,7 @@ func init() {
 	rootCmd.AddCommand(runCmd)
 
 	runCmd.PersistentFlags().StringP("token", "t", "", "token to use")
+	runCmd.PersistentFlags().StringP("file", "f", "", "input data file")
 }
 
 func run(cmd *cobra.Command, args []string) error {
@@ -75,9 +76,12 @@ func run(cmd *cobra.Command, args []string) error {
 
 	var input []byte
 	file, err := cmd.Flags().GetString("file")
+	if err != nil {
+		return fmt.Errorf("error retrieving file flag")
+	}
 
 	switch {
-	case err == nil:
+	case file != "":
 		// input file was provided
 		input, err = ioutil.ReadFile(file)
 		if err != nil {
