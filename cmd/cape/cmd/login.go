@@ -15,9 +15,10 @@ import (
 
 	"github.com/avast/retry-go"
 
-	"github.com/capeprivacy/cli/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/capeprivacy/cli/config"
 )
 
 var C config.Config

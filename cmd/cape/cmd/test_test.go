@@ -11,10 +11,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/capeprivacy/cli/capetest"
-	czip "github.com/capeprivacy/cli/zip"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
+
+	"github.com/capeprivacy/cli/capetest"
+	czip "github.com/capeprivacy/cli/zip"
 )
 
 const (

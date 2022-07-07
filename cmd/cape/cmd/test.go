@@ -6,10 +6,11 @@ import (
 	"io"
 	"io/ioutil"
 
+	"github.com/spf13/cobra"
+
 	"github.com/capeprivacy/cli/capetest"
 	czip "github.com/capeprivacy/cli/zip"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
 
 var testCmd = &cobra.Command{
