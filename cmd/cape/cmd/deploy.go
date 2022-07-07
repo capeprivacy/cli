@@ -173,7 +173,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 
 	conn, _, err := websocketDial(endpoint, insecure)
 	if err != nil {
-		log.Println("error dialing websocket", err)
+		log.Error("error dialing websocket", err)
 		return "", err
 	}
 
@@ -190,24 +190,36 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	req := DeployRequest{Nonce: nonce, AuthToken: token}
 	err = conn.WriteJSON(req)
 	if err != nil {
-		log.Println("error writing deploy request")
+		log.Error("error writing deploy request")
 		return "", err
 	}
 
 	var msg Message
 	err = conn.ReadJSON(&msg)
 	if err != nil {
-		log.Println("error reading attestation doc")
+		log.Error("error reading attestation doc")
 		return "", err
 	}
 
-	_, err = attest.Attest(msg.Message)
+	doc, err := attest.Attest(msg.Message)
 	if err != nil {
-		log.Println("error attesting")
+		log.Error("error attesting")
 		return "", err
 	}
 
-	err = writeFunction(conn, reader)
+	plaintext, err := io.ReadAll(reader)
+	if err != nil {
+		log.Error("error reading plaintext function")
+		return "", err
+	}
+
+	ciphertext, err := crypto.LocalEncrypt(*doc, plaintext)
+	if err != nil {
+		log.Error("error encrypting function")
+		return "", err
+	}
+
+	err = writeFunction(conn, bytes.NewBuffer(ciphertext))
 	if err != nil {
 		return "", err
 	}
