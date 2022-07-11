@@ -115,9 +115,9 @@ go build ./cmd/cape
 For login purposes the following environment variables can be configured:
 
 ```
-CLI_HOSTNAME                String    https://maestro-dev.us.auth0.com
-CLI_CLIENT_ID               String    yQnobkOr1pvdDAyXwNojkNV2IPbNfXxx
-CLI_AUDIENCE                String    https://newdemo.capeprivacy.com/v1/
-CLI_LOCAL_AUTH_DIR          String    .cape
-CLI_LOCAL_AUTH_FILE_NAME    String    auth
+CAPE_HOSTNAME                String    https://maestro-dev.us.auth0.com
+CAPE_CLIENT_ID               String    yQnobkOr1pvdDAyXwNojkNV2IPbNfXxx
+CAPE_AUDIENCE                String    https://newdemo.capeprivacy.com/v1/
+CAPE_LOCAL_AUTH_DIR          String    .cape
+CAPE_LOCAL_AUTH_FILE_NAME    String    auth
 ```
