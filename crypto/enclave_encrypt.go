@@ -4,8 +4,9 @@ import (
 	"crypto/rand"
 	"fmt"
 
-	"github.com/capeprivacy/cli/attest"
 	"github.com/cloudflare/circl/hpke"
+
+	"github.com/capeprivacy/cli/attest"
 )
 
 func LocalEncrypt(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) {
