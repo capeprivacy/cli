@@ -2,8 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/capeprivacy/cli/config"
 	"os"
+
+	"github.com/capeprivacy/cli/config"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

@@ -4,9 +4,10 @@ import (
 	"crypto/tls"
 	"net/http"
 
+	"github.com/gorilla/websocket"
+
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
-	"github.com/gorilla/websocket"
 )
 
 type TestRequest struct {

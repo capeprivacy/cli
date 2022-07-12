@@ -14,10 +14,11 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/capeprivacy/cli/crypto"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/capeprivacy/cli/crypto"
 
 	"github.com/capeprivacy/cli/attest"
 	czip "github.com/capeprivacy/cli/zip"
