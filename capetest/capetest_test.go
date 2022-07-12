@@ -7,8 +7,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/capeprivacy/cli/attest"
 	"github.com/gorilla/websocket"
+
+	"github.com/capeprivacy/cli/attest"
 )
 
 func wsURL(origURL string) string {

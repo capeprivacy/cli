@@ -4,11 +4,15 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/capeprivacy/cli/config"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/spf13/viper"
 )
+
+var C config.Config
 
 var version = "unknown"
 
@@ -105,4 +109,12 @@ func initConfig() {
 	C.LocalAuthDir = viper.GetString("LOCAL_AUTH_DIR")
 	C.LocalAuthFileName = viper.GetString("LOCAL_AUTH_FILE_NAME")
 	C.Insecure = viper.GetBool("DEV_DISABLE_SSL")
+}
+
+func insecure(cmd *cobra.Command) (bool, error) {
+	flag, err := cmd.Flags().GetBool("insecure")
+	if err != nil {
+		return false, fmt.Errorf("flag not found: %w", err)
+	}
+	return flag || C.Insecure, nil
 }
