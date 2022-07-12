@@ -19,7 +19,7 @@ var version = "unknown"
 var cfgFile string
 
 type PresetArgs struct {
-	Url      string `json:"url"`
+	URL      string `json:"url"`
 	Verbose  bool   `json:"verbose"`
 	Insecure bool   `json:"insecure"`
 }

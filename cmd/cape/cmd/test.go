@@ -35,8 +35,8 @@ func Test(cmd *cobra.Command, args []string) error {
 
 	u, err := cmd.Flags().GetString("url")
 	if err != nil {
-		if presets.Url != "" {
-			u = presets.Url
+		if presets.URL != "" {
+			u = presets.URL
 		} else {
 			return fmt.Errorf("flag not found: %w", err)
 		}
