@@ -10,7 +10,6 @@ import (
 )
 
 func LocalEncrypt(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) {
-
 	kemID := hpke.KEM_X25519_HKDF_SHA256
 	kdfID := hpke.KDF_HKDF_SHA256
 	aeadID := hpke.AEAD_ChaCha20Poly1305
@@ -35,8 +34,6 @@ func LocalEncrypt(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to encrypt %s", err)
 	}
-
-	payload := append(encapsulatedKey, ciphertext...)
-
-	return payload, nil
+	
+	return append(encapsulatedKey, ciphertext...), nil
 }
