@@ -1,12 +1,11 @@
 package crypto
 
 import (
+	"crypto/rand"
 	"fmt"
 
-	"crypto/rand"
-	"github.com/cloudflare/circl/hpke"
-
 	"github.com/capeprivacy/cli/attest"
+	"github.com/cloudflare/circl/hpke"
 )
 
 func LocalEncrypt(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) {
@@ -16,9 +15,9 @@ func LocalEncrypt(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) {
 	suite := hpke.NewSuite(kemID, kdfID, aeadID)
 
 	kemPublicKey, err := kemID.Scheme().UnmarshalBinaryPublicKey(doc.PublicKey)
-  if err != nil {
-    fmt.Println(err)
-  }
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	sender, err := suite.NewSender(kemPublicKey, nil)
 	if err != nil {
@@ -34,6 +33,6 @@ func LocalEncrypt(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to encrypt %s", err)
 	}
-	
+
 	return append(encapsulatedKey, ciphertext...), nil
 }
