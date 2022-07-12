@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/avast/retry-go"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
