@@ -6,4 +6,7 @@ type Config struct {
 	Audience          string
 	LocalAuthDir      string
 	LocalAuthFileName string
+
+	// Dev only
+	Insecure bool
 }

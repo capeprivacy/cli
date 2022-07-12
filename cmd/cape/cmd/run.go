@@ -67,6 +67,7 @@ func run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("flag not found: %w", err)
 	}
+	insecure = insecure || C.Insecure
 
 	if len(args) < 1 {
 		return fmt.Errorf("you must pass a function ID")
