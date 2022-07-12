@@ -1,8 +1,12 @@
 package cmd
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/capeprivacy/cli/config"
 
@@ -122,4 +126,30 @@ func initConfig() {
 	C.LocalAuthFileName = viper.GetString("LOCAL_AUTH_FILE_NAME")
 	C.LocalPresetsFileName = viper.GetString("LOCAL_PRESETS_FILE_NAME")
 	C.Insecure = viper.GetBool("DEV_DISABLE_SSL")
+}
+
+func getPresetArgs() (*PresetArgs, error) {
+	file := filepath.Join(C.LocalAuthDir, C.LocalPresetsFileName)
+	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
+		return &PresetArgs{}, nil
+	}
+
+	presetFile, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+	defer presetFile.Close()
+
+	byteValue, err := ioutil.ReadAll(presetFile)
+	if err != nil {
+		return nil, err
+	}
+
+	var presets PresetArgs
+	err = json.Unmarshal(byteValue, &presets)
+	if err != nil {
+		return nil, err
+	}
+
+	return &presets, nil
 }

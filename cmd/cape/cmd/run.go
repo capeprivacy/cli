@@ -2,12 +2,10 @@ package cmd
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -57,27 +55,6 @@ func init() {
 
 	runCmd.PersistentFlags().StringP("token", "t", "", "token to use")
 	runCmd.PersistentFlags().StringP("file", "f", "", "input data file")
-}
-
-func getPresetArgs() (*PresetArgs, error) {
-	presetFile, err := os.Open(filepath.Join(C.LocalAuthDir, C.LocalPresetsFileName))
-	if err != nil {
-		return nil, err
-	}
-	defer presetFile.Close()
-
-	byteValue, err := ioutil.ReadAll(presetFile)
-	if err != nil {
-		return nil, err
-	}
-
-	var presets PresetArgs
-	err = json.Unmarshal(byteValue, &presets)
-	if err != nil {
-		return nil, err
-	}
-
-	return &presets, nil
 }
 
 func run(cmd *cobra.Command, args []string) error {
