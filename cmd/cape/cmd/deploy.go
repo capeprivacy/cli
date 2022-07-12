@@ -58,17 +58,30 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("you must specify a directory to upload")
 	}
 
+	presets, err := getPresetArgs()
+	if err != nil {
+		return fmt.Errorf("error reading presets file: %w", err)
+	}
+
 	u, err := cmd.Flags().GetString("url")
 	if err != nil {
-		return err
+		if presets.Url != "" {
+			u = presets.Url
+		} else {
+			return fmt.Errorf("flag not found: %w", err)
+		}
+	}
+
+	insecure, err := cmd.Flags().GetBool("insecure")
+	if err != nil {
+		if presets.Insecure {
+			insecure = presets.Insecure
+		} else {
+			return fmt.Errorf("flag not found: %w", err)
+		}
 	}
 
 	n, err := cmd.Flags().GetString("name")
-	if err != nil {
-		return err
-	}
-
-	insecure, err := insecure(cmd)
 	if err != nil {
 		return err
 	}

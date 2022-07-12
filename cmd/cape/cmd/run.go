@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -57,15 +59,49 @@ func init() {
 	runCmd.PersistentFlags().StringP("file", "f", "", "input data file")
 }
 
-func run(cmd *cobra.Command, args []string) error {
-	u, err := cmd.Flags().GetString("url")
+func getPresetArgs() (*PresetArgs, error) {
+	presetFile, err := os.Open(filepath.Join(C.LocalAuthDir, C.LocalPresetsFileName))
 	if err != nil {
-		return fmt.Errorf("flag not found: %w", err)
+		return nil, err
+	}
+	defer presetFile.Close()
+
+	byteValue, err := ioutil.ReadAll(presetFile)
+	if err != nil {
+		return nil, err
 	}
 
-	insecure, err := insecure(cmd)
+	var presets PresetArgs
+	err = json.Unmarshal(byteValue, &presets)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	return &presets, nil
+}
+
+func run(cmd *cobra.Command, args []string) error {
+	presets, err := getPresetArgs()
+	if err != nil {
+		return fmt.Errorf("error reading presets file: %w", err)
+	}
+
+	u, err := cmd.Flags().GetString("url")
+	if err != nil {
+		if presets.Url != "" {
+			u = presets.Url
+		} else {
+			return fmt.Errorf("flag not found: %w", err)
+		}
+	}
+
+	insecure, err := cmd.Flags().GetBool("insecure")
+	if err != nil {
+		if presets.Insecure {
+			insecure = presets.Insecure
+		} else {
+			return fmt.Errorf("flag not found: %w", err)
+		}
 	}
 
 	if len(args) < 1 {

@@ -28,14 +28,27 @@ func init() {
 }
 
 func Test(cmd *cobra.Command, args []string) error {
-	u, err := cmd.Flags().GetString("url")
+	presets, err := getPresetArgs()
 	if err != nil {
-		return fmt.Errorf("flag not found: %w", err)
+		return fmt.Errorf("error reading presets file: %w", err)
 	}
 
-	insecure, err := insecure(cmd)
+	u, err := cmd.Flags().GetString("url")
 	if err != nil {
-		return err
+		if presets.Url != "" {
+			u = presets.Url
+		} else {
+			return fmt.Errorf("flag not found: %w", err)
+		}
+	}
+
+	insecure, err := cmd.Flags().GetBool("insecure")
+	if err != nil {
+		if presets.Insecure {
+			insecure = presets.Insecure
+		} else {
+			return fmt.Errorf("flag not found: %w", err)
+		}
 	}
 
 	if len(args) < 1 || len(args) > 2 {

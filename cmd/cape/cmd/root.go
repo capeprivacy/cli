@@ -18,6 +18,12 @@ var version = "unknown"
 
 var cfgFile string
 
+type PresetArgs struct {
+	Url      string `json:"url"`
+	Verbose  bool   `json:"verbose"`
+	Insecure bool   `json:"insecure"`
+}
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "cape",
@@ -75,10 +81,16 @@ func initConfig() {
 	viper.SetDefault("LOCAL_AUTH_DIR", home+"/.config/cape")
 
 	if err := viper.BindEnv("LOCAL_AUTH_FILE_NAME"); err != nil {
-		log.Error("failed to bind environment variable.")
+		log.Error("failed to bind environment variable: LOCAL_AUTH_FILE_NAME.")
 		cobra.CheckErr(err)
 	}
 	viper.SetDefault("LOCAL_AUTH_FILE_NAME", "auth")
+
+	if err := viper.BindEnv("LOCAL_PRESETS_FILE_NAME"); err != nil {
+		log.Error("failed to bind environment variable: LOCAL_PRESETS_FILE_NAME.")
+		cobra.CheckErr(err)
+	}
+	viper.SetDefault("LOCAL_PRESETS_FILE_NAME", "presets")
 
 	if err := viper.BindEnv("DEV_DISABLE_SSL"); err != nil {
 		log.Error("failed to bind environment variable.")
@@ -108,13 +120,6 @@ func initConfig() {
 	C.ClientID = viper.GetString("CLIENT_ID")
 	C.LocalAuthDir = viper.GetString("LOCAL_AUTH_DIR")
 	C.LocalAuthFileName = viper.GetString("LOCAL_AUTH_FILE_NAME")
+	C.LocalPresetsFileName = viper.GetString("LOCAL_PRESETS_FILE_NAME")
 	C.Insecure = viper.GetBool("DEV_DISABLE_SSL")
-}
-
-func insecure(cmd *cobra.Command) (bool, error) {
-	flag, err := cmd.Flags().GetBool("insecure")
-	if err != nil {
-		return false, fmt.Errorf("flag not found: %w", err)
-	}
-	return flag || C.Insecure, nil
 }

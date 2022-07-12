@@ -1,11 +1,12 @@
 package config
 
 type Config struct {
-	Hostname          string
-	ClientID          string
-	Audience          string
-	LocalAuthDir      string
-	LocalAuthFileName string
+	Hostname             string
+	ClientID             string
+	Audience             string
+	LocalAuthDir         string
+	LocalAuthFileName    string
+	LocalPresetsFileName string
 
 	// Dev only
 	Insecure bool
