@@ -67,11 +67,10 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	insecure, err := cmd.Flags().GetBool("insecure")
+	insecure, err := insecure(cmd)
 	if err != nil {
 		return err
 	}
-	insecure = insecure || C.Insecure
 
 	functionInput := args[0]
 	name := functionInput
