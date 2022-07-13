@@ -2,7 +2,10 @@ package capetest
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/gorilla/websocket"
 
@@ -32,6 +35,11 @@ type Message struct {
 }
 
 // TODO -- cmd package also defines this
+type ErrorMsg struct {
+	Error string `json:"error"`
+}
+
+// TODO -- cmd package also defines this
 func websocketDial(url string, insecure bool) (*websocket.Conn, *http.Response, error) {
 	if insecure {
 		websocket.DefaultDialer.TLSClientConfig = &tls.Config{
@@ -43,8 +51,15 @@ func websocketDial(url string, insecure bool) (*websocket.Conn, *http.Response, 
 }
 
 func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults, error) {
-	conn, _, err := websocketDial(endpoint, insecure)
+	conn, resp, err := websocketDial(endpoint, insecure)
+	defer resp.Body.Close()
 	if err != nil {
+		log.Error("error dialing websocket", err)
+		var e ErrorMsg
+		if err := json.NewDecoder(resp.Body).Decode(&e); err != nil {
+			return nil, err
+		}
+		log.Errorf("error code: %d, reason: %s", resp.StatusCode, e.Error)
 		return nil, err
 	}
 
