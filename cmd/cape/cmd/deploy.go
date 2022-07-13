@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -177,8 +178,14 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	s.Start()
 
 	conn, res, err := websocketDial(endpoint, insecure)
+	defer res.Body.Close()
 	if err != nil {
 		log.Error("error dialing websocket", res, err)
+		var e ErrorMsg
+		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
+			return "", err
+		}
+		log.Error("error code: %d, reason: %s", res.StatusCode, e.Error)
 		return "", err
 	}
 
