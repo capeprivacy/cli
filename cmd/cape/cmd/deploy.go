@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -23,6 +24,10 @@ import (
 	"github.com/capeprivacy/cli/attest"
 	czip "github.com/capeprivacy/cli/zip"
 )
+
+type ErrorMsg struct {
+	Error string `json:"error"`
+}
 
 type DeployRequest struct {
 	Nonce     string `json:"nonce"`
@@ -172,9 +177,15 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	s.Prefix = "Deploying function to Cape "
 	s.Start()
 
-	conn, _, err := websocketDial(endpoint, insecure)
+	conn, res, err := websocketDial(endpoint, insecure)
+	defer res.Body.Close()
 	if err != nil {
 		log.Error("error dialing websocket", err)
+		var e ErrorMsg
+		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
+			return "", err
+		}
+		log.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
 		return "", err
 	}
 
