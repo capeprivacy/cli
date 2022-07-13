@@ -116,15 +116,14 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 	c, res, err := websocketDial(endpoint, insecure)
 	defer res.Body.Close()
 	if err != nil {
-		log.Error("error dialing websocket", res, err)
+		log.Error("error dialing websocket", err)
 		var e ErrorMsg
 		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
 			return nil, err
 		}
-		log.Error("error code: %d, reason: %s", res.StatusCode, e.Error)
+		log.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
 		return nil, err
 	}
-
 	nonce, err := crypto.GetNonce()
 	if err != nil {
 		return nil, err

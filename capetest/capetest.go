@@ -54,12 +54,12 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults,
 	conn, resp, err := websocketDial(endpoint, insecure)
 	defer resp.Body.Close()
 	if err != nil {
-		log.Error("error dialing websocket", resp, err)
+		log.Error("error dialing websocket", err)
 		var e ErrorMsg
 		if err := json.NewDecoder(resp.Body).Decode(&e); err != nil {
 			return nil, err
 		}
-		log.Error("error code: %d, reason: %s", resp.StatusCode, e.Error)
+		log.Errorf("error code: %d, reason: %s", resp.StatusCode, e.Error)
 		return nil, err
 	}
 
