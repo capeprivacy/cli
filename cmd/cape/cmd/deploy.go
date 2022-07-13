@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -177,15 +176,10 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	s.Prefix = "Deploying function to Cape "
 	s.Start()
 
-	conn, resp, err := websocketDial(endpoint, insecure)
-	defer resp.Body.Close()
+	conn, res, err := websocketDial(endpoint, insecure)
+	defer res.Body.Close()
 	if err != nil {
-		var e ErrorMsg
-		code := resp.StatusCode
-		if err := json.NewDecoder(resp.Body).Decode(&e); err != nil {
-			log.Error("error dialing websocket", err)
-		}
-		log.Errorf("error dialing websocket, socket error: %s, error code: %d, message: %s", err.Error(), code, e.Error)
+		log.Error("error dialing websocket", res, err)
 		return "", err
 	}
 
