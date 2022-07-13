@@ -177,7 +177,6 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	s.Start()
 
 	conn, res, err := websocketDial(endpoint, insecure)
-	defer res.Body.Close()
 	if err != nil {
 		log.Error("error dialing websocket", res, err)
 		return "", err
