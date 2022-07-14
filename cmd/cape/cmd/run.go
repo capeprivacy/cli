@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
 
 	"github.com/gorilla/websocket"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -105,7 +105,7 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error processing data: %w", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "Success! Results from your function:\n")
+	log.Infof("Success! Results from your function:\n")
 	fmt.Println(string(results))
 	return nil
 }
@@ -139,11 +139,13 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 	}
 
 	req := RunRequest{Nonce: nonce, AuthToken: token}
+	log.Debug("\n> Sending Nonce and Auth Token")
 	err = c.WriteJSON(req)
 	if err != nil {
-		log.Println("error writing deploy request")
-		return nil, err
+		return nil, errors.Wrap(err, "error writing run request")
 	}
+
+	log.Debug("* Waiting for attestation document...")
 
 	var msg Message
 	err = c.ReadJSON(&msg)
@@ -152,6 +154,7 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 		return nil, err
 	}
 
+	log.Debug("< Auth Completed. Received Attestation Document")
 	doc, err := attest.Attest(msg.Message)
 	if err != nil {
 		log.Println("error attesting")
@@ -164,16 +167,20 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 		return nil, err
 	}
 
+	log.Debug("\n> Sending Encrypted Inputs")
 	err = writeData(c, encryptedData)
 	if err != nil {
 		return nil, err
 	}
+
+	log.Debug("* Waiting for function results...")
 
 	resData := &RunResponse{}
 	err = c.ReadJSON(&resData)
 	if err != nil {
 		return nil, err
 	}
+	log.Debugf("< Received Function Results.")
 
 	return resData.Message, nil
 }

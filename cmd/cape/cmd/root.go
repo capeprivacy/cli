@@ -15,14 +15,33 @@ import (
 var C config.Config
 
 var version = "unknown"
-
 var cfgFile string
+
+type PlainFormatter struct {
+}
+
+func (f *PlainFormatter) Format(entry *log.Entry) ([]byte, error) {
+	return []byte(fmt.Sprintf("%s\n", entry.Message)), nil
+}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "cape",
 	Short: "Cape command",
 	Long:  `Cape commandline tool`,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		log.SetFormatter(&PlainFormatter{})
+		v, err := cmd.Flags().GetBool("verbose")
+		if err != nil {
+			return err
+		}
+
+		if v {
+			log.SetLevel(log.DebugLevel)
+		}
+
+		return nil
+	},
 }
 
 // ExecuteCLI adds all child commands to the root command and sets flags appropriately.
@@ -37,6 +56,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/capeprivacy/cape.yaml)")
 	rootCmd.PersistentFlags().StringP("url", "u", "https://newdemo.capeprivacy.com", "Cape Cloud URL")
 	rootCmd.PersistentFlags().Bool("insecure", false, "!!! For development only !!! Disable TLS certificate verification.")
+	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
+
 	if err := rootCmd.PersistentFlags().MarkHidden("insecure"); err != nil {
 		log.Error("flag not found")
 		cobra.CheckErr(err)

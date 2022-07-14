@@ -8,6 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/capeprivacy/cli/capetest"
 	czip "github.com/capeprivacy/cli/zip"
 )
@@ -90,6 +92,7 @@ func Test(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	log.Info()
 	return nil
 }
 
