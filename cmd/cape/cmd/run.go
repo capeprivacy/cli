@@ -119,12 +119,12 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 		// This check is necessary because we don't necessarily return an http response from sentinel.
 		// Http error code and message is returned if network routing fails.
 		if res != nil {
-			defer res.Body.Close()
 			var e ErrorMsg
 			if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
 				return nil, err
 			}
-			log.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
+			res.Body.Close()
+			return nil, fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
 		}
 		return nil, err
 	}

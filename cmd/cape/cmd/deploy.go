@@ -183,12 +183,12 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 		// This check is necessary because we don't necessarily return an http response from sentinel.
 		// Http error code and message is returned if network routing fails.
 		if res != nil {
-			defer res.Body.Close()
 			var e ErrorMsg
 			if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
 				return "", err
 			}
-			log.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
+			res.Body.Close()
+			return "", fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
 		}
 		return "", err
 	}
