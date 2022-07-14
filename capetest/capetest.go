@@ -3,6 +3,7 @@ package capetest
 import (
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
@@ -52,14 +53,18 @@ func websocketDial(url string, insecure bool) (*websocket.Conn, *http.Response, 
 
 func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults, error) {
 	conn, resp, err := websocketDial(endpoint, insecure)
-	defer resp.Body.Close()
 	if err != nil {
 		log.Error("error dialing websocket", err)
-		var e ErrorMsg
-		if err := json.NewDecoder(resp.Body).Decode(&e); err != nil {
-			return nil, err
+		// This check is necessary because we don't necessarily return an http response from sentinel.
+		// Http error code and message is returned if network routing fails.
+		if resp != nil {
+			var e ErrorMsg
+			if err := json.NewDecoder(resp.Body).Decode(&e); err != nil {
+				return nil, err
+			}
+			resp.Body.Close()
+			return nil, fmt.Errorf("error code: %d, reason: %s", resp.StatusCode, e.Error)
 		}
-		log.Errorf("error code: %d, reason: %s", resp.StatusCode, e.Error)
 		return nil, err
 	}
 
