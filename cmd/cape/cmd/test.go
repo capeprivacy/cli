@@ -8,9 +8,10 @@ import (
 
 	"github.com/spf13/cobra"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/capeprivacy/cli/capetest"
 	czip "github.com/capeprivacy/cli/zip"
-	log "github.com/sirupsen/logrus"
 )
 
 var testCmd = &cobra.Command{
