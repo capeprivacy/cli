@@ -17,8 +17,6 @@ import (
 
 	"github.com/capeprivacy/cli/crypto"
 
-	"github.com/capeprivacy/cli/crypto"
-
 	"github.com/capeprivacy/cli/attest"
 	czip "github.com/capeprivacy/cli/zip"
 )

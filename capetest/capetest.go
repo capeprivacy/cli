@@ -6,10 +6,6 @@ import (
 	"fmt"
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
-
-	"github.com/gorilla/websocket"
-
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 
