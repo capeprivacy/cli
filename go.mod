@@ -6,6 +6,7 @@ require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/briandowns/spinner v1.18.1
 	github.com/capeprivacy/go-kit v0.0.0-20220420152147-667383169b7a
+	github.com/cloudflare/circl v1.2.0
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/google/tink/go v1.6.1
 	github.com/jedib0t/go-pretty/v6 v6.3.1
@@ -13,7 +14,6 @@ require (
 )
 
 require (
-	github.com/cloudflare/circl v1.2.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
