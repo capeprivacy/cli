@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,9 +17,15 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	"github.com/capeprivacy/cli/crypto"
+
 	"github.com/capeprivacy/cli/attest"
 	czip "github.com/capeprivacy/cli/zip"
 )
+
+type ErrorMsg struct {
+	Error string `json:"error"`
+}
 
 type DeployRequest struct {
 	Nonce     string `json:"nonce"`
@@ -64,7 +71,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	insecure, err := cmd.Flags().GetBool("insecure")
+	insecure, err := insecure(cmd)
 	if err != nil {
 		return err
 	}
@@ -157,9 +164,21 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	endpoint := fmt.Sprintf("%s/v1/deploy", url)
 
 	log.Info("Deploying function to Cape ...")
-	conn, _, err := websocketDial(endpoint, insecure)
+
+	conn, res, err := websocketDial(endpoint, insecure)
 	if err != nil {
-		return "", errors.Wrap(err, "error dialing websocket")
+		log.Error("error dialing websocket", err)
+		// This check is necessary because we don't necessarily return an http response from sentinel.
+		// Http error code and message is returned if network routing fails.
+		if res != nil {
+			var e ErrorMsg
+			if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
+				return "", err
+			}
+			res.Body.Close()
+			return "", fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
+		}
+		return "", err
 	}
 
 	nonce, err := crypto.GetNonce()
@@ -176,24 +195,38 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	log.Debug("> Deploy Request")
 	err = conn.WriteJSON(req)
 	if err != nil {
-		return "", errors.Wrap(err, "error writing deploy request")
+		log.Error("error writing deploy request")
+		return "", err
 	}
 
 	var msg Message
 	err = conn.ReadJSON(&msg)
 	if err != nil {
-		log.Errorf("error reading attestation doc: %v", err)
+		log.Error("error reading attestation doc")
 		return "", err
 	}
+
 	log.Debug("< Attestation document")
-	_, err = attest.Attest(msg.Message)
+	doc, err := attest.Attest(msg.Message)
 	if err != nil {
-		log.Errorf("error attesting: %v", err)
+		log.Error("error attesting")
+		return "", err
+	}
+
+	plaintext, err := io.ReadAll(reader)
+	if err != nil {
+		log.Error("error reading plaintext function")
+		return "", err
+	}
+
+	ciphertext, err := crypto.LocalEncrypt(*doc, plaintext)
+	if err != nil {
+		log.Error("error encrypting function")
 		return "", err
 	}
 
 	log.Debugf("> Sending function")
-	err = writeFunction(conn, reader)
+	err = writeFunction(conn, bytes.NewBuffer(ciphertext))
 	if err != nil {
 		return "", err
 	}

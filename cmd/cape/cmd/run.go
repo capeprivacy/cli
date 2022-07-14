@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -63,9 +64,9 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("flag not found: %w", err)
 	}
 
-	insecure, err := cmd.Flags().GetBool("insecure")
+	insecure, err := insecure(cmd)
 	if err != nil {
-		return fmt.Errorf("flag not found: %w", err)
+		return err
 	}
 
 	if len(args) < 1 {
@@ -114,10 +115,19 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 
 	c, res, err := websocketDial(endpoint, insecure)
 	if err != nil {
-		log.Println("error dialing websocket", res)
+		log.Error("error dialing websocket", err)
+		// This check is necessary because we don't necessarily return an http response from sentinel.
+		// Http error code and message is returned if network routing fails.
+		if res != nil {
+			var e ErrorMsg
+			if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
+				return nil, err
+			}
+			res.Body.Close()
+			return nil, fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
+		}
 		return nil, err
 	}
-
 	nonce, err := crypto.GetNonce()
 	if err != nil {
 		return nil, err

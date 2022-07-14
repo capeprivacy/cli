@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/capeprivacy/go-kit v0.0.0-20220420152147-667383169b7a
+	github.com/cloudflare/circl v1.2.0
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/google/tink/go v1.6.1
 	github.com/jedib0t/go-pretty/v6 v6.3.1

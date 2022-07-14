@@ -34,9 +34,9 @@ func Test(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("flag not found: %w", err)
 	}
 
-	insecure, err := cmd.Flags().GetBool("insecure")
+	insecure, err := insecure(cmd)
 	if err != nil {
-		return fmt.Errorf("flag not found: %w", err)
+		return err
 	}
 
 	if len(args) < 1 || len(args) > 2 {

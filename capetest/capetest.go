@@ -2,8 +2,13 @@ package capetest
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
+
+	"github.com/gorilla/websocket"
 
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
@@ -33,6 +38,11 @@ type Message struct {
 }
 
 // TODO -- cmd package also defines this
+type ErrorMsg struct {
+	Error string `json:"error"`
+}
+
+// TODO -- cmd package also defines this
 func websocketDial(url string, insecure bool) (*websocket.Conn, *http.Response, error) {
 	if insecure {
 		websocket.DefaultDialer.TLSClientConfig = &tls.Config{
@@ -56,8 +66,19 @@ func websocketDial(url string, insecure bool) (*websocket.Conn, *http.Response, 
 }
 
 func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults, error) {
-	conn, _, err := websocketDial(endpoint, insecure)
+	conn, resp, err := websocketDial(endpoint, insecure)
 	if err != nil {
+		log.Error("error dialing websocket", err)
+		// This check is necessary because we don't necessarily return an http response from sentinel.
+		// Http error code and message is returned if network routing fails.
+		if resp != nil {
+			var e ErrorMsg
+			if err := json.NewDecoder(resp.Body).Decode(&e); err != nil {
+				return nil, err
+			}
+			resp.Body.Close()
+			return nil, fmt.Errorf("error code: %d, reason: %s", resp.StatusCode, e.Error)
+		}
 		return nil, err
 	}
 
