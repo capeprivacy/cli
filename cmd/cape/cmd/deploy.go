@@ -178,14 +178,18 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	s.Start()
 
 	conn, res, err := websocketDial(endpoint, insecure)
-	defer res.Body.Close()
+	if res != nil {
+		defer res.Body.Close()
+	}
 	if err != nil {
 		log.Error("error dialing websocket", err)
-		var e ErrorMsg
-		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-			return "", err
+		if res != nil {
+			var e ErrorMsg
+			if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
+				return "", err
+			}
+			log.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
 		}
-		log.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
 		return "", err
 	}
 
