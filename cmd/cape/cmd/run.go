@@ -114,12 +114,12 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
 
 	c, res, err := websocketDial(endpoint, insecure)
-	if res != nil {
-		defer res.Body.Close()
-	}
 	if err != nil {
 		log.Error("error dialing websocket", err)
+		// This check is necessary because we don't necessarily return an http response from sentinel.
+		// Http error code and message is returned if network routing fails.
 		if res != nil {
+			defer res.Body.Close()
 			var e ErrorMsg
 			if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
 				return nil, err

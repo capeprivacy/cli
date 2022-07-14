@@ -52,14 +52,12 @@ func websocketDial(url string, insecure bool) (*websocket.Conn, *http.Response, 
 
 func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults, error) {
 	conn, resp, err := websocketDial(endpoint, insecure)
-	// This check is necessary because we don't necessarily return an http response from sentinel.
-	// Http error code and message is returned if network routing fails.
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		log.Error("error dialing websocket", err)
+		// This check is necessary because we don't necessarily return an http response from sentinel.
+		// Http error code and message is returned if network routing fails.
 		if resp != nil {
+			defer resp.Body.Close()
 			var e ErrorMsg
 			if err := json.NewDecoder(resp.Body).Decode(&e); err != nil {
 				return nil, err

@@ -178,12 +178,12 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	s.Start()
 
 	conn, res, err := websocketDial(endpoint, insecure)
-	if res != nil {
-		defer res.Body.Close()
-	}
 	if err != nil {
 		log.Error("error dialing websocket", err)
+		// This check is necessary because we don't necessarily return an http response from sentinel.
+		// Http error code and message is returned if network routing fails.
 		if res != nil {
+			defer res.Body.Close()
 			var e ErrorMsg
 			if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
 				return "", err
