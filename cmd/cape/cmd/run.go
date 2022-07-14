@@ -144,15 +144,6 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 		log.Println("error writing deploy request")
 		return nil, err
 	}
-	// Try to read message
-	t, socketMsg, err := c.ReadMessage()
-	if err != nil {
-		log.Error("failed to fetch response", err)
-	}
-
-	if t == websocket.CloseMessage {
-		log.Errorf("failed to run with: %s", string(socketMsg))
-	}
 
 	var msg Message
 	err = c.ReadJSON(&msg)
