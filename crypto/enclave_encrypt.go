@@ -1,32 +1,39 @@
 package crypto
 
 import (
-	"bytes"
+	"crypto/rand"
 	"fmt"
 
-	"github.com/google/tink/go/hybrid"
-	"github.com/google/tink/go/keyset"
+	"github.com/cloudflare/circl/hpke"
 
 	"github.com/capeprivacy/cli/attest"
 )
 
 func LocalEncrypt(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) {
-	buf := bytes.NewBuffer(doc.PublicKey)
-	reader := keyset.NewBinaryReader(buf)
-	khPub, err := keyset.ReadWithNoSecrets(reader)
+	kemID := hpke.KEM_X25519_HKDF_SHA256
+	kdfID := hpke.KDF_HKDF_SHA256
+	aeadID := hpke.AEAD_ChaCha20Poly1305
+	suite := hpke.NewSuite(kemID, kdfID, aeadID)
+
+	kemPublicKey, err := kemID.Scheme().UnmarshalBinaryPublicKey(doc.PublicKey)
 	if err != nil {
-		return nil, fmt.Errorf("read pubic key %s", err)
+		fmt.Println(err)
 	}
 
-	encrypt, err := hybrid.NewHybridEncrypt(khPub)
-	if err != nil {
-		return nil, err
-	}
-
-	ciphertext, err := encrypt.Encrypt(plaintext, nil)
+	sender, err := suite.NewSender(kemPublicKey, nil)
 	if err != nil {
 		return nil, fmt.Errorf("unable to encrypt %s", err)
 	}
 
-	return ciphertext, nil
+	encapsulatedKey, sealer, err := sender.Setup(rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("unable to encrypt %s", err)
+	}
+
+	ciphertext, err := sealer.Seal(plaintext, nil)
+	if err != nil {
+		return nil, fmt.Errorf("unable to encrypt %s", err)
+	}
+
+	return append(encapsulatedKey, ciphertext...), nil
 }
