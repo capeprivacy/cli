@@ -190,12 +190,14 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	}
 
 	req := DeployRequest{Nonce: nonce, AuthToken: token}
-	log.Debug("> Deploy Request")
+	log.Debug("\n> Sending Nonce and Auth Token")
 	err = conn.WriteJSON(req)
 	if err != nil {
 		log.Error("error writing deploy request")
 		return "", err
 	}
+
+	log.Debug("* Waiting for attestation document...")
 
 	var msg Message
 	err = conn.ReadJSON(&msg)
@@ -223,17 +225,19 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 		return "", err
 	}
 
-	log.Debugf("> Sending function")
+	log.Debug("\n> Deploying Encrypted Function")
 	err = writeFunction(conn, bytes.NewBuffer(ciphertext))
 	if err != nil {
 		return "", err
 	}
 
+	log.Debug("* Waiting for deploy response...")
+
 	resData := DeployResponse{}
 	if err := conn.ReadJSON(&resData); err != nil {
 		return "", err
 	}
-	log.Debugf("< Deploy Response %v", resData)
+	log.Debugf("< Received Deploy Response %v", resData)
 
 	return resData.ID, nil
 }
@@ -286,6 +290,8 @@ func getAuthToken() (string, error) {
 	if t == "" {
 		return "", fmt.Errorf("empty access token (did you run 'cape login'?): %v", err)
 	}
+
+	log.Debug("* Retrieved Auth Token")
 
 	return t, nil
 }

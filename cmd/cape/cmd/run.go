@@ -139,11 +139,13 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 	}
 
 	req := RunRequest{Nonce: nonce, AuthToken: token}
-	log.Debug("> Run Request")
+	log.Debug("\n> Sending Nonce and Auth Token")
 	err = c.WriteJSON(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "error writing deploy request")
+		return nil, errors.Wrap(err, "error writing run request")
 	}
+
+	log.Debug("* Waiting for attestation document...")
 
 	var msg Message
 	err = c.ReadJSON(&msg)
@@ -152,7 +154,7 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 		return nil, err
 	}
 
-	log.Debug("< Attestation document")
+	log.Debug("< Auth Completed. Received Attestation Document")
 	doc, err := attest.Attest(msg.Message)
 	if err != nil {
 		log.Println("error attesting")
@@ -165,18 +167,20 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 		return nil, err
 	}
 
-	log.Debug("> Sending data")
+	log.Debug("\n> Sending Encrypted Inputs")
 	err = writeData(c, encryptedData)
 	if err != nil {
 		return nil, err
 	}
+
+	log.Debug("* Waiting for function results...")
 
 	resData := &RunResponse{}
 	err = c.ReadJSON(&resData)
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("< Run response")
+	log.Debugf("< Received Function Results.")
 
 	return resData.Message, nil
 }

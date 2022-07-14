@@ -92,7 +92,7 @@ func verifyCertChain(cert *x509.Certificate, cabundle [][]byte) error {
 }
 
 func Attest(attestation []byte) (*AttestationDoc, error) {
-	log.Debugf("* Verifying Attestation Document")
+	log.Debugf("\n* Verifying Attestation Document")
 	log.Debugf("\t* Creating sign1 from attestation bytes")
 	msg, err := createSign1(attestation)
 	if err != nil {
