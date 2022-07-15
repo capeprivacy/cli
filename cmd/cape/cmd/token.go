@@ -28,24 +28,50 @@ func init() {
 }
 
 func token(cmd *cobra.Command, args []string) error {
+	publicKey, err := getOrGeneratePublicKey()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Public key: %p\n", publicKey)
+	return nil
+}
+
+func getOrGeneratePublicKey() (*rsa.PublicKey, error) {
 	publicKey, err := getPublicKey()
 	if err != nil {
 		// Attempt to generate a key pair if reading public key fails.
 		err = generateKeyPair()
 		if err != nil {
-			return err
+			return nil, nil
 		}
 		publicKey, err = getPublicKey()
 		if err != nil {
-			return err
+			return nil, nil
 		}
 	}
-
-	fmt.Printf("Public key: %p\n", publicKey)
-	return nil
+	return publicKey, err
 }
 
 func getPublicKey() (*rsa.PublicKey, error) {
+	keyPEM, err := getPublicKeyPEM()
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(keyPEM.Bytes())
+	if block == nil || block.Type != "PUBLIC KEY" {
+		return nil, errors.New("failed to decode public key")
+	}
+
+	publicKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return publicKey.(*rsa.PublicKey), nil
+}
+
+func getPublicKeyPEM() (*bytes.Buffer, error) {
 	publicKeyPEM, err := os.Open(filepath.Join(C.LocalAuthDir, publicKeyFile))
 	if err != nil {
 		return nil, err
@@ -58,17 +84,7 @@ func getPublicKey() (*rsa.PublicKey, error) {
 		return nil, err
 	}
 
-	block, _ := pem.Decode(buf.Bytes())
-	if block == nil || block.Type != "PUBLIC KEY" {
-		return nil, errors.New("failed to decode public key")
-	}
-
-	publicKey, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return publicKey.(*rsa.PublicKey), nil
+	return buf, nil
 }
 
 func generateKeyPair() error {

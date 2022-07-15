@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -26,8 +27,9 @@ type ErrorMsg struct {
 }
 
 type DeployRequest struct {
-	Nonce     string `json:"nonce"`
-	AuthToken string `json:"auth_token"`
+	Nonce                  string `json:"nonce"`
+	AuthToken              string `json:"auth_token"`
+	FunctionTokenPublicKey string `json:"function_token_pk"`
 }
 
 type DeployResponse struct {
@@ -50,7 +52,6 @@ with cape run (see cape run -h for details).
 func init() {
 	rootCmd.AddCommand(deployCmd)
 
-	deployCmd.PersistentFlags().StringP("token", "t", "", "token to use")
 	deployCmd.PersistentFlags().StringP("name", "n", "", "a name to give this function (default is the directory name)")
 }
 
@@ -189,7 +190,12 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 		return "", err
 	}
 
-	req := DeployRequest{Nonce: nonce, AuthToken: token}
+	functionTokenPublicKey, err := getFunctionTokenPublicKey()
+	if err != nil {
+		return "", err
+	}
+
+	req := DeployRequest{Nonce: nonce, AuthToken: token, FunctionTokenPublicKey: functionTokenPublicKey}
 	log.Debug("\n> Sending Nonce and Auth Token")
 	err = conn.WriteJSON(req)
 	if err != nil {
@@ -294,4 +300,19 @@ func getAuthToken() (string, error) {
 	log.Debug("* Retrieved Auth Token")
 
 	return t, nil
+}
+
+func getFunctionTokenPublicKey() (string, error) {
+	_, err := getOrGeneratePublicKey()
+	if err != nil {
+		return "", err
+	}
+
+	// Read the raw PEM.
+	pem, err := getPublicKeyPEM()
+	if err != nil {
+		return "", err
+	}
+
+	return strings.ReplaceAll(pem.String(), "\n", ""), nil
 }
