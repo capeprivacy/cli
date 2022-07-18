@@ -19,6 +19,7 @@ require (
 	github.com/auth0/go-jwt-middleware/v2 v2.0.1 // indirect
 	github.com/capeprivacy/sentinel v0.0.0-20220726191111-f27fd2142362 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
+	github.com/golang-jwt/jwt/v4 v4.4.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect

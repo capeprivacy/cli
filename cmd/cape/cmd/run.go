@@ -9,12 +9,13 @@ import (
 	"io/ioutil"
 	"reflect"
 
-	sentinelEntities "github.com/capeprivacy/sentinel/entities"
-	"github.com/capeprivacy/sentinel/runner"
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	sentinelEntities "github.com/capeprivacy/sentinel/entities"
+	"github.com/capeprivacy/sentinel/runner"
 
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"

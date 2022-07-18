@@ -9,7 +9,7 @@ import (
 func TestToken(t *testing.T) {
 	cmd, _, _ := getCmd()
 
-	cmd.SetArgs([]string{"token"})
+	cmd.SetArgs([]string{"token", "5gWto31CNOTI"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}

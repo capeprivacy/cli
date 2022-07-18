@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"net/http"
 
-	sentinelEntities "github.com/capeprivacy/sentinel/entities"
-	"github.com/capeprivacy/sentinel/runner"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
+
+	sentinelEntities "github.com/capeprivacy/sentinel/entities"
+	"github.com/capeprivacy/sentinel/runner"
 
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
