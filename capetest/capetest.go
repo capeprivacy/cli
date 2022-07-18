@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
@@ -48,7 +47,19 @@ func websocketDial(url string, insecure bool) (*websocket.Conn, *http.Response, 
 		}
 	}
 
-	return websocket.DefaultDialer.Dial(url, nil)
+	str := fmt.Sprintf("* Dialing %s", url)
+	if insecure {
+		str += " (insecure)"
+	}
+
+	log.Debug(str)
+	c, r, err := websocket.DefaultDialer.Dial(url, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	log.Debugf("* Websocket connection established")
+	return c, r, nil
 }
 
 func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults, error) {
@@ -77,6 +88,7 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults,
 		AuthToken: testReq.AuthToken,
 		Nonce:     nonce,
 	}
+	log.Debug("> Start Request")
 	if err := conn.WriteJSON(startReq); err != nil {
 		return nil, err
 	}
@@ -86,6 +98,7 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults,
 		return nil, err
 	}
 
+	log.Debug("< Attestation document")
 	doc, err := runAttestation(attestation.Message)
 	if err != nil {
 		return nil, err
@@ -101,10 +114,12 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults,
 		return nil, err
 	}
 
+	log.Debug("> Encrypted function")
 	if err := conn.WriteMessage(websocket.BinaryMessage, encFn); err != nil {
 		return nil, err
 	}
 
+	log.Debug("> Encrypted input")
 	if err := conn.WriteMessage(websocket.BinaryMessage, encInput); err != nil {
 		return nil, err
 	}
@@ -113,6 +128,7 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults,
 	if err := conn.ReadJSON(&res); err != nil {
 		return nil, err
 	}
+	log.Debug("< Test Response", res)
 
 	return &res, nil
 }
