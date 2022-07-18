@@ -79,14 +79,15 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	home, err := os.UserHomeDir()
-	cobra.CheckErr(err)
+	viper.SetEnvPrefix("CAPE")
 
 	// Get config path and files from env
 	if err := viper.BindEnv("LOCAL_CONFIG_DIR"); err != nil {
 		log.Error("failed to bind environment variable.")
 		cobra.CheckErr(err)
 	}
+	home, err := os.UserHomeDir()
+	cobra.CheckErr(err)
 	viper.SetDefault("LOCAL_CONFIG_DIR", home+"/.config/cape")
 
 	if err := viper.BindEnv("LOCAL_PRESETS_FILE_NAME"); err != nil {
@@ -99,9 +100,6 @@ func initConfig() {
 	viper.AddConfigPath(viper.GetString("LOCAL_CONFIG_DIR"))
 	viper.SetConfigName(viper.GetString("LOCAL_PRESETS_FILE_NAME"))
 	viper.SetConfigType("env")
-
-	viper.SetEnvPrefix("CAPE")
-	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
@@ -142,7 +140,15 @@ func initConfig() {
 	}
 	viper.SetDefault("DEV_DISABLE_SSL", false)
 
-	err = viper.Unmarshal(&C)
+	viper.AutomaticEnv()
+
+	C.Audience = viper.GetString("AUDIENCE")
+	C.Hostname = viper.GetString("HOSTNAME")
+	C.ClientID = viper.GetString("CLIENT_ID")
+	C.LocalConfigDir = viper.GetString("LOCAL_CONFIG_DIR")
+	C.LocalAuthFileName = viper.GetString("LOCAL_AUTH_FILE_NAME")
+	C.Insecure = viper.GetBool("DEV_DISABLE_SSL")
+
 	if err != nil {
 		log.Error("failed to unmarshal config parameters.")
 		cobra.CheckErr(err)
