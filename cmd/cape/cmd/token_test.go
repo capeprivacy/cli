@@ -14,11 +14,11 @@ func TestToken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := os.Open(filepath.Join(C.LocalAuthDir, publicKeyFile)); err != nil {
+	if _, err := os.Open(filepath.Join(C.LocalConfigDir, publicKeyFile)); err != nil {
 		t.Fatal(err)
 	}
 
-	if _, err := os.Open(filepath.Join(C.LocalAuthDir, privateKeyFile)); err != nil {
+	if _, err := os.Open(filepath.Join(C.LocalConfigDir, privateKeyFile)); err != nil {
 		t.Fatal(err)
 	}
 }
