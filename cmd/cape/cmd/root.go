@@ -103,10 +103,12 @@ func initConfig() {
 	viper.SetEnvPrefix("CAPE")
 	viper.AutomaticEnv()
 
-	err = viper.ReadInConfig()
-	if err != nil {
-		log.Error("failed to read config params.")
-		cobra.CheckErr(err)
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			// Config file found but not valid
+			log.Error("failed to read config params.")
+			cobra.CheckErr(err)
+		}
 	}
 
 	//  Check if all flags are set, else use defaults
