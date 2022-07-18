@@ -63,9 +63,18 @@ func init() {
 		cobra.CheckErr(err)
 	}
 
-	viper.BindPFlag("HOSTNAME", rootCmd.PersistentFlags().Lookup("url"))
-	viper.BindPFlag("DEV_DISABLE_SSL", rootCmd.PersistentFlags().Lookup("insecure"))
-	viper.BindPFlag("LOCAL_PRESETS_FILE_NAME", rootCmd.PersistentFlags().Lookup("config"))
+	if err := viper.BindPFlag("HOSTNAME", rootCmd.PersistentFlags().Lookup("url")); err != nil {
+		log.Error("failed to bind cli argument.")
+		cobra.CheckErr(err)
+	}
+	if err := viper.BindPFlag("DEV_DISABLE_SSL", rootCmd.PersistentFlags().Lookup("insecure")); err != nil {
+		log.Error("failed to bind cli argument.")
+		cobra.CheckErr(err)
+	}
+	if err := viper.BindPFlag("LOCAL_PRESETS_FILE_NAME", rootCmd.PersistentFlags().Lookup("config")); err != nil {
+		log.Error("failed to bind cli argument.")
+		cobra.CheckErr(err)
+	}
 }
 
 // initConfig reads in config file and ENV variables if set.
