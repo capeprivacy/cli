@@ -71,12 +71,12 @@ func login(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	err = os.MkdirAll(C.LocalAuthDir, os.ModePerm)
+	err = os.MkdirAll(C.LocalConfigDir, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(C.LocalAuthDir, C.LocalAuthFileName), authJSON, 0644)
+	err = ioutil.WriteFile(filepath.Join(C.LocalConfigDir, C.LocalAuthFileName), authJSON, 0644)
 	if err != nil {
 		return err
 	}

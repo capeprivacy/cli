@@ -4,7 +4,7 @@ type Config struct {
 	Hostname          string
 	ClientID          string
 	Audience          string
-	LocalAuthDir      string
+	LocalConfigDir    string
 	LocalAuthFileName string
 
 	// Dev only

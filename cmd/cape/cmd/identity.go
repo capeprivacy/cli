@@ -39,7 +39,7 @@ func identity(cmd *cobra.Command, args []string) error {
 }
 
 func getTokenResponse() (*TokenResponse, error) {
-	authFile, err := os.Open(filepath.Join(C.LocalAuthDir, C.LocalAuthFileName))
+	authFile, err := os.Open(filepath.Join(C.LocalConfigDir, C.LocalAuthFileName))
 	if err != nil {
 		return nil, err
 	}

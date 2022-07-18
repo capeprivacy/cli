@@ -34,7 +34,7 @@ func ExecuteCLI() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/capeprivacy/cape.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/cape/cape.yaml)")
 	rootCmd.PersistentFlags().StringP("url", "u", "https://newdemo.capeprivacy.com", "Cape Cloud URL")
 	rootCmd.PersistentFlags().Bool("insecure", false, "!!! For development only !!! Disable TLS certificate verification.")
 	if err := rootCmd.PersistentFlags().MarkHidden("insecure"); err != nil {
@@ -45,8 +45,19 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	home, err := os.UserHomeDir()
+	cobra.CheckErr(err)
+	viper.SetDefault("LOCAL_CONFIG_DIR", home+"/.config/cape")
+
+	presets, err = LoadConfig(viper.GetString("LOCAL_CONFIG_DIR"))
+	if err != nil {
+		// TODO
+		cobra.CheckErr(err)
+	}
+
 	// Set up environment configs.
 	viper.SetEnvPrefix("CAPE")
+	viper.AutomaticEnv()
 
 	if err := viper.BindEnv("HOSTNAME"); err != nil {
 		log.Error("failed to bind environment variable.")
@@ -70,8 +81,7 @@ func initConfig() {
 		log.Error("failed to bind environment variable.")
 		cobra.CheckErr(err)
 	}
-	home, err := os.UserHomeDir()
-	cobra.CheckErr(err)
+
 	viper.SetDefault("LOCAL_AUTH_DIR", home+"/.config/cape")
 
 	if err := viper.BindEnv("LOCAL_AUTH_FILE_NAME"); err != nil {
@@ -86,27 +96,11 @@ func initConfig() {
 	}
 	viper.SetDefault("DEV_DISABLE_SSL", false)
 
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Search config in home directory with name ".client" (without extension).
-		viper.AddConfigPath(home + "/.config/capeprivacy")
-		viper.SetConfigType("yaml")
-		viper.SetConfigName("cape")
-	}
-	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
-	}
-
 	// GetString takes into account the prefix if environment variables are specified.
 	C.Audience = viper.GetString("AUDIENCE")
 	C.Hostname = viper.GetString("HOSTNAME")
 	C.ClientID = viper.GetString("CLIENT_ID")
-	C.LocalAuthDir = viper.GetString("LOCAL_AUTH_DIR")
+	C.LocalConfigDir = viper.GetString("LOCAL_AUTH_DIR")
 	C.LocalAuthFileName = viper.GetString("LOCAL_AUTH_FILE_NAME")
 	C.Insecure = viper.GetBool("DEV_DISABLE_SSL")
 }
@@ -117,4 +111,22 @@ func insecure(cmd *cobra.Command) (bool, error) {
 		return false, fmt.Errorf("flag not found: %w", err)
 	}
 	return flag || C.Insecure, nil
+}
+
+// LoadConfig reads configuration from file or environment variables.
+func LoadConfig(path string) (presets config.Config, err error) {
+	viper.AddConfigPath(path)
+	viper.SetConfigName("presets")
+	viper.SetConfigType("env")
+
+	err = viper.ReadInConfig()
+	if err != nil {
+		return config.Config{}, err
+	}
+
+	viper.SetEnvPrefix("CAPE")
+	viper.AutomaticEnv()
+
+	err = viper.Unmarshal(&presets)
+	return presets, err
 }
