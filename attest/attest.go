@@ -145,9 +145,10 @@ func Attest(attestation []byte, rootCert *x509.Certificate) (*AttestationDoc, er
 
 // checksum is found here https://docs.aws.amazon.com/enclaves/latest/user/verify-root.html#validation-process
 var rootCertSHA256CheckSum = "8cf60e2b2efca96c6a9e71e851d00c1b6991cc09eadbe64a6a1d1b1eb9faff7c"
+var rootCertLocation = "https://aws-nitro-enclaves.amazonaws.com/AWS_NitroEnclaves_Root-G1.zip"
 
 func GetRootAWSCert() (*x509.Certificate, error) {
-	res, err := http.Get("https://aws-nitro-enclaves.amazonaws.com/AWS_NitroEnclaves_Root-G1.zip")
+	res, err := http.Get(rootCertLocation)
 	if err != nil {
 		return nil, err
 	}
@@ -156,6 +157,8 @@ func GetRootAWSCert() (*x509.Certificate, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	log.Debugf("< Downloaded AWS Root Certificate from %s", rootCertLocation)
 
 	h := sha256.New()
 	_, err = h.Write(zipBy)
@@ -168,6 +171,8 @@ func GetRootAWSCert() (*x509.Certificate, error) {
 	if checksum != rootCertSHA256CheckSum {
 		return nil, fmt.Errorf("checksum %s for aws root cert does not match %s", checksum, rootCertSHA256CheckSum)
 	}
+
+	log.Debugf("* Verified AWS Root Certificate checksum %s", rootCertSHA256CheckSum)
 
 	r, err := zip.NewReader(bytes.NewReader(zipBy), int64(len(zipBy)))
 	if err != nil {
