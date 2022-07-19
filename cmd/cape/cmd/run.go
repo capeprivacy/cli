@@ -110,6 +110,21 @@ func run(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// this function is exported for tuner to use
+func Run(url string, functionID string, file string, insecure bool) error {
+	input, err := ioutil.ReadFile(file)
+	if err != nil {
+		return fmt.Errorf("unable to read data file: %w", err)
+	}
+
+	_, err = doRun(url, functionID, input, insecure)
+	if err != nil {
+		return fmt.Errorf("error processing data: %w", err)
+	}
+
+	return nil
+}
+
 func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
 
