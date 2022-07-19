@@ -156,7 +156,6 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	endpoint := fmt.Sprintf("%s/v1/deploy", url)
 
 	log.Info("Deploying function to Cape ...")
-	log.Info(url)
 
 	conn, res, err := websocketDial(endpoint, insecure)
 	if err != nil {
