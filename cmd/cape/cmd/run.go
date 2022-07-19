@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 
+	"github.com/capeprivacy/cli/entities"
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -24,13 +25,6 @@ var runCmd = &cobra.Command{
 		"Run will also read input data from stdin, example: \"echo '1234' | cape run id\".\n" +
 		"Results are output to stdout so you can easily pipe them elsewhere.",
 	RunE: run,
-}
-
-type RunRequest struct {
-	// Nonce is used by the client to verify the nonce received back in
-	// the attestation doc
-	Nonce     string `json:"nonce"`
-	AuthToken string `json:"auth_token"`
 }
 
 type RunResponse struct {
@@ -146,7 +140,7 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 		return nil, err
 	}
 
-	req := RunRequest{Nonce: nonce, AuthToken: token}
+	req := entities.StartRequest{Nonce: nonce, AuthToken: token}
 	log.Debug("\n> Sending Nonce and Auth Token")
 	err = c.WriteJSON(req)
 	if err != nil {
