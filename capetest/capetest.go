@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/capeprivacy/cli/entities"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 
@@ -17,11 +18,6 @@ type TestRequest struct {
 	Function  []byte
 	Input     []byte
 	AuthToken string
-}
-
-type StartRequest struct {
-	Nonce     string `json:"nonce"`
-	AuthToken string `json:"auth_token"`
 }
 
 type RunResults struct {
@@ -84,7 +80,7 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults,
 		return nil, err
 	}
 
-	startReq := StartRequest{
+	startReq := entities.StartRequest{
 		AuthToken: testReq.AuthToken,
 		Nonce:     nonce,
 	}

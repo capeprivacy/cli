@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/capeprivacy/cli/entities"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -26,9 +27,7 @@ type ErrorMsg struct {
 	Error string `json:"error"`
 }
 
-type DeployRequest struct {
-	Nonce                  string `json:"nonce"`
-	AuthToken              string `json:"auth_token"`
+type PublicKeyRequest struct {
 	FunctionTokenPublicKey string `json:"function_token_pk"`
 }
 
@@ -195,7 +194,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 		return "", err
 	}
 
-	req := DeployRequest{Nonce: nonce, AuthToken: token, FunctionTokenPublicKey: functionTokenPublicKey}
+	req := entities.StartRequest{Nonce: nonce, AuthToken: token}
 	log.Debug("\n> Sending Nonce and Auth Token")
 	err = conn.WriteJSON(req)
 	if err != nil {
@@ -234,6 +233,12 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	ciphertext, err := crypto.LocalEncrypt(*doc, plaintext)
 	if err != nil {
 		log.Error("error encrypting function")
+		return "", err
+	}
+
+	log.Debug("\n> Sending Public Key")
+	if err := conn.WriteJSON(PublicKeyRequest{FunctionTokenPublicKey: functionTokenPublicKey}); err != nil {
+		log.Error("error sending public key")
 		return "", err
 	}
 
