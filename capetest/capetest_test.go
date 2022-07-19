@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/capeprivacy/cli/entities"
 	"github.com/gorilla/websocket"
 
 	"github.com/capeprivacy/cli/attest"
@@ -39,7 +40,7 @@ func TestCapeTest(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		var startReq StartRequest
+		var startReq entities.StartRequest
 		if err := c.ReadJSON(&startReq); err != nil {
 			t.Fatal(err)
 		}
