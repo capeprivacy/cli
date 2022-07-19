@@ -353,12 +353,13 @@ func TestFileConfigEndpoint(t *testing.T) {
 		authToken = getAuthToken
 	}()
 
-	home, _ := os.UserHomeDir()
+	conf_dir := "/tmp/"
+	os.Setenv("LOCAL_CONFIG_DIR", conf_dir)
+
 	fileEndpoint := "https://foo_file.capeprivacy.com"
 	conf := []byte("{\n  \"HOSTNAME\": \"" + fileEndpoint + "\"\n}\n")
 	filename := "testconf.json"
-	filepath := home + "/.config/cape/"
-	err := os.WriteFile(filepath+filename, conf, 0644)
+	err := os.WriteFile(conf_dir+filename, conf, 0644)
 	if err != nil {
 		t.Fatalf("Unexpected error, could not write to temp conf file: %v", err)
 	}
