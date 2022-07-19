@@ -169,8 +169,14 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 		return nil, err
 	}
 
+	log.Debug("< Downloading AWS Root Certificate")
+	rootCert, err := attest.GetRootAWSCert()
+	if err != nil {
+		return nil, err
+	}
+
 	log.Debug("< Auth Completed. Received Attestation Document")
-	doc, err := attest.Attest(msg.Message)
+	doc, err := attest.Attest(msg.Message, rootCert)
 	if err != nil {
 		log.Println("error attesting")
 		return nil, err

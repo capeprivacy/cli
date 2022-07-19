@@ -8,7 +8,9 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/base64"
+	"encoding/pem"
 	"math/big"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -144,7 +146,12 @@ func newCertAndCabundle(t *testing.T) (*ecdsa.PrivateKey, *x509.Certificate, []b
 func TestVerifyCertChains(t *testing.T) {
 	_, cert, parent := newCertAndCabundle(t)
 
-	err := verifyCertChain(cert, [][]byte{parent})
+	parentCert, err := x509.ParseCertificate(parent)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = verifyCertChain(cert, parentCert, [][]byte{parent})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,12 +211,40 @@ func TestAttest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	newDoc, err := Attest(sign1)
+	parentCert, err := x509.ParseCertificate(parent)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	newDoc, err := Attest(sign1, parentCert)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if !reflect.DeepEqual(doc, newDoc) {
 		t.Fatalf("expected %v got %v", doc, newDoc)
+	}
+}
+
+func TestGetRootAWSCert(t *testing.T) {
+	wantCert, err := os.ReadFile("./testdata/aws_root.pem")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bl, _ := pem.Decode(wantCert)
+
+	want, err := x509.ParseCertificate(bl.Bytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cert, err := GetRootAWSCert()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !cert.Equal(want) {
+		t.Fatal("downloaded cert doesn't match wanted cert")
 	}
 }
