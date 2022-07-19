@@ -1,6 +1,7 @@
 package capetest
 
 import (
+	"crypto/x509"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -20,7 +21,9 @@ func wsURL(origURL string) string {
 }
 
 func TestCapeTest(t *testing.T) {
-	runAttestation = func(attestation []byte) (*attest.AttestationDoc, error) { return &attest.AttestationDoc{}, nil }
+	runAttestation = func(attestation []byte, rootCert *x509.Certificate) (*attest.AttestationDoc, error) {
+		return &attest.AttestationDoc{}, nil
+	}
 	localEncrypt = func(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) { return plaintext, nil }
 
 	var gotFn []byte

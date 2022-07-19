@@ -98,8 +98,14 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults,
 		return nil, err
 	}
 
+	log.Debug("< Downloading AWS Root Certificate")
+	rootCert, err := attest.GetRootAWSCert()
+	if err != nil {
+		return nil, err
+	}
+
 	log.Debug("< Attestation document")
-	doc, err := runAttestation(attestation.Message)
+	doc, err := runAttestation(attestation.Message, rootCert)
 	if err != nil {
 		return nil, err
 	}

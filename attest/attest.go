@@ -1,9 +1,17 @@
 package attest
 
 import (
+	"archive/zip"
+	"bytes"
 	"crypto/ecdsa"
+	"crypto/sha256"
 	"crypto/x509"
+	"encoding/hex"
+	"encoding/pem"
+	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 
 	"github.com/fxamacker/cbor/v2"
@@ -65,8 +73,11 @@ func verifySignature(cert *x509.Certificate, msg *cose.Sign1Message) error {
 	return msg.Verify([]byte{}, verifier)
 }
 
-func verifyCertChain(cert *x509.Certificate, cabundle [][]byte) error {
+func verifyCertChain(cert *x509.Certificate, rootCert *x509.Certificate, cabundle [][]byte) error {
 	pool := x509.NewCertPool()
+
+	pool.AddCert(rootCert)
+
 	for _, certBy := range cabundle {
 		cert, err := x509.ParseCertificate(certBy)
 		if err != nil {
@@ -91,7 +102,7 @@ func verifyCertChain(cert *x509.Certificate, cabundle [][]byte) error {
 	return nil
 }
 
-func Attest(attestation []byte) (*AttestationDoc, error) {
+func Attest(attestation []byte, rootCert *x509.Certificate) (*AttestationDoc, error) {
 	log.Debugf("\n* Verifying Attestation Document")
 	log.Debugf("\t* Creating sign1 from attestation bytes")
 	msg, err := createSign1(attestation)
@@ -122,7 +133,7 @@ func Attest(attestation []byte) (*AttestationDoc, error) {
 
 	log.Debugf("\t* Verifying certificate chain (Country: %s, Organization: %s, Locality: %s, Province: %s, Common Name: %s)",
 		cert.Issuer.Country, cert.Issuer.Organization, cert.Issuer.Locality, cert.Issuer.Province, cert.Issuer.CommonName)
-	if err := verifyCertChain(cert, doc.Cabundle); err != nil {
+	if err := verifyCertChain(cert, rootCert, doc.Cabundle); err != nil {
 		log.Errorf("Error verifying certificate chain: %v", err)
 		return nil, err
 	}
@@ -130,4 +141,56 @@ func Attest(attestation []byte) (*AttestationDoc, error) {
 	// TODO verify PCRs
 
 	return doc, nil
+}
+
+// checksum is found here https://docs.aws.amazon.com/enclaves/latest/user/verify-root.html#validation-process
+var rootCertSHA256CheckSum = "8cf60e2b2efca96c6a9e71e851d00c1b6991cc09eadbe64a6a1d1b1eb9faff7c"
+
+func GetRootAWSCert() (*x509.Certificate, error) {
+	res, err := http.Get("https://aws-nitro-enclaves.amazonaws.com/AWS_NitroEnclaves_Root-G1.zip")
+	if err != nil {
+		return nil, err
+	}
+
+	zipBy, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	h := sha256.New()
+	_, err = h.Write(zipBy)
+	if err != nil {
+		return nil, err
+	}
+
+	checksum := hex.EncodeToString(h.Sum(nil))
+
+	if checksum != rootCertSHA256CheckSum {
+		return nil, fmt.Errorf("checksum %s for aws root cert does not match %s", checksum, rootCertSHA256CheckSum)
+	}
+
+	r, err := zip.NewReader(bytes.NewReader(zipBy), int64(len(zipBy)))
+	if err != nil {
+		return nil, err
+	}
+
+	file := r.File[0]
+	f, err := file.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	pemBytes, err := io.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+
+	bl, _ := pem.Decode(pemBytes)
+
+	if bl.Type != "CERTIFICATE" {
+		return nil, errors.New("aws root cert not a certificate")
+	}
+
+	return x509.ParseCertificate(bl.Bytes)
 }
