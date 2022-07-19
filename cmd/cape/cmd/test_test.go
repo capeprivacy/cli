@@ -321,8 +321,8 @@ func TestEnvVarConfigEndpoint(t *testing.T) {
 		authToken = getAuthToken
 	}()
 
-	env_endpoint := "cape_env.com"
-	os.Setenv("CAPE_HOSTNAME", env_endpoint)
+	envEndpoint := "cape_env.com"
+	os.Setenv("CAPE_HOSTNAME", envEndpoint)
 	cmd, stdout, stderr := getCmd()
 
 	// omit url from command
@@ -332,7 +332,7 @@ func TestEnvVarConfigEndpoint(t *testing.T) {
 		t.Fatalf("Unexpected error: %v, stdout: %s, stderr: %s", err, stdout.String(), stderr.String())
 	}
 
-	if got, want := endpointHit, env_endpoint+"/v1/test"; got != want {
+	if got, want := endpointHit, envEndpoint+"/v1/test"; got != want {
 		t.Fatalf("didn't get expected endpoint, got %s, wanted %s", got, want)
 	}
 }
@@ -353,8 +353,8 @@ func TestFileConfigEndpoint(t *testing.T) {
 	}()
 
 	home, _ := os.UserHomeDir()
-	file_endpoint := "https://foo_file.capeprivacy.com"
-	conf := []byte("{\n  \"HOSTNAME\": \"" + file_endpoint + "\"\n}\n")
+	fileEndpoint := "https://foo_file.capeprivacy.com"
+	conf := []byte("{\n  \"HOSTNAME\": \"" + fileEndpoint + "\"\n}\n")
 	filename := "testconf.json"
 	filepath := home + "/.config/cape/"
 	err := os.WriteFile(filepath+filename, conf, 0644)
@@ -371,7 +371,7 @@ func TestFileConfigEndpoint(t *testing.T) {
 		t.Fatalf("Unexpected error: %v, stdout: %s, stderr: %s", err, stdout.String(), stderr.String())
 	}
 
-	if got, want := endpointHit, file_endpoint+"/v1/test"; got != want {
+	if got, want := endpointHit, fileEndpoint+"/v1/test"; got != want {
 		t.Fatalf("didn't get expected endpoint, got %s, wanted %s", got, want)
 	}
 }
