@@ -42,11 +42,11 @@ func getOrGeneratePublicKey() (*rsa.PublicKey, error) {
 		// Attempt to generate a key pair if reading public key fails.
 		err = generateKeyPair()
 		if err != nil {
-			return nil, nil
+			return nil, err
 		}
 		publicKey, err = getPublicKey()
 		if err != nil {
-			return nil, nil
+			return nil, err
 		}
 	}
 	return publicKey, err
