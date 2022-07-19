@@ -205,8 +205,14 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 		return "", err
 	}
 
+	log.Debug("< Downloading AWS Root Certificate")
+	rootCert, err := attest.GetRootAWSCert()
+	if err != nil {
+		return "", err
+	}
+
 	log.Debug("< Attestation document")
-	doc, err := attest.Attest(msg.Message)
+	doc, err := attest.Attest(msg.Message, rootCert)
 	if err != nil {
 		log.Error("error attesting")
 		return "", err
