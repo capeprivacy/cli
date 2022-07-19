@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -300,6 +301,77 @@ func TestEndpoint(t *testing.T) {
 	}
 
 	if got, want := endpointHit, "cape.com/v1/test"; got != want {
+		t.Fatalf("didn't get expected endpoint, got %s, wanted %s", got, want)
+	}
+}
+
+func TestEnvVarConfigEndpoint(t *testing.T) {
+	// ensure that env var overrides work for hostname
+	endpointHit := ""
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*capetest.RunResults, error) {
+		endpointHit = endpoint
+		fmt.Print(endpointHit)
+		return &capetest.RunResults{Message: []byte("good job")}, nil
+	}
+	authToken = func() (string, error) {
+		return "so logged in", nil
+	}
+	defer func() {
+		test = capetest.CapeTest
+		authToken = getAuthToken
+	}()
+
+	env_endpoint := "cape_env.com"
+	os.Setenv("CAPE_HOSTNAME", env_endpoint)
+	cmd, stdout, stderr := getCmd()
+
+	// omit url from command
+	cmd.SetArgs([]string{"test", "testdata/my_fn", "hello world"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Unexpected error: %v, stdout: %s, stderr: %s", err, stdout.String(), stderr.String())
+	}
+
+	if got, want := endpointHit, env_endpoint+"/v1/test"; got != want {
+		t.Fatalf("didn't get expected endpoint, got %s, wanted %s", got, want)
+	}
+}
+
+func TestFileConfigEndpoint(t *testing.T) {
+	// ensure that env var overrides work for hostname
+	endpointHit := ""
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*capetest.RunResults, error) {
+		endpointHit = endpoint
+		return &capetest.RunResults{Message: []byte("good job")}, nil
+	}
+	authToken = func() (string, error) {
+		return "so logged in", nil
+	}
+	defer func() {
+		test = capetest.CapeTest
+		authToken = getAuthToken
+	}()
+
+	home, _ := os.UserHomeDir()
+	file_endpoint := "https://foo_file.capeprivacy.com"
+	conf := []byte("{\n  \"HOSTNAME\": \"" + file_endpoint + "\"\n}\n")
+	filename := "testconf.json"
+	filepath := home + "/.config/cape/"
+	err := os.WriteFile(filepath+filename, conf, 0644)
+	if err != nil {
+		t.Fatalf("Unexpected error, could not write to temp conf file: %v", err)
+	}
+
+	cmd, stdout, stderr := getCmd()
+
+	// omit url from command
+	cmd.SetArgs([]string{"test", "--config", "conf.json", "testdata/my_fn", "hello world"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Unexpected error: %v, stdout: %s, stderr: %s", err, stdout.String(), stderr.String())
+	}
+
+	if got, want := endpointHit, file_endpoint+"/v1/test"; got != want {
 		t.Fatalf("didn't get expected endpoint, got %s, wanted %s", got, want)
 	}
 }
