@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
@@ -59,15 +60,8 @@ func init() {
 }
 
 func run(cmd *cobra.Command, args []string) error {
-	u, err := cmd.Flags().GetString("url")
-	if err != nil {
-		return fmt.Errorf("flag not found: %w", err)
-	}
-
-	insecure, err := insecure(cmd)
-	if err != nil {
-		return err
-	}
+	u := viper.GetString("HOSTNAME")
+	insecure := viper.GetBool("DEV_DISABLE_SSL")
 
 	if len(args) < 1 {
 		return fmt.Errorf("you must pass a function ID")
