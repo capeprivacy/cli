@@ -15,7 +15,6 @@ import (
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	"github.com/capeprivacy/cli/crypto"
 
@@ -61,14 +60,13 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("you must specify a directory to upload")
 	}
 
-	u := viper.GetString("HOSTNAME")
+	u := C.Hostname
+	insecure := C.Insecure
 
 	n, err := cmd.Flags().GetString("name")
 	if err != nil {
 		return err
 	}
-
-	insecure := viper.GetBool("DEV_DISABLE_SSL")
 
 	functionInput := args[0]
 	name := functionInput

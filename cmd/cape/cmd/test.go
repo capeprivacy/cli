@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	log "github.com/sirupsen/logrus"
 
@@ -31,8 +30,8 @@ func init() {
 }
 
 func Test(cmd *cobra.Command, args []string) error {
-	u := viper.GetString("HOSTNAME")
-	insecure := viper.GetBool("DEV_DISABLE_SSL")
+	u := C.Hostname
+	insecure := C.Insecure
 
 	if len(args) < 1 || len(args) > 2 {
 		if err := cmd.Usage(); err != nil {
