@@ -99,7 +99,7 @@ func initConfig() {
 	viper.SetConfigName(viper.GetString("LOCAL_PRESETS_FILE_NAME"))
 	viper.SetConfigType("json")
 
-	if err := viper.ReadInConfig(); err != nil {
+	if err := readConfFile(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
 			// Config file found but not valid
 			log.Error("failed to read config params.")
@@ -153,3 +153,5 @@ func initConfig() {
 		cobra.CheckErr(err)
 	}
 }
+
+var readConfFile = viper.ReadInConfig

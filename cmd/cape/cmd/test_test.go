@@ -14,6 +14,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/capeprivacy/cli/capetest"
 	czip "github.com/capeprivacy/cli/zip"
@@ -341,6 +342,8 @@ func TestEnvVarConfigEndpoint(t *testing.T) {
 func TestFileConfigEndpoint(t *testing.T) {
 	// ensure that env var overrides work for hostname
 	endpointHit := ""
+	fileEndpoint := "https://foo_file.capeprivacy.com"
+
 	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*capetest.RunResults, error) {
 		endpointHit = endpoint
 		return &capetest.RunResults{Message: []byte("good job")}, nil
@@ -348,21 +351,15 @@ func TestFileConfigEndpoint(t *testing.T) {
 	authToken = func() (string, error) {
 		return "so logged in", nil
 	}
+	readConfFile = func() error {
+		viper.Set("HOSTNAME", fileEndpoint)
+		return nil
+	}
 	defer func() {
 		test = capetest.CapeTest
 		authToken = getAuthToken
+		readConfFile = viper.ReadInConfig
 	}()
-
-	conf_dir := "/tmp/"
-	os.Setenv("LOCAL_CONFIG_DIR", conf_dir)
-
-	fileEndpoint := "https://foo_file.capeprivacy.com"
-	conf := []byte("{\n  \"HOSTNAME\": \"" + fileEndpoint + "\"\n}\n")
-	filename := "testconf.json"
-	err := os.WriteFile(conf_dir+filename, conf, 0644)
-	if err != nil {
-		t.Fatalf("Unexpected error, could not write to temp conf file: %v", err)
-	}
 
 	cmd, stdout, stderr := getCmd()
 
