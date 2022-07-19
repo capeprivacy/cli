@@ -276,6 +276,7 @@ func TestWSConnection(t *testing.T) {
 	if got, want := stdout.String(), "hi!"; !reflect.DeepEqual(got, want) {
 		t.Fatalf("didn't get expected results\ngot\n\t%s\nwanted\n\t%s", got, want)
 	}
+	cmd.Flags().Lookup("url").Changed = false
 }
 
 func TestEndpoint(t *testing.T) {
@@ -303,6 +304,7 @@ func TestEndpoint(t *testing.T) {
 	if got, want := endpointHit, "cape.com/v1/test"; got != want {
 		t.Fatalf("didn't get expected endpoint, got %s, wanted %s", got, want)
 	}
+	cmd.Flags().Lookup("url").Changed = false
 }
 
 func TestEnvVarConfigEndpoint(t *testing.T) {
@@ -310,7 +312,6 @@ func TestEnvVarConfigEndpoint(t *testing.T) {
 	endpointHit := ""
 	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*capetest.RunResults, error) {
 		endpointHit = endpoint
-		fmt.Print(endpointHit)
 		return &capetest.RunResults{Message: []byte("good job")}, nil
 	}
 	authToken = func() (string, error) {
@@ -323,11 +324,9 @@ func TestEnvVarConfigEndpoint(t *testing.T) {
 
 	envEndpoint := "cape_env.com"
 	os.Setenv("CAPE_HOSTNAME", envEndpoint)
+
 	cmd, stdout, stderr := getCmd()
-
-	// omit url from command
 	cmd.SetArgs([]string{"test", "testdata/my_fn", "hello world"})
-
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Unexpected error: %v, stdout: %s, stderr: %s", err, stdout.String(), stderr.String())
 	}
@@ -335,6 +334,8 @@ func TestEnvVarConfigEndpoint(t *testing.T) {
 	if got, want := endpointHit, envEndpoint+"/v1/test"; got != want {
 		t.Fatalf("didn't get expected endpoint, got %s, wanted %s", got, want)
 	}
+	cmd.Flags().Lookup("url").Changed = false
+	os.Unsetenv("CAPE_HOSTNAME")
 }
 
 func TestFileConfigEndpoint(t *testing.T) {
