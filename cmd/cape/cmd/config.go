@@ -8,20 +8,20 @@ import (
 	"github.com/spf13/viper"
 )
 
-var configureCmd = &cobra.Command{
-	Use:   "configure key value",
+var configCmd = &cobra.Command{
+	Use:   "config key value",
 	Short: "Configure and save persistent parameters for Cape",
 	Long: "Configure and save persistent parameters for Cape\n" +
 		"Use the configure option to set global parameters and save to a json file for later use.\n" +
 		"Default is $HOME/.config/cape/presets.json",
-	RunE: Configure,
+	RunE: Config,
 }
 
 func init() {
-	rootCmd.AddCommand(configureCmd)
+	rootCmd.AddCommand(configCmd)
 }
 
-func Configure(cmd *cobra.Command, args []string) error {
+func Config(cmd *cobra.Command, args []string) error {
 	if len(args) != 2 {
 		if err := cmd.Usage(); err != nil {
 			return err
