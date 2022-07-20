@@ -30,10 +30,10 @@ func Configure(cmd *cobra.Command, args []string) error {
 	}
 
 	configFile := viper.ConfigFileUsed()
-	return UpdateConfigFileJson(configFile, args[0], args[1])
+	return UpdateConfigFileJSON(configFile, args[0], args[1])
 }
 
-func UpdateConfigFileJson(jsonFile string, key string, value string) error {
+func UpdateConfigFileJSON(jsonFile string, key string, value string) error {
 	// Read json buffer from jsonFile
 	byteValue, err := ioutil.ReadFile(jsonFile)
 	if err != nil {
