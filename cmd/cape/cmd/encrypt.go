@@ -39,7 +39,7 @@ func Encrypt(cmd *cobra.Command, args []string) error {
 	res, err := encrypt(entities.EncryptRequest{
 		AuthToken: token,
 		Data:      input,
-	}, u, insecure)
+	}, u+"/v1/encrypt", insecure)
 	if err != nil {
 		return err
 	}
