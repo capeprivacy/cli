@@ -7,12 +7,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/capeprivacy/cli/capetest"
 	czip "github.com/capeprivacy/cli/zip"
@@ -275,6 +277,7 @@ func TestWSConnection(t *testing.T) {
 	if got, want := stdout.String(), "hi!"; !reflect.DeepEqual(got, want) {
 		t.Fatalf("didn't get expected results\ngot\n\t%s\nwanted\n\t%s", got, want)
 	}
+	cmd.Flags().Lookup("url").Changed = false
 }
 
 func TestEndpoint(t *testing.T) {
@@ -300,6 +303,74 @@ func TestEndpoint(t *testing.T) {
 	}
 
 	if got, want := endpointHit, "cape.com/v1/test"; got != want {
+		t.Fatalf("didn't get expected endpoint, got %s, wanted %s", got, want)
+	}
+	cmd.Flags().Lookup("url").Changed = false
+}
+
+func TestEnvVarConfigEndpoint(t *testing.T) {
+	// ensure that env var overrides work for hostname
+	endpointHit := ""
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*capetest.RunResults, error) {
+		endpointHit = endpoint
+		return &capetest.RunResults{Message: []byte("good job")}, nil
+	}
+	authToken = func() (string, error) {
+		return "so logged in", nil
+	}
+	defer func() {
+		test = capetest.CapeTest
+		authToken = getAuthToken
+	}()
+
+	envEndpoint := "cape_env.com"
+	os.Setenv("CAPE_HOSTNAME", envEndpoint)
+
+	cmd, stdout, stderr := getCmd()
+	cmd.SetArgs([]string{"test", "testdata/my_fn", "hello world"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Unexpected error: %v, stdout: %s, stderr: %s", err, stdout.String(), stderr.String())
+	}
+
+	if got, want := endpointHit, envEndpoint+"/v1/test"; got != want {
+		t.Fatalf("didn't get expected endpoint, got %s, wanted %s", got, want)
+	}
+	cmd.Flags().Lookup("url").Changed = false
+	os.Unsetenv("CAPE_HOSTNAME")
+}
+
+func TestFileConfigEndpoint(t *testing.T) {
+	// ensure that env var overrides work for hostname
+	endpointHit := ""
+	fileEndpoint := "https://foo_file.capeprivacy.com"
+
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*capetest.RunResults, error) {
+		endpointHit = endpoint
+		return &capetest.RunResults{Message: []byte("good job")}, nil
+	}
+	authToken = func() (string, error) {
+		return "so logged in", nil
+	}
+	readConfFile = func() error {
+		viper.Set("HOSTNAME", fileEndpoint)
+		return nil
+	}
+	defer func() {
+		test = capetest.CapeTest
+		authToken = getAuthToken
+		readConfFile = viper.ReadInConfig
+	}()
+
+	cmd, stdout, stderr := getCmd()
+
+	// omit url from command
+	cmd.SetArgs([]string{"test", "--config", "conf.json", "testdata/my_fn", "hello world"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Unexpected error: %v, stdout: %s, stderr: %s", err, stdout.String(), stderr.String())
+	}
+
+	if got, want := endpointHit, fileEndpoint+"/v1/test"; got != want {
 		t.Fatalf("didn't get expected endpoint, got %s, wanted %s", got, want)
 	}
 }

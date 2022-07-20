@@ -72,7 +72,7 @@ func getPublicKey() (*rsa.PublicKey, error) {
 }
 
 func getPublicKeyPEM() (*bytes.Buffer, error) {
-	publicKeyPEM, err := os.Open(filepath.Join(C.LocalAuthDir, publicKeyFile))
+	publicKeyPEM, err := os.Open(filepath.Join(C.LocalConfigDir, publicKeyFile))
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func getPublicKeyPEM() (*bytes.Buffer, error) {
 
 func generateKeyPair() error {
 	// Ensure the local auth directory is configured.
-	err := os.MkdirAll(C.LocalAuthDir, os.ModePerm)
+	err := os.MkdirAll(C.LocalConfigDir, os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func generateKeyPair() error {
 		Bytes: privateKeyBytes,
 	}
 
-	privatePem, err := os.Create(filepath.Join(C.LocalAuthDir, privateKeyFile))
+	privatePem, err := os.Create(filepath.Join(C.LocalConfigDir, privateKeyFile))
 	if err != nil {
 		return err
 	}
@@ -126,7 +126,7 @@ func generateKeyPair() error {
 		Type:  "PUBLIC KEY",
 		Bytes: publicKeyBytes,
 	}
-	publicPem, err := os.Create(filepath.Join(C.LocalAuthDir, publicKeyFile))
+	publicPem, err := os.Create(filepath.Join(C.LocalConfigDir, publicKeyFile))
 	if err != nil {
 		return err
 	}

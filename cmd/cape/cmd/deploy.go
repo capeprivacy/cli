@@ -59,17 +59,10 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("you must specify a directory to upload")
 	}
 
-	u, err := cmd.Flags().GetString("url")
-	if err != nil {
-		return err
-	}
+	u := C.Hostname
+	insecure := C.Insecure
 
 	n, err := cmd.Flags().GetString("name")
-	if err != nil {
-		return err
-	}
-
-	insecure, err := insecure(cmd)
 	if err != nil {
 		return err
 	}
@@ -165,7 +158,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 
 	conn, res, err := websocketDial(endpoint, insecure)
 	if err != nil {
-		log.Error("error dialing websocket", err)
+		log.Error("error dialing websocket: ", err)
 		// This check is necessary because we don't necessarily return an http response from sentinel.
 		// Http error code and message is returned if network routing fails.
 		if res != nil {

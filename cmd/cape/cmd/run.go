@@ -53,15 +53,8 @@ func init() {
 }
 
 func run(cmd *cobra.Command, args []string) error {
-	u, err := cmd.Flags().GetString("url")
-	if err != nil {
-		return fmt.Errorf("flag not found: %w", err)
-	}
-
-	insecure, err := insecure(cmd)
-	if err != nil {
-		return err
-	}
+	u := C.Hostname
+	insecure := C.Insecure
 
 	if len(args) < 1 {
 		return fmt.Errorf("you must pass a function ID")
