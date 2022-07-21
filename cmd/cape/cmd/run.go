@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -83,7 +84,11 @@ func run(cmd *cobra.Command, args []string) error {
 		input = []byte(args[1])
 	case len(args) == 3:
 		input = []byte(args[1])
-		funcHash = []byte(args[2])
+		funcHash, err = hex.DecodeString(args[2])
+		if err != nil {
+			return fmt.Errorf("error reading function hash")
+		}
+
 	default:
 		// read input from stdin
 		buf := new(bytes.Buffer)
