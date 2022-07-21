@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/hex"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -35,7 +36,11 @@ type AttestationDoc struct {
 	Certificate []byte
 	Cabundle    [][]byte
 	PublicKey   []byte `cbor:"public_key"`
-	// TODO user_data, nonce
+	UserData    []byte `cbor:"user_data"`
+}
+
+type AttestationUserData struct {
+	FuncHash []byte `json:"func_hash"`
 }
 
 func createSign1(d []byte) (*cose.Sign1Message, error) {
@@ -137,9 +142,16 @@ func Attest(attestation []byte, rootCert *x509.Certificate) (*AttestationDoc, er
 		log.Errorf("Error verifying certificate chain: %v", err)
 		return nil, err
 	}
+	if doc.UserData != nil {
+		var userData AttestationUserData
+		if err := json.Unmarshal(doc.UserData, &userData); err != nil {
+			return nil, err
+		}
 
-	// TODO verify PCRs
+		log.Infof("Received Function Signature: %x", userData.FuncHash)
 
+		// TODO verify PCRs
+	}
 	return doc, nil
 }
 
