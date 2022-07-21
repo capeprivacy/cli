@@ -30,7 +30,7 @@ func init() {
 }
 
 func Test(cmd *cobra.Command, args []string) error {
-	u := C.Hostname
+	u := C.EnclaveHost
 	insecure := C.Insecure
 
 	if len(args) < 1 || len(args) > 2 {

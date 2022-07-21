@@ -54,7 +54,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/cape/presets.json)")
-	rootCmd.PersistentFlags().StringP("url", "u", "https://newdemo.capeprivacy.com", "Cape Cloud URL")
+	rootCmd.PersistentFlags().StringP("url", "u", "https://maestro-dev.us.auth0.com", "Cape Cloud URL")
 	rootCmd.PersistentFlags().Bool("insecure", false, "!!! For development only !!! Disable TLS certificate verification.")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
 
@@ -63,7 +63,11 @@ func init() {
 		cobra.CheckErr(err)
 	}
 
-	if err := viper.BindPFlag("HOSTNAME", rootCmd.PersistentFlags().Lookup("url")); err != nil {
+	if err := viper.BindPFlag("AUTH_HOST", rootCmd.PersistentFlags().Lookup("url")); err != nil {
+		log.Error("failed to bind cli argument.")
+		cobra.CheckErr(err)
+	}
+	if err := viper.BindPFlag("ENCLAVE_HOST", rootCmd.PersistentFlags().Lookup("url")); err != nil {
 		log.Error("failed to bind cli argument.")
 		cobra.CheckErr(err)
 	}
@@ -117,11 +121,17 @@ func initConfig() {
 	}
 	viper.SetDefault("AUDIENCE", "https://newdemo.capeprivacy.com/v1/")
 
-	if err := viper.BindEnv("HOSTNAME"); err != nil {
+	if err := viper.BindEnv("AUTH_HOST"); err != nil {
 		log.Error("failed to bind config variable.")
 		cobra.CheckErr(err)
 	}
-	viper.SetDefault("HOSTNAME", "https://maestro-dev.us.auth0.com")
+	viper.SetDefault("AUTH_HOST", "https://maestro-dev.us.auth0.com")
+
+	if err := viper.BindEnv("ENCLAVE_HOST"); err != nil {
+		log.Error("failed to bind config variable.")
+		cobra.CheckErr(err)
+	}
+	viper.SetDefault("ENCLAVE_HOST", "wss://hackathon.capeprivacy.com")
 
 	if err := viper.BindEnv("CLIENT_ID"); err != nil {
 		log.Error("failed to bind config variable.")
@@ -142,7 +152,8 @@ func initConfig() {
 	viper.SetDefault("DEV_DISABLE_SSL", false)
 
 	C.Audience = viper.GetString("AUDIENCE")
-	C.Hostname = viper.GetString("HOSTNAME")
+	C.AuthHost = viper.GetString("AUTH_HOST")
+	C.EnclaveHost = viper.GetString("ENCLAVE_HOST")
 	C.ClientID = viper.GetString("CLIENT_ID")
 	C.LocalConfigDir = viper.GetString("LOCAL_CONFIG_DIR")
 	C.LocalAuthFileName = viper.GetString("LOCAL_AUTH_FILE_NAME")
