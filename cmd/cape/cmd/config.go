@@ -2,7 +2,10 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -28,20 +31,38 @@ func Config(cmd *cobra.Command, args []string) error {
 		}
 		return nil
 	}
+	key := args[0]
+	value := args[1]
+	if !checkValidKey(key) {
+		return fmt.Errorf("not a valid key: " + key)
+	}
 
-	configFile := viper.ConfigFileUsed()
-	return UpdateConfigFileJSON(configFile, args[0], args[1])
+	configFile := filepath.Join(viper.GetString("LOCAL_CONFIG_DIR"), viper.GetString("LOCAL_PRESETS_FILE_NAME"))
+
+	if !fileExists(configFile) {
+		var file, err = os.Create(configFile)
+		if err != nil {
+			return err
+		}
+		err = ioutil.WriteFile(configFile, []byte("{}"), 0644)
+		if err != nil {
+			return err
+		}
+		file.Close()
+	}
+	return UpdateConfigFileJSON(configFile, key, value)
 }
 
 func UpdateConfigFileJSON(jsonFile string, key string, value string) error {
 	// Read json buffer from jsonFile
-	byteValue, err := ioutil.ReadFile(jsonFile)
+	var config map[string]interface{}
+
+	readBytes, err := ioutil.ReadFile(jsonFile)
 	if err != nil {
 		return err
 	}
 
-	var config map[string]interface{}
-	err = json.Unmarshal(byteValue, &config)
+	err = json.Unmarshal(readBytes, &config)
 	if err != nil {
 		return err
 	}
@@ -49,12 +70,29 @@ func UpdateConfigFileJSON(jsonFile string, key string, value string) error {
 	config[key] = value
 
 	// Convert golang object back to byte
-	byteValue, err = json.MarshalIndent(config, "", "  ")
+	writeBytes, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return err
 	}
 
 	// Write back to file
-	err = ioutil.WriteFile(jsonFile, byteValue, 0644)
+	err = ioutil.WriteFile(jsonFile, writeBytes, 0644)
 	return err
+}
+
+func checkValidKey(key string) bool {
+	for _, k := range viper.AllKeys() {
+		if k == key {
+			return true
+		}
+	}
+	return false
+}
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }
