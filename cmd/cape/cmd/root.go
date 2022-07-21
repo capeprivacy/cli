@@ -92,7 +92,7 @@ func initConfig() {
 		log.Error("failed to bind environment variable.")
 		cobra.CheckErr(err)
 	}
-	viper.SetDefault("LOCAL_PRESETS_FILE_NAME", "presets")
+	viper.SetDefault("LOCAL_PRESETS_FILE_NAME", "presets.json")
 
 	// Read in config parameters from file
 	viper.AddConfigPath(viper.GetString("LOCAL_CONFIG_DIR"))
