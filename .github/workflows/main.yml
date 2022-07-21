@@ -5,10 +5,10 @@ jobs:
     name: Build & Test
     runs-on: ubuntu-latest
     steps:
-    - name: Setup go1.17 Environment
+    - name: Setup go1.18 Environment
       uses: actions/setup-go@v3
       with:
-        go-version: '1.17.8'
+        go-version: '1.18.4'
       id: go
     - id: go-cache-paths
       run: |
@@ -46,7 +46,7 @@ jobs:
     steps:
       - uses: actions/setup-go@v2
         with:
-          go-version: '1.17.8'
+          go-version: '1.18.4'
       - uses: actions/checkout@v2
       - name: Setup SSH Keys and known_hosts
         env:
@@ -61,5 +61,5 @@ jobs:
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         with:
-          version: v1.45.2
+          version: v1.47.2
           args: --timeout=3m0s --verbose
