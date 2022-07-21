@@ -58,7 +58,6 @@ var versionCmd = &cobra.Command{
 		}
 
 		fmt.Println("unknown")
-		return
 	},
 }
 
