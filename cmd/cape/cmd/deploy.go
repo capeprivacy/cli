@@ -212,7 +212,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	}
 
 	log.Debug("< Attestation document")
-	doc, err := attest.Attest(msg.Message, rootCert)
+	doc, _, err := attest.Attest(msg.Message, rootCert)
 	if err != nil {
 		log.Error("error attesting")
 		return "", err

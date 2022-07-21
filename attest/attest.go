@@ -107,12 +107,12 @@ func verifyCertChain(cert *x509.Certificate, rootCert *x509.Certificate, cabundl
 	return nil
 }
 
-func Attest(attestation []byte, rootCert *x509.Certificate) (*AttestationDoc, error) {
+func Attest(attestation []byte, rootCert *x509.Certificate) (*AttestationDoc, *AttestationUserData, error) {
 	log.Debugf("\n* Verifying Attestation Document")
 	log.Debugf("\t* Creating sign1 from attestation bytes")
 	msg, err := createSign1(attestation)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	doc := &AttestationDoc{}
@@ -120,39 +120,40 @@ func Attest(attestation []byte, rootCert *x509.Certificate) (*AttestationDoc, er
 	err = cbor.Unmarshal(msg.Payload, doc)
 	if err != nil {
 		log.Errorf("Error unmarshalling cbor document: %v", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	log.Debugf("\t* Generated attestation document")
 	log.Debugf("\t* Parsing x509 certificates")
 	cert, err := x509.ParseCertificate(doc.Certificate)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	log.Debugf("\t* Verifying signature")
 	if err := verifySignature(cert, msg); err != nil {
 		log.Errorf("Error verifying signature: %v", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	log.Debugf("\t* Verifying certificate chain (Country: %s, Organization: %s, Locality: %s, Province: %s, Common Name: %s)",
 		cert.Issuer.Country, cert.Issuer.Organization, cert.Issuer.Locality, cert.Issuer.Province, cert.Issuer.CommonName)
 	if err := verifyCertChain(cert, rootCert, doc.Cabundle); err != nil {
 		log.Errorf("Error verifying certificate chain: %v", err)
-		return nil, err
+		return nil, nil, err
 	}
 	if doc.UserData != nil {
 		var userData AttestationUserData
 		if err := json.Unmarshal(doc.UserData, &userData); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		log.Infof("Received Function Signature: %x", userData.FuncHash)
 
-		// TODO verify PCRs
+		return doc, &userData, nil
 	}
-	return doc, nil
+	// TODO verify PCRs
+	return doc, nil, nil
 }
 
 // checksum is found here https://docs.aws.amazon.com/enclaves/latest/user/verify-root.html#validation-process
