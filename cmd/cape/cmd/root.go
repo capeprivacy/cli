@@ -92,7 +92,7 @@ func initConfig() {
 		log.Error("failed to bind environment variable.")
 		cobra.CheckErr(err)
 	}
-	viper.SetDefault("LOCAL_PRESETS_FILE_NAME", "presets")
+	viper.SetDefault("LOCAL_PRESETS_FILE_NAME", "presets.json")
 
 	// Read in config parameters from file
 	viper.AddConfigPath(viper.GetString("LOCAL_CONFIG_DIR"))
@@ -121,7 +121,7 @@ func initConfig() {
 		log.Error("failed to bind config variable.")
 		cobra.CheckErr(err)
 	}
-	viper.SetDefault("HOSTNAME", "https://newdemo.capeprivacy.com/v1/")
+	viper.SetDefault("HOSTNAME", "https://maestro-dev.us.auth0.com")
 
 	if err := viper.BindEnv("CLIENT_ID"); err != nil {
 		log.Error("failed to bind config variable.")
