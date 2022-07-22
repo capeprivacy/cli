@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"reflect"
 
 	"github.com/capeprivacy/cli/entities"
 	"github.com/gorilla/websocket"
@@ -21,7 +23,7 @@ import (
 var runCmd = &cobra.Command{
 	Use:   "run function_id [input data]",
 	Short: "run a deployed function with data",
-	Long: "Run a deployed function with data, takes function id and path to data.\n" +
+	Long: "Run a deployed function with data, takes function id, path to data, and (optional) function hash.\n" +
 		"Run will also read input data from stdin, example: \"echo '1234' | cape run id\".\n" +
 		"Results are output to stdout so you can easily pipe them elsewhere.",
 	RunE: run,
@@ -53,7 +55,7 @@ func init() {
 }
 
 func run(cmd *cobra.Command, args []string) error {
-	u := C.Hostname
+	u := C.EnclaveHost
 	insecure := C.Insecure
 
 	if len(args) < 1 {
@@ -61,6 +63,8 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	functionID := args[0]
+
+	var funcHash []byte
 
 	var input []byte
 	file, err := cmd.Flags().GetString("file")
@@ -78,6 +82,13 @@ func run(cmd *cobra.Command, args []string) error {
 	case len(args) == 2:
 		// read input from  command line string
 		input = []byte(args[1])
+	case len(args) == 3:
+		input = []byte(args[1])
+		funcHash, err = hex.DecodeString(args[2])
+		if err != nil {
+			return fmt.Errorf("error reading function hash")
+		}
+
 	default:
 		// read input from stdin
 		buf := new(bytes.Buffer)
@@ -87,7 +98,7 @@ func run(cmd *cobra.Command, args []string) error {
 		input = buf.Bytes()
 	}
 
-	results, err := doRun(u, functionID, input, insecure)
+	results, err := doRun(u, functionID, input, insecure, funcHash)
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)
 	}
@@ -97,14 +108,14 @@ func run(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// this function is exported for tuner to use
+// This function is exported for tuner to use.
 func Run(url string, functionID string, file string, insecure bool) error {
 	input, err := ioutil.ReadFile(file)
 	if err != nil {
 		return fmt.Errorf("unable to read data file: %w", err)
 	}
-
-	_, err = doRun(url, functionID, input, insecure)
+	// TODO: Tuner may want to verify function hash later.
+	_, err = doRun(url, functionID, input, insecure, nil)
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)
 	}
@@ -112,7 +123,7 @@ func Run(url string, functionID string, file string, insecure bool) error {
 	return nil
 }
 
-func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, error) {
+func doRun(url string, functionID string, data []byte, insecure bool, funcHash []byte) ([]byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
 
 	c, res, err := websocketDial(endpoint, insecure)
@@ -163,10 +174,16 @@ func doRun(url string, functionID string, data []byte, insecure bool) ([]byte, e
 	}
 
 	log.Debug("< Auth Completed. Received Attestation Document")
-	doc, err := attest.Attest(msg.Message, rootCert)
+	doc, userData, err := attest.Attest(msg.Message, rootCert)
+
 	if err != nil {
 		log.Println("error attesting")
 		return nil, err
+	}
+
+	// If function hash as an optional parameter has not been specified by the user, then we don't check the value.
+	if funcHash != nil && !reflect.DeepEqual(funcHash, userData.FuncHash) {
+		return nil, fmt.Errorf("returned function hash did not match provided, got: %x, want %x", userData.FuncHash, funcHash)
 	}
 
 	encryptedData, err := crypto.LocalEncrypt(*doc, data)

@@ -324,7 +324,7 @@ func TestEnvVarConfigEndpoint(t *testing.T) {
 	}()
 
 	envEndpoint := "cape_env.com"
-	os.Setenv("CAPE_HOSTNAME", envEndpoint)
+	os.Setenv("CAPE_ENCLAVE_HOST", envEndpoint)
 
 	cmd, stdout, stderr := getCmd()
 	cmd.SetArgs([]string{"test", "testdata/my_fn", "hello world"})
@@ -336,7 +336,7 @@ func TestEnvVarConfigEndpoint(t *testing.T) {
 		t.Fatalf("didn't get expected endpoint, got %s, wanted %s", got, want)
 	}
 	cmd.Flags().Lookup("url").Changed = false
-	os.Unsetenv("CAPE_HOSTNAME")
+	os.Unsetenv("CAPE_ENCLAVE_HOST")
 }
 
 func TestFileConfigEndpoint(t *testing.T) {
@@ -352,7 +352,7 @@ func TestFileConfigEndpoint(t *testing.T) {
 		return "so logged in", nil
 	}
 	readConfFile = func() error {
-		viper.Set("HOSTNAME", fileEndpoint)
+		viper.Set("ENCLAVE_HOST", fileEndpoint)
 		return nil
 	}
 	defer func() {
