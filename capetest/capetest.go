@@ -101,7 +101,7 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults,
 	}
 
 	log.Debug("< Attestation document")
-	doc, err := runAttestation(attestation.Message, rootCert)
+	doc, _, err := runAttestation(attestation.Message, rootCert)
 	if err != nil {
 		return nil, err
 	}

@@ -3,6 +3,7 @@ package cmd
 import (
 	"archive/zip"
 	"bytes"
+	"crypto/sha256"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -211,18 +212,23 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	}
 
 	log.Debug("< Attestation document")
-	doc, err := attest.Attest(msg.Message, rootCert)
+	doc, _, err := attest.Attest(msg.Message, rootCert)
 	if err != nil {
 		log.Error("error attesting")
 		return "", err
 	}
 
-	plaintext, err := io.ReadAll(reader)
+	hasher := sha256.New()
+	// tReader is used to stream data to the hasher function.
+	tReader := io.TeeReader(reader, hasher)
+	plaintext, err := io.ReadAll(tReader)
 	if err != nil {
 		log.Error("error reading plaintext function")
 		return "", err
 	}
-
+	// Print out the hash to the user.
+	hash := hasher.Sum(nil)
+	log.Infof("Here's your function hash \nHash ➜ %x\n", hash)
 	ciphertext, err := crypto.LocalEncrypt(*doc, plaintext)
 	if err != nil {
 		log.Error("error encrypting function")

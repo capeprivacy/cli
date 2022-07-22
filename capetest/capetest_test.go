@@ -22,8 +22,8 @@ func wsURL(origURL string) string {
 }
 
 func TestCapeTest(t *testing.T) {
-	runAttestation = func(attestation []byte, rootCert *x509.Certificate) (*attest.AttestationDoc, error) {
-		return &attest.AttestationDoc{}, nil
+	runAttestation = func(attestation []byte, rootCert *x509.Certificate) (*attest.AttestationDoc, *attest.AttestationUserData, error) {
+		return &attest.AttestationDoc{}, nil, nil
 	}
 	localEncrypt = func(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) { return plaintext, nil }
 
