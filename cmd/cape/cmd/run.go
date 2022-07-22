@@ -55,7 +55,7 @@ func init() {
 }
 
 func run(cmd *cobra.Command, args []string) error {
-	u := C.Hostname
+	u := C.EnclaveHost
 	insecure := C.Insecure
 
 	if len(args) < 1 {

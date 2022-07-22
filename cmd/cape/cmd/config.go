@@ -33,8 +33,8 @@ func Config(cmd *cobra.Command, args []string) error {
 	}
 	key := args[0]
 	value := args[1]
-	if !checkValidKey(key) {
-		return fmt.Errorf("not a valid key: " + key)
+	if !checkValidKey(key, viper.AllKeys()) {
+		return fmt.Errorf("not a valid key: %s.\n Valid keys are: %+v", key, viper.AllKeys())
 	}
 
 	configFile := filepath.Join(viper.GetString("LOCAL_CONFIG_DIR"), viper.GetString("LOCAL_PRESETS_FILE_NAME"))
@@ -80,8 +80,8 @@ func UpdateConfigFileJSON(jsonFile string, key string, value string) error {
 	return err
 }
 
-func checkValidKey(key string) bool {
-	for _, k := range viper.AllKeys() {
+func checkValidKey(key string, keys []string) bool {
+	for _, k := range keys {
 		if k == key {
 			return true
 		}

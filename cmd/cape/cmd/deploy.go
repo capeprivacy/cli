@@ -60,7 +60,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("you must specify a directory to upload")
 	}
 
-	u := C.Hostname
+	u := C.EnclaveHost
 	insecure := C.Insecure
 
 	n, err := cmd.Flags().GetString("name")

@@ -1,7 +1,8 @@
 package config
 
 type Config struct {
-	Hostname          string
+	EnclaveHost       string
+	AuthHost          string
 	ClientID          string
 	Audience          string
 	LocalConfigDir    string
