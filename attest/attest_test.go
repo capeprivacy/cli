@@ -216,7 +216,7 @@ func TestAttest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	newDoc, err := Attest(sign1, parentCert)
+	newDoc, _, err := Attest(sign1, parentCert)
 	if err != nil {
 		t.Fatal(err)
 	}
