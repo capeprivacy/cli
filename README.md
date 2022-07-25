@@ -130,3 +130,4 @@ cape config enclave_host wss://run.capeprivacy.com   //set the value in ~/.confi
 export CAPE_ENCLAVE_HOST=wss://run.capeprivacy.com   //set env variable that the cli will pick up
 cape deploy app --url wss://run.capeprivacy.com      //set the url for just this command
 ```
+These options are provided in order of priority, and the value from the higher priority one will override a lower priority one. Ex: Command line value will always be used in case of conflict with same parameter in env variables or file preset.
