@@ -126,7 +126,7 @@ CAPE_LOCAL_AUTH_FILE_NAME        String    auth
 These can be configured through a config file, env variables, or command line flags.
 For example, to override the default value and route to a different enclave host:
 ```
-cape config enclave_host wss://run.capeprivacy.com //set the value in ~/.config/cape/presets.json
-export CAPE_ENCLAVE_HOST=wss://run.capeprivacy.com //set env variable that the cli will pick up
-cape deploy app --url wss://run.capeprivacy.com //set the url for just this command
+cape config enclave_host wss://run.capeprivacy.com   //set the value in ~/.config/cape/presets.json
+export CAPE_ENCLAVE_HOST=wss://run.capeprivacy.com   //set env variable that the cli will pick up
+cape deploy app --url wss://run.capeprivacy.com      //set the url for just this command
 ```
