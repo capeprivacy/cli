@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/capeprivacy/cli/entities"
+	sentinelEntities "github.com/capeprivacy/sentinel/entities"
+	"github.com/capeprivacy/sentinel/runner"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 
@@ -58,7 +59,7 @@ func websocketDial(url string, insecure bool) (*websocket.Conn, *http.Response, 
 	return c, r, nil
 }
 
-func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults, error) {
+func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*sentinelEntities.RunResults, error) {
 	conn, resp, err := websocketDial(endpoint, insecure)
 	if err != nil {
 		log.Error("error dialing websocket", err)
@@ -80,17 +81,19 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults,
 		return nil, err
 	}
 
-	startReq := entities.StartRequest{
+	p := runner.Protocol{Websocket: conn}
+
+	startReq := sentinelEntities.StartRequest{
 		AuthToken: testReq.AuthToken,
-		Nonce:     nonce,
+		Nonce:     []byte(nonce),
 	}
 	log.Debug("> Start Request")
-	if err := conn.WriteJSON(startReq); err != nil {
+	if err := p.WriteStart(startReq); err != nil {
 		return nil, err
 	}
 
-	var attestation Message
-	if err := conn.ReadJSON(&attestation); err != nil {
+	attestDoc, err := p.ReadAttestationDoc()
+	if err != nil {
 		return nil, err
 	}
 
@@ -101,7 +104,7 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults,
 	}
 
 	log.Debug("< Attestation document")
-	doc, _, err := runAttestation(attestation.Message, rootCert)
+	doc, _, err := runAttestation(attestDoc, rootCert)
 	if err != nil {
 		return nil, err
 	}
@@ -126,13 +129,13 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*RunResults,
 		return nil, err
 	}
 
-	var res RunResults
-	if err := conn.ReadJSON(&res); err != nil {
+	res, err := p.ReadRunResults()
+	if err != nil {
 		return nil, err
 	}
 	log.Debug("< Test Response", res)
 
-	return &res, nil
+	return res, nil
 }
 
 var runAttestation = attest.Attest
