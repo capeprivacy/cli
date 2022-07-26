@@ -148,7 +148,7 @@ func Attest(attestation []byte, rootCert *x509.Certificate) (*AttestationDoc, *A
 			return nil, nil, err
 		}
 
-		log.Infof("Received Function Signature: %x", userData.FuncHash)
+		log.Debugf("Received Function Signature: %x", userData.FuncHash)
 
 		return doc, &userData, nil
 	}
