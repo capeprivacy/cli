@@ -104,7 +104,6 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error processing data: %w", err)
 	}
 
-	log.Infof("Success! Results from your function:\n")
 	fmt.Println(string(results))
 	return nil
 }
