@@ -13,14 +13,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/capeprivacy/cli/entities"
+	"github.com/capeprivacy/cli/attest"
+	sentinelEntities "github.com/capeprivacy/sentinel/entities"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/capeprivacy/cli/crypto"
+	"github.com/capeprivacy/sentinel/runner"
 
-	"github.com/capeprivacy/cli/attest"
 	czip "github.com/capeprivacy/cli/zip"
 )
 
@@ -173,6 +174,8 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 		return "", nil, err
 	}
 
+	p := runner.Protocol{Websocket: conn}
+
 	nonce, err := crypto.GetNonce()
 	if err != nil {
 		return "", nil, err
@@ -188,18 +191,16 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 		return "", nil, err
 	}
 
-	req := entities.StartRequest{Nonce: nonce, AuthToken: token}
+	req := sentinelEntities.StartRequest{Nonce: []byte(nonce), AuthToken: token}
 	log.Debug("\n> Sending Nonce and Auth Token")
-	err = conn.WriteJSON(req)
-	if err != nil {
+	if err := p.WriteStart(req); err != nil {
 		log.Error("error writing deploy request")
 		return "", nil, err
 	}
 
 	log.Debug("* Waiting for attestation document...")
 
-	var msg Message
-	err = conn.ReadJSON(&msg)
+	attestDoc, err := p.ReadAttestationDoc()
 	if err != nil {
 		log.Error("error reading attestation doc")
 		return "", nil, err
@@ -212,7 +213,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	}
 
 	log.Debug("< Attestation document")
-	doc, _, err := attest.Attest(msg.Message, rootCert)
+	doc, _, err := attest.Attest(attestDoc, rootCert)
 	if err != nil {
 		log.Error("error attesting")
 		return "", nil, err
@@ -235,7 +236,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	}
 
 	log.Debug("\n> Sending Public Key")
-	if err := conn.WriteJSON(PublicKeyRequest{FunctionTokenPublicKey: functionTokenPublicKey}); err != nil {
+	if err := p.WriteFunctionPublicKey(functionTokenPublicKey); err != nil {
 		log.Error("error sending public key")
 		return "", nil, err
 	}
@@ -248,8 +249,8 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 
 	log.Debug("* Waiting for deploy response...")
 
-	resData := DeployResponse{}
-	if err := conn.ReadJSON(&resData); err != nil {
+	resData, err := p.ReadDeploymentResults()
+	if err != nil {
 		return "", nil, err
 	}
 	log.Debugf("< Received Deploy Response %v", resData)
