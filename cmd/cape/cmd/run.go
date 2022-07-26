@@ -182,7 +182,7 @@ func doRun(url string, functionID string, data []byte, insecure bool, funcHash [
 	}
 
 	// If function hash as an optional parameter has not been specified by the user, then we don't check the value.
-	if funcHash != nil && !reflect.DeepEqual(funcHash, userData.FuncHash) {
+	if funcHash != nil && userData != nil && !reflect.DeepEqual(funcHash, userData.FuncHash) {
 		return nil, fmt.Errorf("returned function hash did not match provided, got: %x, want %x", userData.FuncHash, funcHash)
 	}
 
