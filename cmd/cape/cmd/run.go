@@ -9,7 +9,8 @@ import (
 	"io/ioutil"
 	"reflect"
 
-	"github.com/capeprivacy/cli/entities"
+	sentinelEntities "github.com/capeprivacy/sentinel/entities"
+	"github.com/capeprivacy/sentinel/runner"
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -103,7 +104,6 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error processing data: %w", err)
 	}
 
-	log.Infof("Success! Results from your function:\n")
 	fmt.Println(string(results))
 	return nil
 }
@@ -151,17 +151,18 @@ func doRun(url string, functionID string, data []byte, insecure bool, funcHash [
 		return nil, err
 	}
 
-	req := entities.StartRequest{Nonce: nonce, AuthToken: token}
+	p := runner.Protocol{Websocket: c}
+
+	req := sentinelEntities.StartRequest{Nonce: []byte(nonce), AuthToken: token}
 	log.Debug("\n> Sending Nonce and Auth Token")
-	err = c.WriteJSON(req)
+	err = p.WriteStart(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "error writing run request")
 	}
 
 	log.Debug("* Waiting for attestation document...")
 
-	var msg Message
-	err = c.ReadJSON(&msg)
+	attestDoc, err := p.ReadAttestationDoc()
 	if err != nil {
 		log.Println("error reading attestation doc")
 		return nil, err
@@ -174,7 +175,7 @@ func doRun(url string, functionID string, data []byte, insecure bool, funcHash [
 	}
 
 	log.Debug("< Auth Completed. Received Attestation Document")
-	doc, userData, err := attest.Attest(msg.Message, rootCert)
+	doc, userData, err := attest.Attest(attestDoc, rootCert)
 
 	if err != nil {
 		log.Println("error attesting")
@@ -204,8 +205,7 @@ func doRun(url string, functionID string, data []byte, insecure bool, funcHash [
 
 	log.Debug("* Waiting for function results...")
 
-	resData := &RunResponse{}
-	err = c.ReadJSON(&resData)
+	resData, err := p.ReadRunResults()
 	if err != nil {
 		return nil, err
 	}
