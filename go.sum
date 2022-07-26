@@ -59,6 +59,8 @@ github.com/capeprivacy/sentinel v0.0.0-20220726132006-20de12b7f0ae h1:lZ4PyoKt6m
 github.com/capeprivacy/sentinel v0.0.0-20220726132006-20de12b7f0ae/go.mod h1:xjSvuRCkO4Rz1OlcdxIwGkhQUXWELD39YN4DKOFB8Jc=
 github.com/capeprivacy/sentinel v0.0.0-20220726134703-7c30b8c048d8 h1:x84rO1/9djQr3rz+TInEeyX2TGM/JULj3F1BlHgerT8=
 github.com/capeprivacy/sentinel v0.0.0-20220726134703-7c30b8c048d8/go.mod h1:xjSvuRCkO4Rz1OlcdxIwGkhQUXWELD39YN4DKOFB8Jc=
+github.com/capeprivacy/sentinel v0.0.0-20220726144510-b21b197466ce h1:6S4jv+ULL4MwYi/aekV0nQjGCObEoFO1HtZG8d+PVU4=
+github.com/capeprivacy/sentinel v0.0.0-20220726144510-b21b197466ce/go.mod h1:xjSvuRCkO4Rz1OlcdxIwGkhQUXWELD39YN4DKOFB8Jc=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=
