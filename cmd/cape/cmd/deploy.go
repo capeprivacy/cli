@@ -74,45 +74,45 @@ func deploy(cmd *cobra.Command, args []string) error {
 		name = n
 	}
 
-	dID, err := Deploy(u, name, functionInput, insecure)
+	dID, hash, err := Deploy(u, name, functionInput, insecure)
 	if err != nil {
 		return err
 	}
 
-	log.Infof("Success! Deployed function to Cape\nFunction ID ➜ %s\n", dID)
+	log.Infof("Success! Deployed function to Cape\nFunction ID ➜ %s\nFunction Hash ➜ %x\n", dID, hash)
 
 	return nil
 }
 
-func Deploy(url string, functionInput string, functionName string, insecure bool) (string, error) {
+func Deploy(url string, functionInput string, functionName string, insecure bool) (string, []byte, error) {
 	file, err := os.Open(functionInput)
 	if err != nil {
-		return "", fmt.Errorf("unable to read function directory or file: %w", err)
+		return "", nil, fmt.Errorf("unable to read function directory or file: %w", err)
 	}
 
 	st, err := file.Stat()
 	if err != nil {
-		return "", fmt.Errorf("unable to read function file or directory: %w", err)
+		return "", nil, fmt.Errorf("unable to read function file or directory: %w", err)
 	}
 
 	isZip := false
 	if st.IsDir() {
 		_, err = file.Readdirnames(1)
 		if err != nil {
-			return "", fmt.Errorf("please pass in a non-empty directory: %w", err)
+			return "", nil, fmt.Errorf("please pass in a non-empty directory: %w", err)
 		}
 	} else {
 		// Check if file ends with ".zip" extension.
 		fileExtension := filepath.Ext(functionInput)
 		if fileExtension != ".zip" {
-			return "", fmt.Errorf("expected argument %s to be a zip file or directory", functionInput)
+			return "", nil, fmt.Errorf("expected argument %s to be a zip file or directory", functionInput)
 		}
 		isZip = true
 	}
 
 	err = file.Close()
 	if err != nil {
-		return "", fmt.Errorf("something went wrong: %w", err)
+		return "", nil, fmt.Errorf("something went wrong: %w", err)
 	}
 
 	var reader io.Reader
@@ -120,7 +120,7 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 	if isZip {
 		f, err := os.Open(functionInput)
 		if err != nil {
-			return "", fmt.Errorf("unable to read function file: %w", err)
+			return "", nil, fmt.Errorf("unable to read function file: %w", err)
 		}
 
 		reader = f
@@ -131,28 +131,28 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 
 		err = filepath.Walk(functionInput, czip.Walker(w, zipRoot))
 		if err != nil {
-			return "", fmt.Errorf("zipping directory failed: %w", err)
+			return "", nil, fmt.Errorf("zipping directory failed: %w", err)
 		}
 
 		// Explicitly close now so that the bytes are flushed and
 		// available in buf.Bytes() below.
 		err = w.Close()
 		if err != nil {
-			return "", fmt.Errorf("zipping directory failed: %w", err)
+			return "", nil, fmt.Errorf("zipping directory failed: %w", err)
 		}
 
 		reader = buf
 	}
 
-	id, err := doDeploy(url, functionName, reader, insecure)
+	id, hash, err := doDeploy(url, functionName, reader, insecure)
 	if err != nil {
-		return "", fmt.Errorf("unable to deploy function: %w", err)
+		return "", nil, fmt.Errorf("unable to deploy function: %w", err)
 	}
 
-	return id, nil
+	return id, hash, nil
 }
 
-func doDeploy(url string, name string, reader io.Reader, insecure bool) (string, error) {
+func doDeploy(url string, name string, reader io.Reader, insecure bool) (string, []byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/deploy", url)
 
 	log.Info("Deploying function to Cape ...")
@@ -165,27 +165,27 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 		if res != nil {
 			var e ErrorMsg
 			if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-				return "", err
+				return "", nil, err
 			}
 			res.Body.Close()
-			return "", fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
+			return "", nil, fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
 		}
-		return "", err
+		return "", nil, err
 	}
 
 	nonce, err := crypto.GetNonce()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	token, err := getAuthToken()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	functionTokenPublicKey, err := getFunctionTokenPublicKey()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	req := entities.StartRequest{Nonce: nonce, AuthToken: token}
@@ -193,7 +193,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	err = conn.WriteJSON(req)
 	if err != nil {
 		log.Error("error writing deploy request")
-		return "", err
+		return "", nil, err
 	}
 
 	log.Debug("* Waiting for attestation document...")
@@ -202,20 +202,20 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	err = conn.ReadJSON(&msg)
 	if err != nil {
 		log.Error("error reading attestation doc")
-		return "", err
+		return "", nil, err
 	}
 
 	log.Debug("< Downloading AWS Root Certificate")
 	rootCert, err := attest.GetRootAWSCert()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	log.Debug("< Attestation document")
 	doc, _, err := attest.Attest(msg.Message, rootCert)
 	if err != nil {
 		log.Error("error attesting")
-		return "", err
+		return "", nil, err
 	}
 
 	hasher := sha256.New()
@@ -224,38 +224,37 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	plaintext, err := io.ReadAll(tReader)
 	if err != nil {
 		log.Error("error reading plaintext function")
-		return "", err
+		return "", nil, err
 	}
 	// Print out the hash to the user.
 	hash := hasher.Sum(nil)
-	log.Infof("Here's your function hash \nHash ➜ %x\n", hash)
 	ciphertext, err := crypto.LocalEncrypt(*doc, plaintext)
 	if err != nil {
 		log.Error("error encrypting function")
-		return "", err
+		return "", nil, err
 	}
 
 	log.Debug("\n> Sending Public Key")
 	if err := conn.WriteJSON(PublicKeyRequest{FunctionTokenPublicKey: functionTokenPublicKey}); err != nil {
 		log.Error("error sending public key")
-		return "", err
+		return "", nil, err
 	}
 
 	log.Debug("\n> Deploying Encrypted Function")
 	err = writeFunction(conn, bytes.NewBuffer(ciphertext))
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	log.Debug("* Waiting for deploy response...")
 
 	resData := DeployResponse{}
 	if err := conn.ReadJSON(&resData); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	log.Debugf("< Received Deploy Response %v", resData)
 
-	return resData.ID, nil
+	return resData.ID, hash, nil
 }
 
 func websocketDial(url string, insecure bool) (*websocket.Conn, *http.Response, error) {
