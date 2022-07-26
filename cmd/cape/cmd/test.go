@@ -30,6 +30,8 @@ func init() {
 }
 
 func Test(cmd *cobra.Command, args []string) error {
+	// Set test to be in verbose mode by default.
+	log.SetLevel(log.DebugLevel)
 	u := C.EnclaveHost
 	insecure := C.Insecure
 
