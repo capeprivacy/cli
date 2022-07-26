@@ -123,12 +123,12 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*sentinelEnt
 	}
 
 	log.Debug("> Encrypted function")
-	if err := conn.WriteMessage(websocket.BinaryMessage, encFn); err != nil {
+	if err := p.WriteBinary(encFn); err != nil {
 		return nil, err
 	}
 
 	log.Debug("> Encrypted input")
-	if err := conn.WriteMessage(websocket.BinaryMessage, encInput); err != nil {
+	if err := p.WriteBinary(encInput); err != nil {
 		return nil, err
 	}
 
