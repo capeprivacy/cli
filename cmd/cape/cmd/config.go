@@ -25,6 +25,14 @@ func init() {
 }
 
 func Config(cmd *cobra.Command, args []string) error {
+	if len(args) == 0 {
+		// No args, so print current config values
+		for k, v := range viper.AllSettings() {
+			fmt.Printf("%v: %v\n", k, v)
+		}
+		return nil
+	}
+
 	if len(args) != 2 {
 		if err := cmd.Usage(); err != nil {
 			return err
