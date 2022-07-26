@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 
 	"github.com/spf13/cobra"
-	
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/capeprivacy/cli/capetest"

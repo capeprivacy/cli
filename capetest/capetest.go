@@ -21,16 +21,6 @@ type TestRequest struct {
 	AuthToken string
 }
 
-type RunResults struct {
-	Type    string `json:"type"`
-	Message []byte `json:"message"`
-}
-
-type Message struct {
-	Type    string `json:"type"`
-	Message []byte `json:"message"`
-}
-
 // TODO -- cmd package also defines this
 type ErrorMsg struct {
 	Error string `json:"error"`
@@ -59,6 +49,19 @@ func websocketDial(url string, insecure bool) (*websocket.Conn, *http.Response, 
 	return c, r, nil
 }
 
+type Protocol interface {
+	WriteStart(request sentinelEntities.StartRequest) error
+	ReadAttestationDoc() ([]byte, error)
+	ReadRunResults() (*sentinelEntities.RunResults, error)
+	WriteBinary([]byte) error
+}
+
+func protocol(ws *websocket.Conn) Protocol {
+	return runner.Protocol{Websocket: ws}
+}
+
+var getProtocol = protocol
+
 func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*sentinelEntities.RunResults, error) {
 	conn, resp, err := websocketDial(endpoint, insecure)
 	if err != nil {
@@ -81,7 +84,7 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*sentinelEnt
 		return nil, err
 	}
 
-	p := runner.Protocol{Websocket: conn}
+	p := getProtocol(conn)
 
 	startReq := sentinelEntities.StartRequest{
 		AuthToken: testReq.AuthToken,
