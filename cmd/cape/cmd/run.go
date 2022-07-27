@@ -104,7 +104,6 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error processing data: %w", err)
 	}
 
-	log.Infof("Success! Results from your function:\n")
 	fmt.Println(string(results))
 	return nil
 }
@@ -181,6 +180,10 @@ func doRun(url string, functionID string, data []byte, insecure bool, funcHash [
 	if err != nil {
 		log.Println("error attesting")
 		return nil, err
+	}
+
+	if userData == nil && funcHash != nil {
+		return nil, fmt.Errorf("did not receive function hash from enclave")
 	}
 
 	// If function hash as an optional parameter has not been specified by the user, then we don't check the value.

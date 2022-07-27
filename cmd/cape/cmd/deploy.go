@@ -13,14 +13,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/capeprivacy/cli/attest"
 	sentinelEntities "github.com/capeprivacy/sentinel/entities"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/capeprivacy/cli/crypto"
+	"github.com/capeprivacy/cli/attest"
+
 	"github.com/capeprivacy/sentinel/runner"
+
+	"github.com/capeprivacy/cli/crypto"
 
 	czip "github.com/capeprivacy/cli/zip"
 )
@@ -75,7 +77,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 		name = n
 	}
 
-	dID, hash, err := Deploy(u, name, functionInput, insecure)
+	dID, hash, err := Deploy(u, functionInput, name, insecure)
 	if err != nil {
 		return err
 	}
