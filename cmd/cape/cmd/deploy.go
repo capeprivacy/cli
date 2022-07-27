@@ -77,7 +77,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 		name = n
 	}
 
-	dID, hash, err := Deploy(u, name, functionInput, insecure)
+	dID, hash, err := Deploy(u, functionInput, name, insecure)
 	if err != nil {
 		return err
 	}
