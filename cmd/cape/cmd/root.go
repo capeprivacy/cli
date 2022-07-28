@@ -15,7 +15,6 @@ import (
 var C config.Config
 
 var version = "unknown"
-var cfgFile string
 
 type PlainFormatter struct {
 }
