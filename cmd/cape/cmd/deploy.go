@@ -3,20 +3,24 @@ package cmd
 import (
 	"archive/zip"
 	"bytes"
+	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
-	sentinelEntities "github.com/capeprivacy/sentinel/entities"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	sentinelEntities "github.com/capeprivacy/sentinel/entities"
 
 	"github.com/capeprivacy/cli/attest"
 
@@ -314,6 +318,57 @@ func getAuthToken() (string, error) {
 	return t, nil
 }
 
+func getOrGeneratePublicKey() (*rsa.PublicKey, error) {
+	publicKey, err := getPublicKey()
+	if err != nil {
+		// Attempt to generate a key pair if reading public key fails.
+		err = generateKeyPair()
+		if err != nil {
+			return nil, nil
+		}
+		publicKey, err = getPublicKey()
+		if err != nil {
+			return nil, nil
+		}
+	}
+	return publicKey, err
+}
+
+func getPublicKey() (*rsa.PublicKey, error) {
+	keyPEM, err := getPublicKeyPEM()
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(keyPEM.Bytes())
+	if block == nil || block.Type != "PUBLIC KEY" {
+		return nil, errors.New("failed to decode public key")
+	}
+
+	publicKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return publicKey.(*rsa.PublicKey), nil
+}
+
+func getPublicKeyPEM() (*bytes.Buffer, error) {
+	publicKeyPEM, err := os.Open(filepath.Join(C.LocalConfigDir, publicKeyFile))
+	if err != nil {
+		return nil, err
+	}
+	defer publicKeyPEM.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = buf.ReadFrom(publicKeyPEM)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf, nil
+}
+
 func getFunctionTokenPublicKey() (string, error) {
 	_, err := getOrGeneratePublicKey()
 	if err != nil {
@@ -326,5 +381,5 @@ func getFunctionTokenPublicKey() (string, error) {
 		return "", err
 	}
 
-	return strings.ReplaceAll(pem.String(), "\n", ""), nil
+	return pem.String(), nil
 }

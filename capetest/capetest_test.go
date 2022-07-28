@@ -7,8 +7,9 @@ import (
 	"net/url"
 	"testing"
 
-	sentinelEntities "github.com/capeprivacy/sentinel/entities"
 	"github.com/gorilla/websocket"
+
+	sentinelEntities "github.com/capeprivacy/sentinel/entities"
 
 	"github.com/capeprivacy/cli/attest"
 )
