@@ -12,10 +12,11 @@ import (
 	"strings"
 	"testing"
 
-	sentinelEntities "github.com/capeprivacy/sentinel/entities"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	sentinelEntities "github.com/capeprivacy/sentinel/entities"
 
 	"github.com/capeprivacy/cli/capetest"
 	czip "github.com/capeprivacy/cli/zip"
