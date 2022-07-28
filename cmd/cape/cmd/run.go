@@ -23,7 +23,7 @@ import (
 // runCmd represents the request command
 var runCmd = &cobra.Command{
 	Use:   "run function_id [input data]",
-	Short: "run a deployed function with data",
+	Short: "Run a deployed function with data",
 	Long: "Run a deployed function with data, takes function id, path to data, and (optional) function hash.\n" +
 		"Run will also read input data from stdin, example: \"echo '1234' | cape run id\".\n" +
 		"Results are output to stdout so you can easily pipe them elsewhere.",
@@ -128,7 +128,7 @@ func doRun(url string, functionID string, data []byte, insecure bool, funcHash [
 
 	c, res, err := websocketDial(endpoint, insecure)
 	if err != nil {
-		log.Error("error dialing websocket", err)
+		log.Error("error dialing websocket: ", err)
 		// This check is necessary because we don't necessarily return an http response from sentinel.
 		// Http error code and message is returned if network routing fails.
 		if res != nil {
