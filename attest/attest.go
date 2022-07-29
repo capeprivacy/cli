@@ -40,7 +40,7 @@ type AttestationDoc struct {
 }
 
 type AttestationUserData struct {
-	FuncHash []byte `json:"func_hash"`
+	FuncHash      []byte `json:"func_hash"`
 	KeyPolicyHash []byte `json:"key_policy_hash"`
 }
 
