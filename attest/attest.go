@@ -40,7 +40,8 @@ type AttestationDoc struct {
 }
 
 type AttestationUserData struct {
-	FuncHash []byte `json:"func_hash"`
+	FuncHash      []byte `json:"func_hash"`
+	KeyPolicyHash []byte `json:"key_policy_hash"`
 }
 
 func createSign1(d []byte) (*cose.Sign1Message, error) {
@@ -148,7 +149,8 @@ func Attest(attestation []byte, rootCert *x509.Certificate) (*AttestationDoc, *A
 			return nil, nil, err
 		}
 
-		log.Debugf("Received Function Signature: %x", userData.FuncHash)
+		log.Debugf("Received Function Hash: %x", userData.FuncHash)
+		log.Debugf("Received Key Policy Hash: %x", userData.KeyPolicyHash)
 
 		return doc, &userData, nil
 	}
