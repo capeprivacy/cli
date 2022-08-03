@@ -115,6 +115,8 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 	if st.Size() > storedFunctionMaxBytes {
 		return "", nil, OversizeFunctionError{bytes: st.Size()}
 	}
+	// TODO: DEBUG
+	log.Infof("deployment size: %d bytes", st.Size())
 
 	isZip := false
 	if st.IsDir() {
