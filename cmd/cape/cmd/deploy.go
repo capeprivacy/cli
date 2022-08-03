@@ -43,6 +43,16 @@ type DeployResponse struct {
 	ID string `json:"id"`
 }
 
+const storedFunctionMaxBytes = 128_000_000
+
+type OversizeFunctionError struct {
+	bytes int64
+}
+
+func (e OversizeFunctionError) Error() string {
+	return fmt.Sprintf("deployment (%d bytes) exceeds size limit of %d bytes", e.bytes, storedFunctionMaxBytes)
+}
+
 // deployCmd represents the request command
 var deployCmd = &cobra.Command{
 	Use:   "deploy directory | zip_file",
@@ -100,6 +110,10 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 	st, err := file.Stat()
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to read function file or directory: %w", err)
+	}
+
+	if st.Size() > storedFunctionMaxBytes {
+		return "", nil, OversizeFunctionError{bytes: st.Size()}
 	}
 
 	isZip := false
