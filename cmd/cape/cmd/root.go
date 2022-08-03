@@ -62,10 +62,6 @@ func init() {
 		cobra.CheckErr(err)
 	}
 
-	if err := viper.BindPFlag("AUTH_HOST", rootCmd.PersistentFlags().Lookup("url")); err != nil {
-		log.Error("failed to bind cli argument.")
-		cobra.CheckErr(err)
-	}
 	if err := viper.BindPFlag("ENCLAVE_HOST", rootCmd.PersistentFlags().Lookup("url")); err != nil {
 		log.Error("failed to bind cli argument.")
 		cobra.CheckErr(err)
@@ -120,12 +116,6 @@ func initConfig() {
 	}
 	viper.SetDefault("AUDIENCE", "https://newdemo.capeprivacy.com/v1/")
 
-	if err := viper.BindEnv("AUTH_HOST"); err != nil {
-		log.Error("failed to bind config variable.")
-		cobra.CheckErr(err)
-	}
-	viper.SetDefault("AUTH_HOST", "https://maestro-dev.us.auth0.com")
-
 	if err := viper.BindEnv("ENCLAVE_HOST"); err != nil {
 		log.Error("failed to bind config variable.")
 		cobra.CheckErr(err)
@@ -151,7 +141,7 @@ func initConfig() {
 	viper.SetDefault("DEV_DISABLE_SSL", false)
 
 	C.Audience = viper.GetString("AUDIENCE")
-	C.AuthHost = viper.GetString("AUTH_HOST")
+	C.AuthHost = "https://api.capeprivacy.com"
 	C.EnclaveHost = viper.GetString("ENCLAVE_HOST")
 	C.ClientID = viper.GetString("CLIENT_ID")
 	C.LocalConfigDir = viper.GetString("LOCAL_CONFIG_DIR")
