@@ -18,8 +18,8 @@ type DeploymentName struct {
 // listCmd represents the request command
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "list deployed functions",
-	Long:  "list all deployed functions (ID and function name)",
+	Short: "List deployed functions",
+	Long:  "List all deployed functions (ID and function name)",
 	RunE:  list,
 }
 
