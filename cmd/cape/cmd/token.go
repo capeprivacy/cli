@@ -21,8 +21,8 @@ var privateKeyFile = "token.pem"
 var publicKeyFile = "token.pub.pem"
 
 var tokenCmd = &cobra.Command{
-	Use:   "token function_id",
-	Short: "create a token to execute a cape function",
+	Use:   "token",
+	Short: "Create a token to execute a cape function",
 	RunE:  token,
 }
 

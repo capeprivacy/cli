@@ -37,7 +37,7 @@ type TokenResponse struct {
 
 var loginCmd = &cobra.Command{
 	Use:   "login",
-	Short: "login to cape application",
+	Short: "Login to cape application",
 	RunE:  login,
 }
 
