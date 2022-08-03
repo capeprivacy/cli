@@ -46,7 +46,7 @@ type DeployResponse struct {
 const storedFunctionMaxBytes = 128_000_000
 
 type OversizeFunctionError struct {
-	bytes int64
+	bytes int
 }
 
 func (e OversizeFunctionError) Error() string {
@@ -111,12 +111,6 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to read function file or directory: %w", err)
 	}
-
-	if st.Size() > storedFunctionMaxBytes {
-		return "", nil, OversizeFunctionError{bytes: st.Size()}
-	}
-	// TODO: DEBUG
-	log.Infof("deployment size: %d bytes", st.Size())
 
 	isZip := false
 	if st.IsDir() {
@@ -249,6 +243,15 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 		log.Error("error reading plaintext function")
 		return "", nil, err
 	}
+
+	fileSize := len(plaintext)
+	log.Debugf("deployment size: %d bytes", fileSize)
+	if fileSize > storedFunctionMaxBytes {
+		err = OversizeFunctionError{bytes: fileSize}
+		log.Error(err.Error())
+		return "", nil, err
+	}
+
 	// Print out the hash to the user.
 	hash := hasher.Sum(nil)
 	ciphertext, err := crypto.LocalEncrypt(*doc, plaintext)
