@@ -21,7 +21,7 @@ import (
 	"github.com/capeprivacy/cli/crypto"
 )
 
-// runCmd represents the request command
+// runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "run function_id [input data]",
 	Short: "run a deployed function with data",
