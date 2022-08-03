@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"reflect"
-	"strings"
 
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
@@ -204,7 +203,7 @@ func doRun(url string, functionID string, data []byte, insecure bool, funcHash [
 		return nil, err
 	}
 
-	err = pcrs.VerifyPCRs(pcrsSliceToMapStringSlice(pcrSlice), doc)
+	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(pcrSlice), doc)
 	if err != nil {
 		log.Println("error verifying PCRs")
 		return nil, err
@@ -263,23 +262,4 @@ func writeData(conn *websocket.Conn, data []byte) error {
 	}
 
 	return nil
-}
-
-func pcrsSliceToMapStringSlice(slice []string) map[string][]string {
-	m := make(map[string][]string)
-
-	for _, val := range slice {
-		spl := strings.Split(val, ":")
-		pcrIndex := spl[0]
-		pcrValue := spl[1]
-
-		_, ok := m[pcrIndex]
-		if !ok {
-			m[pcrIndex] = make([]string, 0)
-		}
-
-		m[pcrIndex] = append(m[pcrIndex], pcrValue)
-	}
-
-	return m
 }

@@ -231,7 +231,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice
 		return "", nil, err
 	}
 
-	err = pcrs.VerifyPCRs(pcrsSliceToMapStringSlice(pcrSlice), doc)
+	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(pcrSlice), doc)
 	if err != nil {
 		log.Println("error verifying PCRs")
 		return "", nil, err

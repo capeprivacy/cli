@@ -65,8 +65,8 @@ func TestVerifyPCRs(t *testing.T) {
 	pcr8 := hex.EncodeToString(pcr8Buf)
 
 	p := map[string][]string{
-		"PCR0": {pcr0a, pcr0b},
-		"PCR8": {pcr8},
+		"0": {pcr0a, pcr0b},
+		"8": {pcr8},
 	}
 
 	doc := &attest.AttestationDoc{
@@ -105,8 +105,8 @@ func TestVerifyFail(t *testing.T) {
 	pcr8 := hex.EncodeToString(pcr8Buf)
 
 	p := map[string][]string{
-		"PCR0": {pcr0b},
-		"PCR8": {pcr8},
+		"0": {pcr0b},
+		"8": {pcr8},
 	}
 
 	doc := &attest.AttestationDoc{

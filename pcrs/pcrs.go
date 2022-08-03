@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -89,4 +90,23 @@ func VerifyPCRs(pcrs map[string][]string, doc *attest.AttestationDoc) error {
 		}
 	}
 	return nil
+}
+
+func SliceToMapStringSlice(slice []string) map[string][]string {
+	m := make(map[string][]string)
+
+	for _, val := range slice {
+		spl := strings.Split(val, ":")
+		pcrIndex := spl[0]
+		pcrValue := spl[1]
+
+		_, ok := m[pcrIndex]
+		if !ok {
+			m[pcrIndex] = make([]string, 0)
+		}
+
+		m[pcrIndex] = append(m[pcrIndex], pcrValue)
+	}
+
+	return m
 }
