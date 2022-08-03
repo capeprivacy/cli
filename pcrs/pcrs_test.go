@@ -1,10 +1,14 @@
 package pcrs
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"os"
 	"path"
 	"reflect"
 	"testing"
+
+	"github.com/capeprivacy/cli/attest"
 )
 
 func TestGetEIFInfo(t *testing.T) {
@@ -34,5 +38,86 @@ func TestGetEIFInfo(t *testing.T) {
 
 	if !reflect.DeepEqual(expectedMeasurements, info.Measurements) {
 		t.Fatalf("expected measurements %s does not match measurements %s", expectedMeasurements, info.Measurements)
+	}
+}
+
+func TestVerifyPCRs(t *testing.T) {
+	pcr0aBuf := make([]byte, 48)
+	_, err := rand.Read(pcr0aBuf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pcr0a := hex.EncodeToString(pcr0aBuf)
+
+	pcr0bBuf := make([]byte, 48)
+	_, err = rand.Read(pcr0bBuf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pcr0b := hex.EncodeToString(pcr0bBuf)
+
+	pcr8Buf := make([]byte, 48)
+	_, err = rand.Read(pcr8Buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pcr8 := hex.EncodeToString(pcr8Buf)
+
+	p := map[string][]string{
+		"PCR0": {pcr0a, pcr0b},
+		"PCR8": {pcr8},
+	}
+
+	doc := &attest.AttestationDoc{
+		PCRs: map[int][]byte{
+			0: pcr0aBuf,
+			8: pcr8Buf,
+		},
+	}
+
+	err = VerifyPCRs(p, doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestVerifyFail(t *testing.T) {
+	pcr0aBuf := make([]byte, 48)
+	_, err := rand.Read(pcr0aBuf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pcr0bBuf := make([]byte, 48)
+	_, err = rand.Read(pcr0bBuf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pcr0b := hex.EncodeToString(pcr0bBuf)
+
+	pcr8Buf := make([]byte, 48)
+	_, err = rand.Read(pcr8Buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pcr8 := hex.EncodeToString(pcr8Buf)
+
+	p := map[string][]string{
+		"PCR0": {pcr0b},
+		"PCR8": {pcr8},
+	}
+
+	doc := &attest.AttestationDoc{
+		PCRs: map[int][]byte{
+			0: pcr0aBuf,
+			8: pcr8Buf,
+		},
+	}
+
+	err = VerifyPCRs(p, doc)
+	if err == nil {
+		t.Fatal("expected error got nil")
 	}
 }
