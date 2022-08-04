@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -27,8 +28,13 @@ func init() {
 func Config(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
 		// No args, so print current config values
-		s, _ := json.MarshalIndent(C, "", "\t")
-		fmt.Print(string(s) + "\n")
+		fmt.Println("Here are the configurable options and their values:")
+		cmd.Flags().VisitAll(func(f *pflag.Flag) {
+			// Print all non hidden flags
+			if f.Hidden == false {
+				fmt.Printf("Name: %s, Value: %s, Default: %s\n", f.Name, f.Value, f.DefValue)
+			}
+		})
 		return nil
 	}
 
