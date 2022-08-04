@@ -31,7 +31,7 @@ func Config(cmd *cobra.Command, args []string) error {
 		fmt.Println("Here are the configurable options and their values:")
 		cmd.Flags().VisitAll(func(f *pflag.Flag) {
 			// Print all non hidden flags
-			if f.Hidden == false {
+			if !f.Hidden {
 				fmt.Printf("Name: %s, Value: %s, Default: %s\n", f.Name, f.Value, f.DefValue)
 			}
 		})
