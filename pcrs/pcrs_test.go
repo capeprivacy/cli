@@ -121,3 +121,16 @@ func TestVerifyFail(t *testing.T) {
 		t.Fatal("expected error got nil")
 	}
 }
+
+func TestSliceToMapStringSlice(t *testing.T) {
+	s := []string{"1:abcd", "1:dcba", "2:bleh"}
+
+	expectedM := map[string][]string{
+		"1": {"abcd", "dcba"},
+		"2": {"bleh"},
+	}
+
+	if m := SliceToMapStringSlice(s); !reflect.DeepEqual(expectedM, m) {
+		t.Fatalf("expected %s got %s", expectedM, m)
+	}
+}
