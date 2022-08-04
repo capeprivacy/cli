@@ -131,10 +131,10 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 		}
 		isZip = true
 		fileSize = st.Size()
-		log.Warning("deploying from zip file. uncompressed file may exceed deployment size limit")
+		log.Warning("Deploying from zip file. Uncompressed file may exceed deployment size limit.")
 	}
 
-	log.Debugf("deployment size: %d bytes", fileSize)
+	log.Debugf("Deployment size: %d bytes", fileSize)
 	if fileSize > storedFunctionMaxBytes {
 		err = OversizeFunctionError{bytes: fileSize}
 		log.Error(err.Error())
