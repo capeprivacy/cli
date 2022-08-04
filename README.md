@@ -104,6 +104,24 @@ Any tracing output is output to stderr while results are output to stdout.
 
 See `cape run --help` for more options.
 
+### Validating EIF PCRs
+
+To validate EIF PCRs, first query the known PCRs with `cape get-pcrs`. This will return something like this:
+
+```
+PCR0:	77a4517ad7e3acd6b2344ce7bd3b8831b3c4e3d7def26da5fe271f14ad23174015ed17eb0df853f545c2eb8ae83f4d9d
+PCR1:	bcdf05fefccaa8e55bf2c8d6dee9e79bbff31e34bf28a99aa19e6b29c37ee80b214a414b7607236edf26fcb78654e63f
+PCR2:	c1cee9556300190901c462e76c88d568610f9aeb6a39420398eeb8f27268b40509a9e4c833f622486a01c499eb9efbdd
+```
+
+Then on deploy/run/test we can pass these PCRs to be verified against what is returned in the attestation document:
+
+```
+cape deploy <zip> --pcr 0:77a4517ad7e3acd6b2344ce7bd3b8831b3c4e3d7def26da5fe271f14ad23174015ed17eb0df853f545c2eb8ae83f4d9d \
+                  --pcr 1:bcdf05fefccaa8e55bf2c8d6dee9e79bbff31e34bf28a99aa19e6b29c37ee80b214a414b7607236edf26fcb78654e63f \
+                  --pcr 2:c1cee9556300190901c462e76c88d568610f9aeb6a39420398eeb8f27268b40509a9e4c833f622486a01c499eb9efbddg
+```
+
 ## Build
 
 ```

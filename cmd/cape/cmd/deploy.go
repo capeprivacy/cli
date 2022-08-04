@@ -23,6 +23,7 @@ import (
 	sentinelEntities "github.com/capeprivacy/sentinel/entities"
 
 	"github.com/capeprivacy/cli/attest"
+	"github.com/capeprivacy/cli/pcrs"
 
 	"github.com/capeprivacy/sentinel/runner"
 
@@ -85,13 +86,18 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	pcrSlice, err := cmd.Flags().GetStringSlice("pcr")
+	if err != nil {
+		return fmt.Errorf("error retrieving pcr flags %s", err)
+	}
+
 	functionInput := args[0]
 	name := functionInput
 	if n != "" {
 		name = n
 	}
 
-	dID, hash, err := Deploy(u, functionInput, name, insecure)
+	dID, hash, err := Deploy(u, functionInput, name, insecure, pcrSlice)
 	if err != nil {
 		return err
 	}
@@ -101,7 +107,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func Deploy(url string, functionInput string, functionName string, insecure bool) (string, []byte, error) {
+func Deploy(url string, functionInput string, functionName string, insecure bool, pcrSlice []string) (string, []byte, error) {
 	file, err := os.Open(functionInput)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to read function directory or file: %w", err)
@@ -175,7 +181,7 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 		reader = buf
 	}
 
-	id, hash, err := doDeploy(url, functionName, reader, insecure)
+	id, hash, err := doDeploy(url, functionName, reader, insecure, pcrSlice)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to deploy function: %w", err)
 	}
@@ -194,7 +200,7 @@ func dirSize(path string) (int64, error) {
 	return size, err
 }
 
-func doDeploy(url string, name string, reader io.Reader, insecure bool) (string, []byte, error) {
+func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice []string) (string, []byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/deploy", url)
 
 	log.Info("Deploying function to Cape ...")
@@ -257,6 +263,12 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	doc, _, err := attest.Attest(attestDoc, rootCert)
 	if err != nil {
 		log.Error("error attesting")
+		return "", nil, err
+	}
+
+	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(pcrSlice), doc)
+	if err != nil {
+		log.Println("error verifying PCRs")
 		return "", nil, err
 	}
 
