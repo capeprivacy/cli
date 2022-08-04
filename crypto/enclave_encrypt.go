@@ -62,11 +62,10 @@ func LocalEncrypt(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) {
 
 	kemPublicKey, err := kemID.Scheme().UnmarshalBinaryPublicKey(publicKey)
 	if err != nil {
-		fmt.Println(err)
+		return nil, fmt.Errorf("unable to encrypt %s", err)
 	}
 
 	sender, err := suite.NewSender(kemPublicKey, nil)
-
 	if err != nil {
 		return nil, fmt.Errorf("unable to encrypt %s", err)
 	}

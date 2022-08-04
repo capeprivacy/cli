@@ -1,15 +1,19 @@
 package pcrs
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/capeprivacy/cli/attest"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -64,4 +68,45 @@ func GetEIFInfo(basePath string) (*EIFInfo, error) {
 	}
 
 	return info, nil
+}
+
+func VerifyPCRs(pcrs map[string][]string, doc *attest.AttestationDoc) error {
+	for key, values := range pcrs {
+		pcrIndex, err := strconv.Atoi(key)
+		if err != nil {
+			return err
+		}
+		h := hex.EncodeToString(doc.PCRs[pcrIndex])
+
+		found := false
+		for _, pcr := range values {
+			if pcr == h {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("PCR%d %s does not match %s", pcrIndex, h, values)
+		}
+	}
+	return nil
+}
+
+func SliceToMapStringSlice(slice []string) map[string][]string {
+	m := make(map[string][]string)
+
+	for _, val := range slice {
+		spl := strings.Split(val, ":")
+		pcrIndex := spl[0]
+		pcrValue := spl[1]
+
+		_, ok := m[pcrIndex]
+		if !ok {
+			m[pcrIndex] = make([]string, 0)
+		}
+
+		m[pcrIndex] = append(m[pcrIndex], pcrValue)
+	}
+
+	return m
 }
