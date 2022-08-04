@@ -46,7 +46,7 @@ type DeployResponse struct {
 const storedFunctionMaxBytes = 128_000_000
 
 type OversizeFunctionError struct {
-	bytes int
+	bytes int64
 }
 
 func (e OversizeFunctionError) Error() string {
@@ -113,10 +113,15 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 	}
 
 	isZip := false
+	var fileSize int64
 	if st.IsDir() {
 		_, err = file.Readdirnames(1)
 		if err != nil {
 			return "", nil, fmt.Errorf("please pass in a non-empty directory: %w", err)
+		}
+		fileSize, err = dirSize(functionInput)
+		if err != nil {
+			return "", nil, fmt.Errorf("error reading file size: %w", err)
 		}
 	} else {
 		// Check if file ends with ".zip" extension.
@@ -125,6 +130,15 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 			return "", nil, fmt.Errorf("expected argument %s to be a zip file or directory", functionInput)
 		}
 		isZip = true
+		fileSize = st.Size()
+		log.Warning("deploying from zip file. uncompressed file may exceed deployment size limit")
+	}
+
+	log.Debugf("deployment size: %d bytes", fileSize)
+	if fileSize > storedFunctionMaxBytes {
+		err = OversizeFunctionError{bytes: fileSize}
+		log.Error(err.Error())
+		return "", nil, err
 	}
 
 	err = file.Close()
@@ -167,6 +181,17 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 	}
 
 	return id, hash, nil
+}
+
+func dirSize(path string) (int64, error) {
+	var size int64
+	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return nil
+	})
+	return size, err
 }
 
 func doDeploy(url string, name string, reader io.Reader, insecure bool) (string, []byte, error) {
@@ -241,14 +266,6 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	plaintext, err := io.ReadAll(tReader)
 	if err != nil {
 		log.Error("error reading plaintext function")
-		return "", nil, err
-	}
-
-	fileSize := len(plaintext)
-	log.Debugf("deployment size: %d bytes", fileSize)
-	if fileSize > storedFunctionMaxBytes {
-		err = OversizeFunctionError{bytes: fileSize}
-		log.Error(err.Error())
 		return "", nil, err
 	}
 
