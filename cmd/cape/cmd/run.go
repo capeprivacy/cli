@@ -19,6 +19,7 @@ import (
 
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
+	"github.com/capeprivacy/cli/pcrs"
 )
 
 // runCmd represents the run command
@@ -79,6 +80,11 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error retrieving function_hash flag")
 	}
 
+	pcrSlice, err := cmd.Flags().GetStringSlice("pcr")
+	if err != nil {
+		return fmt.Errorf("error retrieving pcr flags %s", err)
+	}
+
 	funcHash, err := hex.DecodeString(funcHashArg)
 	if err != nil {
 		return fmt.Errorf("error reading function hash")
@@ -114,7 +120,7 @@ func run(cmd *cobra.Command, args []string) error {
 		input = buf.Bytes()
 	}
 
-	results, err := doRun(u, functionID, input, insecure, funcHash, keyPolicyHash)
+	results, err := doRun(u, functionID, input, insecure, funcHash, keyPolicyHash, pcrSlice)
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)
 	}
@@ -129,8 +135,9 @@ func Run(url string, functionID string, file string, insecure bool) error {
 	if err != nil {
 		return fmt.Errorf("unable to read data file: %w", err)
 	}
+
 	// TODO: Tuner may want to verify function hash later.
-	_, err = doRun(url, functionID, input, insecure, nil, nil)
+	_, err = doRun(url, functionID, input, insecure, nil, nil, []string{})
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)
 	}
@@ -138,7 +145,7 @@ func Run(url string, functionID string, file string, insecure bool) error {
 	return nil
 }
 
-func doRun(url string, functionID string, data []byte, insecure bool, funcHash []byte, keyPolicyHash []byte) ([]byte, error) {
+func doRun(url string, functionID string, data []byte, insecure bool, funcHash []byte, keyPolicyHash []byte, pcrSlice []string) ([]byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
 
 	c, res, err := websocketDial(endpoint, insecure)
@@ -191,9 +198,14 @@ func doRun(url string, functionID string, data []byte, insecure bool, funcHash [
 
 	log.Debug("< Auth Completed. Received Attestation Document")
 	doc, userData, err := attest.Attest(attestDoc, rootCert)
-
 	if err != nil {
 		log.Println("error attesting")
+		return nil, err
+	}
+
+	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(pcrSlice), doc)
+	if err != nil {
+		log.Println("error verifying PCRs")
 		return nil, err
 	}
 
