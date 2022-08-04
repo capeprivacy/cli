@@ -54,6 +54,11 @@ func Test(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error retrieving file flag")
 	}
 
+	pcrSlice, err := cmd.Flags().GetStringSlice("pcr")
+	if err != nil {
+		return fmt.Errorf("error retrieving pcr flags %s", err)
+	}
+
 	switch {
 	case file != "":
 		// input file was provided
@@ -78,7 +83,7 @@ func Test(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	res, err := test(capetest.TestRequest{Function: fnZip, Input: input, AuthToken: token}, u+"/v1/test", insecure)
+	res, err := test(capetest.TestRequest{Function: fnZip, Input: input, AuthToken: token}, u+"/v1/test", insecure, pcrSlice)
 	if err != nil {
 		return err
 	}

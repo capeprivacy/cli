@@ -6,13 +6,15 @@ import (
 	"fmt"
 	"net/http"
 
-	sentinelEntities "github.com/capeprivacy/sentinel/entities"
-	"github.com/capeprivacy/sentinel/runner"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 
+	sentinelEntities "github.com/capeprivacy/sentinel/entities"
+	"github.com/capeprivacy/sentinel/runner"
+
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
+	"github.com/capeprivacy/cli/pcrs"
 )
 
 type TestRequest struct {
@@ -62,7 +64,7 @@ func protocol(ws *websocket.Conn) Protocol {
 
 var getProtocol = protocol
 
-func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*sentinelEntities.RunResults, error) {
+func CapeTest(testReq TestRequest, endpoint string, insecure bool, pcrSlice []string) (*sentinelEntities.RunResults, error) {
 	conn, resp, err := websocketDial(endpoint, insecure)
 	if err != nil {
 		log.Error("error dialing websocket", err)
@@ -109,6 +111,12 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*sentinelEnt
 	log.Debug("< Attestation document")
 	doc, _, err := runAttestation(attestDoc, rootCert)
 	if err != nil {
+		return nil, err
+	}
+
+	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(pcrSlice), doc)
+	if err != nil {
+		log.Println("error verifying PCRs")
 		return nil, err
 	}
 

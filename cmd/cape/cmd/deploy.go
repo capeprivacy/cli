@@ -3,22 +3,27 @@ package cmd
 import (
 	"archive/zip"
 	"bytes"
+	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
-	sentinelEntities "github.com/capeprivacy/sentinel/entities"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	sentinelEntities "github.com/capeprivacy/sentinel/entities"
+
 	"github.com/capeprivacy/cli/attest"
+	"github.com/capeprivacy/cli/pcrs"
 
 	"github.com/capeprivacy/sentinel/runner"
 
@@ -42,7 +47,7 @@ type DeployResponse struct {
 // deployCmd represents the request command
 var deployCmd = &cobra.Command{
 	Use:   "deploy directory | zip_file",
-	Short: "deploy a function",
+	Short: "Deploy a function",
 	Long: `Deploy a function to Cape.
 
 This will return an ID that can later be used to invoke the deployed function
@@ -71,13 +76,18 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	pcrSlice, err := cmd.Flags().GetStringSlice("pcr")
+	if err != nil {
+		return fmt.Errorf("error retrieving pcr flags %s", err)
+	}
+
 	functionInput := args[0]
 	name := functionInput
 	if n != "" {
 		name = n
 	}
 
-	dID, hash, err := Deploy(u, functionInput, name, insecure)
+	dID, hash, err := Deploy(u, functionInput, name, insecure, pcrSlice)
 	if err != nil {
 		return err
 	}
@@ -87,7 +97,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func Deploy(url string, functionInput string, functionName string, insecure bool) (string, []byte, error) {
+func Deploy(url string, functionInput string, functionName string, insecure bool, pcrSlice []string) (string, []byte, error) {
 	file, err := os.Open(functionInput)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to read function directory or file: %w", err)
@@ -147,7 +157,7 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 		reader = buf
 	}
 
-	id, hash, err := doDeploy(url, functionName, reader, insecure)
+	id, hash, err := doDeploy(url, functionName, reader, insecure, pcrSlice)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to deploy function: %w", err)
 	}
@@ -155,7 +165,7 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 	return id, hash, nil
 }
 
-func doDeploy(url string, name string, reader io.Reader, insecure bool) (string, []byte, error) {
+func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice []string) (string, []byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/deploy", url)
 
 	log.Info("Deploying function to Cape ...")
@@ -218,6 +228,12 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool) (string,
 	doc, _, err := attest.Attest(attestDoc, rootCert)
 	if err != nil {
 		log.Error("error attesting")
+		return "", nil, err
+	}
+
+	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(pcrSlice), doc)
+	if err != nil {
+		log.Println("error verifying PCRs")
 		return "", nil, err
 	}
 
@@ -314,6 +330,57 @@ func getAuthToken() (string, error) {
 	return t, nil
 }
 
+func getOrGeneratePublicKey() (*rsa.PublicKey, error) {
+	publicKey, err := getPublicKey()
+	if err != nil {
+		// Attempt to generate a key pair if reading public key fails.
+		err = generateKeyPair()
+		if err != nil {
+			return nil, nil
+		}
+		publicKey, err = getPublicKey()
+		if err != nil {
+			return nil, nil
+		}
+	}
+	return publicKey, err
+}
+
+func getPublicKey() (*rsa.PublicKey, error) {
+	keyPEM, err := getPublicKeyPEM()
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(keyPEM.Bytes())
+	if block == nil || block.Type != "PUBLIC KEY" {
+		return nil, errors.New("failed to decode public key")
+	}
+
+	publicKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return publicKey.(*rsa.PublicKey), nil
+}
+
+func getPublicKeyPEM() (*bytes.Buffer, error) {
+	publicKeyPEM, err := os.Open(filepath.Join(C.LocalConfigDir, publicKeyFile))
+	if err != nil {
+		return nil, err
+	}
+	defer publicKeyPEM.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = buf.ReadFrom(publicKeyPEM)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf, nil
+}
+
 func getFunctionTokenPublicKey() (string, error) {
 	_, err := getOrGeneratePublicKey()
 	if err != nil {
@@ -326,5 +393,5 @@ func getFunctionTokenPublicKey() (string, error) {
 		return "", err
 	}
 
-	return strings.ReplaceAll(pem.String(), "\n", ""), nil
+	return pem.String(), nil
 }

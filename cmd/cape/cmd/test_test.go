@@ -12,10 +12,11 @@ import (
 	"strings"
 	"testing"
 
-	sentinelEntities "github.com/capeprivacy/sentinel/entities"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	sentinelEntities "github.com/capeprivacy/sentinel/entities"
 
 	"github.com/capeprivacy/cli/capetest"
 	czip "github.com/capeprivacy/cli/zip"
@@ -107,7 +108,7 @@ func TestServerError(t *testing.T) {
 	cmd.SetArgs([]string{"test", "testdata/my_fn", "hello world"})
 
 	errMsg := "something went wrong"
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*sentinelEntities.RunResults, error) {
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool, pcrSlice []string) (*sentinelEntities.RunResults, error) {
 		return nil, errors.New(errMsg)
 	}
 	authToken = func() (string, error) {
@@ -138,7 +139,7 @@ func TestSuccess(t *testing.T) {
 	results := "success!"
 	var gotFn []byte
 	var gotInput []byte
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*sentinelEntities.RunResults, error) {
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool, pcrSlice []string) (*sentinelEntities.RunResults, error) {
 		gotFn, gotInput = testReq.Function, testReq.Input
 		return &sentinelEntities.RunResults{Message: []byte(results)}, nil
 	}
@@ -182,7 +183,7 @@ func TestSuccessStdin(t *testing.T) {
 	results := "success!"
 	var gotFn []byte
 	var gotInput []byte
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*sentinelEntities.RunResults, error) {
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool, pcrSlice []string) (*sentinelEntities.RunResults, error) {
 		gotFn, gotInput = testReq.Function, testReq.Input
 		return &sentinelEntities.RunResults{Message: []byte(results)}, nil
 	}
@@ -226,7 +227,7 @@ func TestWSConnection(t *testing.T) {
 	type msg struct {
 		Message []byte `json:"msg"`
 	}
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*sentinelEntities.RunResults, error) {
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool, pcrSlice []string) (*sentinelEntities.RunResults, error) {
 		c, _, err := websocket.DefaultDialer.Dial(endpoint, nil)
 		if err != nil {
 			return nil, err
@@ -284,7 +285,7 @@ func TestWSConnection(t *testing.T) {
 func TestEndpoint(t *testing.T) {
 	// ensure that `cape test` hits the `/v1/test` endpoint
 	endpointHit := ""
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*sentinelEntities.RunResults, error) {
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool, pcrSlice []string) (*sentinelEntities.RunResults, error) {
 		endpointHit = endpoint
 		return &sentinelEntities.RunResults{Message: []byte("good job")}, nil
 	}
@@ -312,7 +313,7 @@ func TestEndpoint(t *testing.T) {
 func TestEnvVarConfigEndpoint(t *testing.T) {
 	// ensure that env var overrides work for hostname
 	endpointHit := ""
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*sentinelEntities.RunResults, error) {
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool, pcrSlice []string) (*sentinelEntities.RunResults, error) {
 		endpointHit = endpoint
 		return &sentinelEntities.RunResults{Message: []byte("good job")}, nil
 	}
@@ -345,7 +346,7 @@ func TestFileConfigEndpoint(t *testing.T) {
 	endpointHit := ""
 	fileEndpoint := "https://foo_file.capeprivacy.com"
 
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*sentinelEntities.RunResults, error) {
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool, pcrSlice []string) (*sentinelEntities.RunResults, error) {
 		endpointHit = endpoint
 		return &sentinelEntities.RunResults{Message: []byte("good job")}, nil
 	}

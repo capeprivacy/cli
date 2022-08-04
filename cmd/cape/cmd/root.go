@@ -15,7 +15,6 @@ import (
 var C config.Config
 
 var version = "unknown"
-var cfgFile string
 
 type PlainFormatter struct {
 }
@@ -53,10 +52,11 @@ func ExecuteCLI() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/cape/presets.json)")
-	rootCmd.PersistentFlags().StringP("url", "u", "https://maestro-dev.us.auth0.com", "Cape Cloud URL")
+	rootCmd.PersistentFlags().StringP("config", "c", "$HOME/.config/cape/presets.json", "config file")
+	rootCmd.PersistentFlags().StringP("url", "u", "https://maestro-dev.us.auth0.com", "cape Cloud URL")
 	rootCmd.PersistentFlags().Bool("insecure", false, "!!! For development only !!! Disable TLS certificate verification.")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
+	rootCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
 
 	if err := rootCmd.PersistentFlags().MarkHidden("insecure"); err != nil {
 		log.Error("flag not found")

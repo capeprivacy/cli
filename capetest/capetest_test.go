@@ -7,8 +7,9 @@ import (
 	"net/url"
 	"testing"
 
-	sentinelEntities "github.com/capeprivacy/sentinel/entities"
 	"github.com/gorilla/websocket"
+
+	sentinelEntities "github.com/capeprivacy/sentinel/entities"
 
 	"github.com/capeprivacy/cli/attest"
 )
@@ -71,7 +72,7 @@ func TestCapeTest(t *testing.T) {
 		Input:    []byte("myinput"),
 	}
 
-	res, err := CapeTest(test, wsURL(s.URL), true)
+	res, err := CapeTest(test, wsURL(s.URL), true, []string{})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -17,7 +17,7 @@ type UserResponse struct {
 
 var identityCmd = &cobra.Command{
 	Use:   "identity",
-	Short: "query cape application for user identity",
+	Short: "Query cape application for user identity",
 	RunE:  identity,
 }
 

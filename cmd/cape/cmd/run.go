@@ -9,21 +9,23 @@ import (
 	"io/ioutil"
 	"reflect"
 
-	sentinelEntities "github.com/capeprivacy/sentinel/entities"
-	"github.com/capeprivacy/sentinel/runner"
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	sentinelEntities "github.com/capeprivacy/sentinel/entities"
+	"github.com/capeprivacy/sentinel/runner"
+
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
+	"github.com/capeprivacy/cli/pcrs"
 )
 
-// runCmd represents the request command
+// runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "run function_id [input data]",
-	Short: "run a deployed function with data",
+	Short: "Run a deployed function with data",
 	Long: "Run a deployed function with data, takes function id, path to data, and (optional) function hash.\n" +
 		"Run will also read input data from stdin, example: \"echo '1234' | cape run id\".\n" +
 		"Results are output to stdout so you can easily pipe them elsewhere.",
@@ -53,6 +55,8 @@ func init() {
 
 	runCmd.PersistentFlags().StringP("token", "t", "", "token to use")
 	runCmd.PersistentFlags().StringP("file", "f", "", "input data file")
+	runCmd.PersistentFlags().StringP("function-hash", "", "", "function hash to attest")
+	runCmd.PersistentFlags().StringP("key-policy-hash", "", "", "key policy hash to attest")
 }
 
 func run(cmd *cobra.Command, args []string) error {
@@ -65,12 +69,35 @@ func run(cmd *cobra.Command, args []string) error {
 
 	functionID := args[0]
 
-	var funcHash []byte
-
 	var input []byte
 	file, err := cmd.Flags().GetString("file")
 	if err != nil {
 		return fmt.Errorf("error retrieving file flag")
+	}
+
+	funcHashArg, err := cmd.Flags().GetString("function-hash")
+	if err != nil {
+		return fmt.Errorf("error retrieving function_hash flag")
+	}
+
+	pcrSlice, err := cmd.Flags().GetStringSlice("pcr")
+	if err != nil {
+		return fmt.Errorf("error retrieving pcr flags %s", err)
+	}
+
+	funcHash, err := hex.DecodeString(funcHashArg)
+	if err != nil {
+		return fmt.Errorf("error reading function hash")
+	}
+
+	keyPolicyHashArg, err := cmd.Flags().GetString("key-policy-hash")
+	if err != nil {
+		return fmt.Errorf("error retrieving key_policy_hash flag")
+	}
+
+	keyPolicyHash, err := hex.DecodeString(keyPolicyHashArg)
+	if err != nil {
+		return fmt.Errorf("error reading key policy hash")
 	}
 
 	switch {
@@ -83,12 +110,6 @@ func run(cmd *cobra.Command, args []string) error {
 	case len(args) == 2:
 		// read input from  command line string
 		input = []byte(args[1])
-	case len(args) == 3:
-		input = []byte(args[1])
-		funcHash, err = hex.DecodeString(args[2])
-		if err != nil {
-			return fmt.Errorf("error reading function hash")
-		}
 
 	default:
 		// read input from stdin
@@ -99,7 +120,7 @@ func run(cmd *cobra.Command, args []string) error {
 		input = buf.Bytes()
 	}
 
-	results, err := doRun(u, functionID, input, insecure, funcHash)
+	results, err := doRun(u, functionID, input, insecure, funcHash, keyPolicyHash, pcrSlice)
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)
 	}
@@ -114,8 +135,9 @@ func Run(url string, functionID string, file string, insecure bool) error {
 	if err != nil {
 		return fmt.Errorf("unable to read data file: %w", err)
 	}
+
 	// TODO: Tuner may want to verify function hash later.
-	_, err = doRun(url, functionID, input, insecure, nil)
+	_, err = doRun(url, functionID, input, insecure, nil, nil, []string{})
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)
 	}
@@ -123,12 +145,12 @@ func Run(url string, functionID string, file string, insecure bool) error {
 	return nil
 }
 
-func doRun(url string, functionID string, data []byte, insecure bool, funcHash []byte) ([]byte, error) {
+func doRun(url string, functionID string, data []byte, insecure bool, funcHash []byte, keyPolicyHash []byte, pcrSlice []string) ([]byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
 
 	c, res, err := websocketDial(endpoint, insecure)
 	if err != nil {
-		log.Error("error dialing websocket", err)
+		log.Error("error dialing websocket: ", err)
 		// This check is necessary because we don't necessarily return an http response from sentinel.
 		// Http error code and message is returned if network routing fails.
 		if res != nil {
@@ -176,19 +198,32 @@ func doRun(url string, functionID string, data []byte, insecure bool, funcHash [
 
 	log.Debug("< Auth Completed. Received Attestation Document")
 	doc, userData, err := attest.Attest(attestDoc, rootCert)
-
 	if err != nil {
 		log.Println("error attesting")
 		return nil, err
 	}
 
-	if userData == nil && funcHash != nil {
+	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(pcrSlice), doc)
+	if err != nil {
+		log.Println("error verifying PCRs")
+		return nil, err
+	}
+
+	if userData.FuncHash == nil && len(funcHash) > 0 {
 		return nil, fmt.Errorf("did not receive function hash from enclave")
 	}
 
 	// If function hash as an optional parameter has not been specified by the user, then we don't check the value.
-	if funcHash != nil && !reflect.DeepEqual(funcHash, userData.FuncHash) {
+	if len(funcHash) > 0 && !reflect.DeepEqual(funcHash, userData.FuncHash) {
 		return nil, fmt.Errorf("returned function hash did not match provided, got: %x, want %x", userData.FuncHash, funcHash)
+	}
+
+	if userData.KeyPolicyHash == nil && len(keyPolicyHash) > 0 {
+		return nil, fmt.Errorf("did not receive key policy hash from enclave")
+	}
+
+	if len(keyPolicyHash) > 0 && !reflect.DeepEqual(keyPolicyHash, userData.KeyPolicyHash) {
+		return nil, fmt.Errorf("returned key policy hash did not match provided, got: %x, want %x", userData.KeyPolicyHash, keyPolicyHash)
 	}
 
 	encryptedData, err := crypto.LocalEncrypt(*doc, data)
