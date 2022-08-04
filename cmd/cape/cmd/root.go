@@ -53,7 +53,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringP("config", "c", "$HOME/.config/cape/presets.json", "config file")
-	rootCmd.PersistentFlags().StringP("url", "u", "https://maestro-dev.us.auth0.com", "cape Cloud URL")
+	rootCmd.PersistentFlags().StringP("url", "u", "https://maestro-dev.us.auth0.com", "cape cloud URL")
 	rootCmd.PersistentFlags().Bool("insecure", false, "!!! For development only !!! Disable TLS certificate verification.")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
 	rootCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
