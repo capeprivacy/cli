@@ -127,7 +127,7 @@ func TestServerError(t *testing.T) {
 		t.Fatalf("didn't get expected stderr, got %s, wanted %s", got, want)
 	}
 
-	if got, want := stdout.String(), usage; !strings.HasPrefix(got, want) {
+	if got, want := stdout.String(), ""; !strings.HasPrefix(got, want) {
 		t.Fatalf("didn't get expected response, got %s, wanted %s", got, want)
 	}
 }
