@@ -152,7 +152,7 @@ func doRun(url string, functionID string, data []byte, insecure bool, funcHash [
 	if err != nil {
 		return nil, err
 	}
-	
+
 	c, res, err := websocketDial(endpoint, insecure, token)
 	if err != nil {
 		log.Error("error dialing websocket: ", err)
