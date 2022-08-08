@@ -120,6 +120,8 @@ func run(cmd *cobra.Command, args []string) error {
 		input = buf.Bytes()
 	}
 
+	cmd.SilenceUsage = true
+
 	results, err := doRun(u, functionID, input, insecure, funcHash, keyPolicyHash, pcrSlice)
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)

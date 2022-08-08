@@ -97,6 +97,8 @@ func deploy(cmd *cobra.Command, args []string) error {
 		name = n
 	}
 
+	cmd.SilenceUsage = true
+
 	dID, hash, err := Deploy(u, functionInput, name, insecure, pcrSlice)
 	if err != nil {
 		return err

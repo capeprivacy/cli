@@ -83,6 +83,8 @@ func Test(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	cmd.SilenceUsage = true
+
 	res, err := test(capetest.TestRequest{Function: fnZip, Input: input, AuthToken: token}, u+"/v1/test", insecure, pcrSlice)
 	if err != nil {
 		return err
