@@ -24,11 +24,12 @@ func (f *PlainFormatter) Format(entry *log.Entry) ([]byte, error) {
 }
 
 type UserError struct {
-	err error
+	Msg string
+	Err error
 }
 
 func (e UserError) Error() string {
-	return e.err.Error()
+	return fmt.Sprintf("%s: %s", e.Msg, e.Err.Error())
 }
 
 // rootCmd represents the base command when called without any subcommands

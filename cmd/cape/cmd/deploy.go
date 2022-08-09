@@ -80,7 +80,7 @@ func init() {
 
 func deploy(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
-		return UserError{err: fmt.Errorf("you must specify a directory to upload")}
+		return UserError{Msg: "you must specify a directory to upload", Err: fmt.Errorf("invalid number of input arguments")}
 	}
 
 	u := C.EnclaveHost
@@ -88,12 +88,12 @@ func deploy(cmd *cobra.Command, args []string) error {
 
 	n, err := cmd.Flags().GetString("name")
 	if err != nil {
-		return UserError{err: err}
+		return UserError{Msg: "name not specified correctly", Err: err}
 	}
 
 	pcrSlice, err := cmd.Flags().GetStringSlice("pcr")
 	if err != nil {
-		return UserError{err: fmt.Errorf("error retrieving pcr flags %s", err)}
+		return UserError{Msg: "error retrieving pcr flags", Err: err}
 	}
 
 	functionInput := args[0]
