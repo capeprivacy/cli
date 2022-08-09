@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"archive/zip"
 	"bytes"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -169,23 +168,12 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 
 		reader = f
 	} else {
-		buf := new(bytes.Buffer)
-		zipRoot := filepath.Base(functionInput)
-		w := zip.NewWriter(buf)
-
-		err = filepath.Walk(functionInput, czip.Walker(w, zipRoot))
+		buf, err := czip.Create(functionInput)
 		if err != nil {
-			return "", nil, fmt.Errorf("zipping directory failed: %w", err)
+			return "", nil, err
 		}
 
-		// Explicitly close now so that the bytes are flushed and
-		// available in buf.Bytes() below.
-		err = w.Close()
-		if err != nil {
-			return "", nil, fmt.Errorf("zipping directory failed: %w", err)
-		}
-
-		reader = buf
+		reader = bytes.NewBuffer(buf)
 	}
 
 	id, hash, err := doDeploy(url, functionName, reader, insecure, pcrSlice)
@@ -227,6 +215,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice
 		}
 		return "", nil, err
 	}
+	defer conn.Close()
 
 	p := runner.Protocol{Websocket: conn}
 

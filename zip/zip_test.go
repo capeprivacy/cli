@@ -22,7 +22,12 @@ func TestWalker(t *testing.T) {
 
 	zipRoot := filepath.Base(dir)
 
-	err = filepath.Walk(dir, Walker(w, zipRoot))
+	err = os.Chdir(filepath.Join(dir, ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = filepath.Walk(zipRoot, walker(w))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,9 +44,8 @@ func TestWalker(t *testing.T) {
 		t.Fatalf("there must be one file in zip but there are %d", len(r.File))
 	}
 
-	expectedFileName := "001/file.py"
 	// we make this in a temp dir so the which will have a wonky prefix
-	if !strings.HasSuffix(r.File[0].Name, "001/file.py") {
+	if expectedFileName := "file.py"; !strings.HasSuffix(r.File[0].Name, "file.py") {
 		t.Fatalf("expected %s got %s", expectedFileName, r.File[0].Name)
 	}
 }

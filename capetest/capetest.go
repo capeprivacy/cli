@@ -80,6 +80,7 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool, pcrSlice []st
 		}
 		return nil, err
 	}
+	defer conn.Close()
 
 	nonce, err := crypto.GetNonce()
 	if err != nil {

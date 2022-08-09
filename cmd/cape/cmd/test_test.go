@@ -94,7 +94,7 @@ func TestBadFunction(t *testing.T) {
 		t.Fatal(errors.New("received no error when we should have"))
 	}
 
-	if got, want := stderr.String(), "Error: zipping directory failed: lstat testdata/notafunction: no such file or directory\n"; got != want {
+	if got, want := stderr.String(), "Error: zipping directory failed: lstat notafunction: no such file or directory\n"; got != want {
 		t.Errorf("didn't get expected stderr, got %s, wanted %s", got, want)
 	}
 
@@ -163,7 +163,7 @@ func TestSuccess(t *testing.T) {
 		t.Fatalf("didn't get expected stdout, got %s, wanted %s", got, want)
 	}
 
-	want, err := czip.Create("testdata/my_fn")
+	want, err := czip.Create("./testdata/my_fn")
 	if err != nil {
 		t.Fatal(err)
 	}
