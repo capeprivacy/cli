@@ -248,6 +248,10 @@ func doRun(url string, functionID string, data []byte, insecure bool, funcHash [
 	}
 	log.Debugf("< Received Function Results.")
 
+	if err := p.Close(); err != nil {
+		return nil, err
+	}
+
 	return resData.Message, nil
 }
 
