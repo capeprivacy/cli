@@ -64,7 +64,14 @@ This will return an ID that can later be used to invoke the deployed function
 with cape run (see cape run -h for details).
 `,
 
-	RunE: deploy,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// check values
+		err := deploy(cmd, args)
+		if _, ok := err.(UserError); !ok {
+			cmd.SilenceUsage = true
+		}
+		return err
+	},
 }
 
 func init() {
@@ -75,7 +82,7 @@ func init() {
 
 func deploy(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
-		return fmt.Errorf("you must specify a directory to upload")
+		return UserError{err: fmt.Errorf("you must specify a directory to upload")}
 	}
 
 	u := C.EnclaveHost
@@ -83,12 +90,12 @@ func deploy(cmd *cobra.Command, args []string) error {
 
 	n, err := cmd.Flags().GetString("name")
 	if err != nil {
-		return err
+		return UserError{err: err}
 	}
 
 	pcrSlice, err := cmd.Flags().GetStringSlice("pcr")
 	if err != nil {
-		return fmt.Errorf("error retrieving pcr flags %s", err)
+		return UserError{err: fmt.Errorf("error retrieving pcr flags %s", err)}
 	}
 
 	functionInput := args[0]
@@ -96,8 +103,6 @@ func deploy(cmd *cobra.Command, args []string) error {
 	if n != "" {
 		name = n
 	}
-
-	cmd.SilenceUsage = true
 
 	dID, hash, err := Deploy(u, functionInput, name, insecure, pcrSlice)
 	if err != nil {

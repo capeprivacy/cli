@@ -20,7 +20,14 @@ var testCmd = &cobra.Command{
 	Long: "Test your function with Cape\n" +
 		"Test will also read input data from stdin, example: \"echo '1234' | cape test dir\".\n" +
 		"Results are output to stdout so you can easily pipe them elsewhere",
-	RunE: Test,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// check values
+		err := Test(cmd, args)
+		if _, ok := err.(UserError); !ok {
+			cmd.SilenceUsage = true
+		}
+		return err
+	},
 }
 
 func init() {
@@ -36,27 +43,23 @@ func Test(cmd *cobra.Command, args []string) error {
 	insecure := C.Insecure
 
 	if len(args) < 1 || len(args) > 2 {
-		if err := cmd.Usage(); err != nil {
-			return err
-		}
-
-		return nil
+		return UserError{err: fmt.Errorf("invalid number of input arguments")}
 	}
 
 	fnZip, err := czip.Create(args[0])
 	if err != nil {
-		return err
+		return UserError{err: err}
 	}
 
 	var input []byte
 	file, err := cmd.Flags().GetString("file")
 	if err != nil {
-		return fmt.Errorf("error retrieving file flag")
+		return UserError{err: fmt.Errorf("error retrieving file flag")}
 	}
 
 	pcrSlice, err := cmd.Flags().GetStringSlice("pcr")
 	if err != nil {
-		return fmt.Errorf("error retrieving pcr flags %s", err)
+		return UserError{err: fmt.Errorf("error retrieving pcr flags %s", err)}
 	}
 
 	switch {
@@ -64,7 +67,7 @@ func Test(cmd *cobra.Command, args []string) error {
 		// input file was provided
 		input, err = ioutil.ReadFile(file)
 		if err != nil {
-			return fmt.Errorf("unable to read data file: %w", err)
+			return UserError{err: fmt.Errorf("unable to read data file: %w", err)}
 		}
 	case len(args) == 2:
 		// read input from  command line string
@@ -73,17 +76,15 @@ func Test(cmd *cobra.Command, args []string) error {
 		// read input from stdin
 		buf := new(bytes.Buffer)
 		if _, err := io.Copy(buf, cmd.InOrStdin()); err != nil {
-			return fmt.Errorf("unable to read data from stdin: %w", err)
+			return UserError{err: fmt.Errorf("unable to read data from stdin: %w", err)}
 		}
 		input = buf.Bytes()
 	}
 
 	token, err := authToken()
 	if err != nil {
-		return err
+		return UserError{err: err}
 	}
-
-	cmd.SilenceUsage = true
 
 	res, err := test(capetest.TestRequest{Function: fnZip, Input: input, AuthToken: token}, u+"/v1/test", insecure, pcrSlice)
 	if err != nil {

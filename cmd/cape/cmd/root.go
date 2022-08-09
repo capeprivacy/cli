@@ -23,6 +23,14 @@ func (f *PlainFormatter) Format(entry *log.Entry) ([]byte, error) {
 	return []byte(fmt.Sprintf("%s\n", entry.Message)), nil
 }
 
+type UserError struct {
+	err error
+}
+
+func (e UserError) Error() string {
+	return fmt.Sprintf("CLI usage error: %s\n", e.err)
+}
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "cape",
@@ -46,7 +54,11 @@ var rootCmd = &cobra.Command{
 // ExecuteCLI adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func ExecuteCLI() {
-	_ = rootCmd.Execute()
+	err := rootCmd.Execute()
+	if err != nil {
+		fmt.Println("Command failed with error.")
+		os.Exit(1)
+	}
 }
 
 func init() {

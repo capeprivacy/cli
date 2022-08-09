@@ -29,7 +29,14 @@ var runCmd = &cobra.Command{
 	Long: "Run a deployed function with data, takes function id, path to data, and (optional) function hash.\n" +
 		"Run will also read input data from stdin, example: \"echo '1234' | cape run id\".\n" +
 		"Results are output to stdout so you can easily pipe them elsewhere.",
-	RunE: run,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// check values
+		err := run(cmd, args)
+		if _, ok := err.(UserError); !ok {
+			cmd.SilenceUsage = true
+		}
+		return err
+	},
 }
 
 type RunResponse struct {
@@ -64,7 +71,7 @@ func run(cmd *cobra.Command, args []string) error {
 	insecure := C.Insecure
 
 	if len(args) < 1 {
-		return fmt.Errorf("you must pass a function ID")
+		return UserError{err: fmt.Errorf("you must pass a function ID")}
 	}
 
 	functionID := args[0]
@@ -72,32 +79,32 @@ func run(cmd *cobra.Command, args []string) error {
 	var input []byte
 	file, err := cmd.Flags().GetString("file")
 	if err != nil {
-		return fmt.Errorf("error retrieving file flag")
+		return UserError{err: fmt.Errorf("error retrieving file flag")}
 	}
 
 	funcHashArg, err := cmd.Flags().GetString("function-hash")
 	if err != nil {
-		return fmt.Errorf("error retrieving function_hash flag")
+		return UserError{err: fmt.Errorf("error retrieving function_hash flag")}
 	}
 
 	pcrSlice, err := cmd.Flags().GetStringSlice("pcr")
 	if err != nil {
-		return fmt.Errorf("error retrieving pcr flags %s", err)
+		return UserError{err: fmt.Errorf("error retrieving pcr flags %s", err)}
 	}
 
 	funcHash, err := hex.DecodeString(funcHashArg)
 	if err != nil {
-		return fmt.Errorf("error reading function hash")
+		return UserError{err: fmt.Errorf("error reading function hash")}
 	}
 
 	keyPolicyHashArg, err := cmd.Flags().GetString("key-policy-hash")
 	if err != nil {
-		return fmt.Errorf("error retrieving key_policy_hash flag")
+		return UserError{err: fmt.Errorf("error retrieving key_policy_hash flag")}
 	}
 
 	keyPolicyHash, err := hex.DecodeString(keyPolicyHashArg)
 	if err != nil {
-		return fmt.Errorf("error reading key policy hash")
+		return UserError{err: fmt.Errorf("error reading key policy hash")}
 	}
 
 	switch {
@@ -105,7 +112,7 @@ func run(cmd *cobra.Command, args []string) error {
 		// input file was provided
 		input, err = ioutil.ReadFile(file)
 		if err != nil {
-			return fmt.Errorf("unable to read data file: %w", err)
+			return UserError{err: fmt.Errorf("unable to read data file: %w", err)}
 		}
 	case len(args) == 2:
 		// read input from  command line string
@@ -115,12 +122,10 @@ func run(cmd *cobra.Command, args []string) error {
 		// read input from stdin
 		buf := new(bytes.Buffer)
 		if _, err := io.Copy(buf, cmd.InOrStdin()); err != nil {
-			return fmt.Errorf("unable to read data from stdin: %w", err)
+			return UserError{err: fmt.Errorf("unable to read data from stdin: %w", err)}
 		}
 		input = buf.Bytes()
 	}
-
-	cmd.SilenceUsage = true
 
 	results, err := doRun(u, functionID, input, insecure, funcHash, keyPolicyHash, pcrSlice)
 	if err != nil {
