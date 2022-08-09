@@ -66,8 +66,8 @@ func wsURL(origURL string) string {
 func TestNoArgs(t *testing.T) {
 	cmd, stdout, _ := getCmd()
 	cmd.SetArgs([]string{"test"})
-	if err := cmd.Execute(); err != nil {
-		t.Fatal(err)
+	if err := cmd.Execute(); err == nil {
+		t.Fatal(errors.New("received no error when we should have"))
 	}
 
 	if got, want := stdout.String(), usage; !strings.HasPrefix(got, want) {
@@ -78,8 +78,8 @@ func TestNoArgs(t *testing.T) {
 func TestThreeArgs(t *testing.T) {
 	cmd, stdout, _ := getCmd()
 	cmd.SetArgs([]string{"test", "testdata/my_fn", "fjkd", "fjkdsl"})
-	if err := cmd.Execute(); err != nil {
-		t.Fatal(err)
+	if err := cmd.Execute(); err == nil {
+		t.Fatal(errors.New("received no error when we should have"))
 	}
 
 	if got, want := stdout.String(), usage; !strings.HasPrefix(got, want) {
