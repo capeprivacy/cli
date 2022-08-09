@@ -28,7 +28,7 @@ type UserError struct {
 }
 
 func (e UserError) Error() string {
-	return fmt.Sprintf("%s\n", e.err)
+	return e.err.Error()
 }
 
 // rootCmd represents the base command when called without any subcommands
