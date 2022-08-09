@@ -145,6 +145,7 @@ func Run(url string, functionID string, file string, insecure bool) error {
 	return nil
 }
 
+//nolint:gocognit
 func doRun(url string, functionID string, data []byte, insecure bool, funcHash []byte, keyPolicyHash []byte, pcrSlice []string) ([]byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
 
