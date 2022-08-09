@@ -30,7 +30,6 @@ var runCmd = &cobra.Command{
 		"Run will also read input data from stdin, example: \"echo '1234' | cape run id\".\n" +
 		"Results are output to stdout so you can easily pipe them elsewhere.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// check values
 		err := run(cmd, args)
 		if _, ok := err.(UserError); !ok {
 			cmd.SilenceUsage = true

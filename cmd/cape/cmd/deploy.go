@@ -64,7 +64,6 @@ with cape run (see cape run -h for details).
 `,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// check values
 		err := deploy(cmd, args)
 		if _, ok := err.(UserError); !ok {
 			cmd.SilenceUsage = true
