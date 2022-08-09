@@ -220,6 +220,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice
 		}
 		return "", nil, err
 	}
+	defer conn.Close()
 
 	p := runner.Protocol{Websocket: conn}
 
