@@ -168,6 +168,8 @@ func doRun(url string, functionID string, data []byte, insecure bool, funcHash [
 		}
 		return nil, err
 	}
+	defer c.Close()
+
 	nonce, err := crypto.GetNonce()
 	if err != nil {
 		return nil, err
