@@ -130,19 +130,19 @@ func run(cmd *cobra.Command, args []string) error {
 }
 
 // This function is exported for tuner to use.
-func Run(url string, functionID string, file string, insecure bool) error {
+func Run(url string, functionID string, file string, insecure bool) ([]byte, error) {
 	input, err := ioutil.ReadFile(file)
 	if err != nil {
-		return fmt.Errorf("unable to read data file: %w", err)
+		return nil, fmt.Errorf("unable to read data file: %w", err)
 	}
 
 	// TODO: Tuner may want to verify function hash later.
-	_, err = doRun(url, functionID, input, insecure, nil, nil, []string{})
+	res, err := doRun(url, functionID, input, insecure, nil, nil, []string{})
 	if err != nil {
-		return fmt.Errorf("error processing data: %w", err)
+		return nil, fmt.Errorf("error processing data: %w", err)
 	}
 
-	return nil
+	return res, nil
 }
 
 func doRun(url string, functionID string, data []byte, insecure bool, funcHash []byte, keyPolicyHash []byte, pcrSlice []string) ([]byte, error) {
