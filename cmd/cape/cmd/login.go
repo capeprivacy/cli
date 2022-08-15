@@ -187,45 +187,6 @@ func getTokenResponse() (*TokenResponse, error) {
 	return &response, nil
 }
 
-func refreshTokenResponse(refreshToken string) error {
-	deviceCodeURL := fmt.Sprintf("%s/oauth/token", C.AuthHost)
-	payloadStr := fmt.Sprintf("grant_type=refresh_token&client_id=%s&refresh_token=%s", C.ClientID, refreshToken)
-	req, err := http.NewRequest("POST", deviceCodeURL, strings.NewReader(payloadStr))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Add("content-type", "application/x-www-form-urlencoded")
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
-
-	if res.StatusCode != 200 {
-		return errors.New("unable to refresh authentication details")
-	}
-
-	response := TokenResponse{}
-	err = json.Unmarshal(body, &response)
-	if err != nil {
-		return err
-	}
-
-	response.RefreshToken = refreshToken
-	err = persistTokenResponse(&response)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // Based on GIST: https://gist.github.com/hyg/9c4afcd91fe24316cbf0
 func openbrowser(url string) error {
 	switch runtime.GOOS {
