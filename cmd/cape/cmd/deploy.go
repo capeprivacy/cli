@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"archive/zip"
 	"bytes"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -43,7 +44,7 @@ type DeployResponse struct {
 	ID string `json:"id"`
 }
 
-const storedFunctionMaxBytes = 128_000_000
+const storedFunctionMaxBytes = 1_000_000_000
 
 type OversizeFunctionError struct {
 	bytes int64
@@ -142,8 +143,12 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 			return "", nil, fmt.Errorf("expected argument %s to be a zip file or directory", functionInput)
 		}
 		isZip = true
-		fileSize = st.Size()
-		log.Warning("Deploying from zip file. Uncompressed file may exceed deployment size limit.")
+		zSize, err := zipSize(functionInput)
+		if err != nil {
+			return "", nil, err
+		}
+
+		fileSize = int64(zSize)
 	}
 
 	log.Debugf("Deployment size: %d bytes", fileSize)
@@ -193,6 +198,19 @@ func dirSize(path string) (int64, error) {
 		return nil
 	})
 	return size, err
+}
+
+func zipSize(path string) (uint64, error) {
+	var size uint64
+	r, err := zip.OpenReader(path)
+	if err != nil {
+		return 0, err
+	}
+	for _, f := range r.File {
+		size += f.UncompressedSize64
+	}
+
+	return size, nil
 }
 
 func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice []string) (string, []byte, error) {

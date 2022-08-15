@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"reflect"
 
 	"github.com/gorilla/websocket"
@@ -110,7 +110,7 @@ func run(cmd *cobra.Command, args []string) error {
 	switch {
 	case file != "":
 		// input file was provided
-		input, err = ioutil.ReadFile(file)
+		input, err = os.ReadFile(file)
 		if err != nil {
 			return UserError{Msg: "unable to read data file", Err: err}
 		}
@@ -138,7 +138,7 @@ func run(cmd *cobra.Command, args []string) error {
 
 // This function is exported for tuner to use.
 func Run(url string, functionID string, file string, insecure bool) ([]byte, error) {
-	input, err := ioutil.ReadFile(file)
+	input, err := os.ReadFile(file)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read data file: %w", err)
 	}
