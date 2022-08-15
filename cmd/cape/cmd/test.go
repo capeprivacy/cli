@@ -27,6 +27,7 @@ func init() {
 	rootCmd.AddCommand(testCmd)
 
 	testCmd.PersistentFlags().StringP("file", "f", "", "input data file")
+	testCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
 }
 
 func Test(cmd *cobra.Command, args []string) error {

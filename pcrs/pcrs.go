@@ -13,8 +13,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/capeprivacy/cli/attest"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/capeprivacy/cli/attest"
 )
 
 type Measurements map[string]string

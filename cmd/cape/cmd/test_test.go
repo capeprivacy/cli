@@ -33,6 +33,7 @@ Usage:
 Flags:
   -f, --file string   input data file
   -h, --help          help for test
+  -p, --pcr strings   pass multiple PCRs to validate against
 
 `
 
@@ -42,6 +43,7 @@ Flags:
 Flags:
   -f, --file string   input data file
   -h, --help          help for test
+  -p, --pcr strings   pass multiple PCRs to validate against
 
 `
 )
