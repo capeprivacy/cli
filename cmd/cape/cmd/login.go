@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -90,7 +90,7 @@ func newDeviceCode() (*DeviceCodeResponse, error) {
 	}
 
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func getToken(deviceCode string) (*TokenResponse, error) {
 	}
 
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func persistTokenResponse(response *TokenResponse) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(C.LocalConfigDir, C.LocalAuthFileName), authJSON, 0644)
+	err = os.WriteFile(filepath.Join(C.LocalConfigDir, C.LocalAuthFileName), authJSON, 0644)
 	if err != nil {
 		return err
 	}
@@ -173,7 +173,7 @@ func getTokenResponse() (*TokenResponse, error) {
 	}
 	defer authFile.Close()
 
-	byteValue, err := ioutil.ReadAll(authFile)
+	byteValue, err := io.ReadAll(authFile)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +202,7 @@ func refreshTokenResponse(refreshToken string) error {
 	}
 
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return err
 	}
