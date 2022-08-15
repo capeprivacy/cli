@@ -5,9 +5,10 @@ import (
 	"path"
 	"strings"
 
-	"github.com/capeprivacy/cli/pcrs"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/capeprivacy/cli/pcrs"
 )
 
 // runCmd represents the get-prcs command

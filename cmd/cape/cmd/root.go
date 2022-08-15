@@ -56,7 +56,6 @@ func init() {
 	rootCmd.PersistentFlags().StringP("url", "u", "https://hackathon.capeprivacy.com", "cape cloud URL")
 	rootCmd.PersistentFlags().Bool("insecure", false, "!!! For development only !!! Disable TLS certificate verification.")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
-	rootCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
 
 	if err := rootCmd.PersistentFlags().MarkHidden("insecure"); err != nil {
 		log.Error("flag not found")
