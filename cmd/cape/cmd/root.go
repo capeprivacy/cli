@@ -53,7 +53,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringP("config", "c", "$HOME/.config/cape/presets.json", "config file")
-	rootCmd.PersistentFlags().StringP("url", "u", "https://maestro-dev.us.auth0.com", "cape cloud URL")
+	rootCmd.PersistentFlags().StringP("url", "u", "https://hackathon.capeprivacy.com", "cape cloud URL")
 	rootCmd.PersistentFlags().Bool("insecure", false, "!!! For development only !!! Disable TLS certificate verification.")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
 	rootCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
@@ -119,13 +119,13 @@ func initConfig() {
 		log.Error("failed to bind config variable.")
 		cobra.CheckErr(err)
 	}
-	viper.SetDefault("AUDIENCE", "https://newdemo.capeprivacy.com/v1/")
+	viper.SetDefault("AUDIENCE", "https://app.capeprivacy.com/v1/")
 
 	if err := viper.BindEnv("AUTH_HOST"); err != nil {
 		log.Error("failed to bind config variable.")
 		cobra.CheckErr(err)
 	}
-	viper.SetDefault("AUTH_HOST", "https://maestro-dev.us.auth0.com")
+	viper.SetDefault("AUTH_HOST", "https://login.capeprivacy.com")
 
 	if err := viper.BindEnv("ENCLAVE_HOST"); err != nil {
 		log.Error("failed to bind config variable.")
@@ -137,7 +137,7 @@ func initConfig() {
 		log.Error("failed to bind config variable.")
 		cobra.CheckErr(err)
 	}
-	viper.SetDefault("CLIENT_ID", "yQnobkOr1pvdDAyXwNojkNV2IPbNfXxx")
+	viper.SetDefault("CLIENT_ID", "oXITxpCdjvRYSDJtaMeycvveqE9qadUS")
 
 	if err := viper.BindEnv("LOCAL_AUTH_FILE_NAME"); err != nil {
 		log.Error("failed to bind config variable.")
