@@ -72,6 +72,7 @@ func login(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println("Congratulations, you're all set!")
+	fmt.Printf("Your access token: %s \n", tokenResponse.AccessToken)
 	return nil
 }
 
