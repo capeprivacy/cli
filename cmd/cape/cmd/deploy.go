@@ -23,7 +23,6 @@ import (
 	sentinelEntities "github.com/capeprivacy/sentinel/entities"
 
 	"github.com/capeprivacy/cli/attest"
-	"github.com/capeprivacy/cli/pcrs"
 
 	"github.com/capeprivacy/sentinel/runner"
 
@@ -277,12 +276,6 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice
 	doc, _, err := attest.Attest(attestDoc, rootCert)
 	if err != nil {
 		log.Error("error attesting")
-		return "", nil, err
-	}
-
-	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(pcrSlice), doc)
-	if err != nil {
-		log.Println("error verifying PCRs")
 		return "", nil, err
 	}
 
