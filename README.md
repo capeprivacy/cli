@@ -134,7 +134,7 @@ For login purposes the following environment variables can be configured:
 
 ```
 CAPE_AUTH_HOST                   String    https://maestro-dev.us.auth0.com
-CAPE_ENCLAVE_HOST                String    wss://hackathon.capeprivacy.com
+CAPE_ENCLAVE_HOST                String    wss://enclave.capeprivacy.com
 CAPE_CLIENT_ID                   String    yQnobkOr1pvdDAyXwNojkNV2IPbNfXxx
 CAPE_AUDIENCE                    String    https://app.capeprivacy.com/v1/
 CAPE_LOCAL_CONFIG_DIR            String    ~/.config/cape
