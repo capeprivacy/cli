@@ -20,7 +20,7 @@ var getPCRsCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(getPCRsCmd)
+	// rootCmd.AddCommand(getPCRsCmd)
 
 	getPCRsCmd.PersistentFlags().String("version", "release-8436e50", "the version of the sentinel EIF to get PCRs for")
 	getPCRsCmd.PersistentFlags().StringP("bucket", "b", "eif-release-builds-demo", "the artifact source bucket in S3")

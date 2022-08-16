@@ -57,7 +57,7 @@ func init() {
 	runCmd.PersistentFlags().StringP("file", "f", "", "input data file")
 	runCmd.PersistentFlags().StringP("function-hash", "", "", "function hash to attest")
 	runCmd.PersistentFlags().StringP("key-policy-hash", "", "", "key policy hash to attest")
-	runCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
+	// runCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
 }
 
 func run(cmd *cobra.Command, args []string) error {
