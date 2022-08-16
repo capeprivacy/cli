@@ -46,7 +46,7 @@ func websocketDial(url string, insecure bool, authToken string) (*websocket.Conn
 	log.Debug(str)
 	c, r, err := websocket.DefaultDialer.Dial(url, secWebsocketProtocol)
 	if err != nil {
-		return nil, nil, err
+		return nil, r, err
 	}
 
 	log.Debugf("* Websocket connection established")
