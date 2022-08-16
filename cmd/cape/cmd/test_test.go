@@ -68,8 +68,8 @@ func wsURL(origURL string) string {
 func TestNoArgs(t *testing.T) {
 	cmd, stdout, _ := getCmd()
 	cmd.SetArgs([]string{"test"})
-	if err := cmd.Execute(); err != nil {
-		t.Fatal(err)
+	if err := cmd.Execute(); err == nil {
+		t.Fatal(errors.New("received no error when we should have"))
 	}
 
 	if got, want := stdout.String(), usage; !strings.HasPrefix(got, want) {
@@ -80,8 +80,8 @@ func TestNoArgs(t *testing.T) {
 func TestThreeArgs(t *testing.T) {
 	cmd, stdout, _ := getCmd()
 	cmd.SetArgs([]string{"test", "testdata/my_fn", "fjkd", "fjkdsl"})
-	if err := cmd.Execute(); err != nil {
-		t.Fatal(err)
+	if err := cmd.Execute(); err == nil {
+		t.Fatal(errors.New("received no error when we should have"))
 	}
 
 	if got, want := stdout.String(), usage; !strings.HasPrefix(got, want) {
@@ -96,7 +96,7 @@ func TestBadFunction(t *testing.T) {
 		t.Fatal(errors.New("received no error when we should have"))
 	}
 
-	if got, want := stderr.String(), "Error: zipping directory failed: lstat notafunction: no such file or directory\n"; got != want {
+	if got, want := stderr.String(), "Error: unable to zip specified directory: zipping directory failed: lstat notafunction: no such file or directory\n"; got != want {
 		t.Errorf("didn't get expected stderr, got %s, wanted %s", got, want)
 	}
 
@@ -129,7 +129,7 @@ func TestServerError(t *testing.T) {
 		t.Fatalf("didn't get expected stderr, got %s, wanted %s", got, want)
 	}
 
-	if got, want := stdout.String(), usage; !strings.HasPrefix(got, want) {
+	if got, want := stdout.String(), ""; got != want {
 		t.Fatalf("didn't get expected response, got %s, wanted %s", got, want)
 	}
 }
