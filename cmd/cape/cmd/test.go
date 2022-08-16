@@ -33,7 +33,6 @@ func init() {
 	rootCmd.AddCommand(testCmd)
 
 	testCmd.PersistentFlags().StringP("file", "f", "", "input data file")
-	testCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
 }
 
 func Test(cmd *cobra.Command, args []string) error {
@@ -55,11 +54,6 @@ func Test(cmd *cobra.Command, args []string) error {
 	file, err := cmd.Flags().GetString("file")
 	if err != nil {
 		return UserError{Msg: "you must specify a file correctly", Err: err}
-	}
-
-	pcrSlice, err := cmd.Flags().GetStringSlice("pcr")
-	if err != nil {
-		return UserError{Msg: "error retrieving pcr flags", Err: err}
 	}
 
 	switch {
@@ -86,7 +80,7 @@ func Test(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	res, err := test(capetest.TestRequest{Function: fnZip, Input: input, AuthToken: token}, u+"/v1/test", insecure, pcrSlice)
+	res, err := test(capetest.TestRequest{Function: fnZip, Input: input, AuthToken: token}, u+"/v1/test", insecure)
 	if err != nil {
 		return err
 	}
