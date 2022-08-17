@@ -154,7 +154,12 @@ func Run(url string, functionID string, file string, insecure bool) ([]byte, err
 func doRun(url string, functionID string, data []byte, insecure bool, funcHash []byte, keyPolicyHash []byte, pcrSlice []string) ([]byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
 
-	c, res, err := websocketDial(endpoint, insecure)
+	token, err := getAuthToken()
+	if err != nil {
+		return nil, err
+	}
+
+	c, res, err := websocketDial(endpoint, insecure, token)
 	if err != nil {
 		log.Error("error dialing websocket: ", err)
 		// This check is necessary because we don't necessarily return an http response from sentinel.
@@ -172,11 +177,6 @@ func doRun(url string, functionID string, data []byte, insecure bool, funcHash [
 	defer c.Close()
 
 	nonce, err := crypto.GetNonce()
-	if err != nil {
-		return nil, err
-	}
-
-	token, err := getAuthToken()
 	if err != nil {
 		return nil, err
 	}

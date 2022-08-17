@@ -217,7 +217,12 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice
 
 	log.Info("Deploying function to Cape ...")
 
-	conn, res, err := websocketDial(endpoint, insecure)
+	token, err := getAuthToken()
+	if err != nil {
+		return "", nil, err
+	}
+
+	conn, res, err := websocketDial(endpoint, insecure, token)
 	if err != nil {
 		log.Error("error dialing websocket: ", err)
 		// This check is necessary because we don't necessarily return an http response from sentinel.
@@ -237,11 +242,6 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice
 	p := runner.Protocol{Websocket: conn}
 
 	nonce, err := crypto.GetNonce()
-	if err != nil {
-		return "", nil, err
-	}
-
-	token, err := getAuthToken()
 	if err != nil {
 		return "", nil, err
 	}
@@ -319,7 +319,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice
 	return resData.ID, hash, nil
 }
 
-func websocketDial(url string, insecure bool) (*websocket.Conn, *http.Response, error) {
+func websocketDial(url string, insecure bool, authToken string) (*websocket.Conn, *http.Response, error) {
 	if insecure {
 		websocket.DefaultDialer.TLSClientConfig = &tls.Config{
 			InsecureSkipVerify: true,
@@ -331,8 +331,10 @@ func websocketDial(url string, insecure bool) (*websocket.Conn, *http.Response, 
 		str += " (insecure)"
 	}
 
+	secWebsocketProtocol := http.Header{"Sec-Websocket-Protocol": []string{"cape.runtime", authToken}}
+
 	log.Debug(str)
-	c, r, err := websocket.DefaultDialer.Dial(url, nil)
+	c, r, err := websocket.DefaultDialer.Dial(url, secWebsocketProtocol)
 	if err != nil {
 		return nil, r, err
 	}
