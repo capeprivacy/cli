@@ -40,7 +40,7 @@ func websocketDial(url string, insecure bool, authToken string) (*websocket.Conn
 		str += " (insecure)"
 	}
 
-	secWebsocketProtocol := http.Header{"Sec-Websocket-Protocol": []string{"auth", authToken}}
+	secWebsocketProtocol := http.Header{"Sec-Websocket-Protocol": []string{"cape.runtime", authToken}}
 
 	log.Debug(str)
 	c, r, err := websocket.DefaultDialer.Dial(url, secWebsocketProtocol)
