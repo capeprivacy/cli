@@ -19,7 +19,6 @@ import (
 
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
-	"github.com/capeprivacy/cli/pcrs"
 )
 
 // runCmd represents the run command
@@ -209,12 +208,6 @@ func doRun(url string, functionID string, data []byte, insecure bool, funcHash [
 	doc, userData, err := attest.Attest(attestDoc, rootCert)
 	if err != nil {
 		log.Println("error attesting")
-		return nil, err
-	}
-
-	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(pcrSlice), doc)
-	if err != nil {
-		log.Println("error verifying PCRs")
 		return nil, err
 	}
 
