@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -72,6 +72,7 @@ func login(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println("Congratulations, you're all set!")
+	fmt.Printf("Your access token: %s \n", tokenResponse.AccessToken)
 	return nil
 }
 
@@ -90,7 +91,7 @@ func newDeviceCode() (*DeviceCodeResponse, error) {
 	}
 
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +130,7 @@ func getToken(deviceCode string) (*TokenResponse, error) {
 	}
 
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +159,7 @@ func persistTokenResponse(response *TokenResponse) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(C.LocalConfigDir, C.LocalAuthFileName), authJSON, 0644)
+	err = os.WriteFile(filepath.Join(C.LocalConfigDir, C.LocalAuthFileName), authJSON, 0644)
 	if err != nil {
 		return err
 	}
@@ -173,7 +174,7 @@ func getTokenResponse() (*TokenResponse, error) {
 	}
 	defer authFile.Close()
 
-	byteValue, err := ioutil.ReadAll(authFile)
+	byteValue, err := io.ReadAll(authFile)
 	if err != nil {
 		return nil, err
 	}

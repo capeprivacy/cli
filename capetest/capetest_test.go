@@ -72,7 +72,7 @@ func TestCapeTest(t *testing.T) {
 		Input:    []byte("myinput"),
 	}
 
-	res, err := CapeTest(test, wsURL(s.URL), true, []string{})
+	res, err := CapeTest(test, wsURL(s.URL), true)
 	if err != nil {
 		t.Fatal(err)
 	}

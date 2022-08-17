@@ -66,8 +66,8 @@ func wsURL(origURL string) string {
 func TestNoArgs(t *testing.T) {
 	cmd, stdout, _ := getCmd()
 	cmd.SetArgs([]string{"test"})
-	if err := cmd.Execute(); err != nil {
-		t.Fatal(err)
+	if err := cmd.Execute(); err == nil {
+		t.Fatal(errors.New("received no error when we should have"))
 	}
 
 	if got, want := stdout.String(), usage; !strings.HasPrefix(got, want) {
@@ -78,8 +78,8 @@ func TestNoArgs(t *testing.T) {
 func TestThreeArgs(t *testing.T) {
 	cmd, stdout, _ := getCmd()
 	cmd.SetArgs([]string{"test", "testdata/my_fn", "fjkd", "fjkdsl"})
-	if err := cmd.Execute(); err != nil {
-		t.Fatal(err)
+	if err := cmd.Execute(); err == nil {
+		t.Fatal(errors.New("received no error when we should have"))
 	}
 
 	if got, want := stdout.String(), usage; !strings.HasPrefix(got, want) {
@@ -94,7 +94,7 @@ func TestBadFunction(t *testing.T) {
 		t.Fatal(errors.New("received no error when we should have"))
 	}
 
-	if got, want := stderr.String(), "Error: zipping directory failed: lstat notafunction: no such file or directory\n"; got != want {
+	if got, want := stderr.String(), "Error: unable to zip specified directory: zipping directory failed: lstat notafunction: no such file or directory\n"; got != want {
 		t.Errorf("didn't get expected stderr, got %s, wanted %s", got, want)
 	}
 
@@ -108,7 +108,7 @@ func TestServerError(t *testing.T) {
 	cmd.SetArgs([]string{"test", "testdata/my_fn", "hello world"})
 
 	errMsg := "something went wrong"
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool, pcrSlice []string) (*sentinelEntities.RunResults, error) {
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*sentinelEntities.RunResults, error) {
 		return nil, errors.New(errMsg)
 	}
 	authToken = func() (string, error) {
@@ -127,7 +127,7 @@ func TestServerError(t *testing.T) {
 		t.Fatalf("didn't get expected stderr, got %s, wanted %s", got, want)
 	}
 
-	if got, want := stdout.String(), usage; !strings.HasPrefix(got, want) {
+	if got, want := stdout.String(), ""; got != want {
 		t.Fatalf("didn't get expected response, got %s, wanted %s", got, want)
 	}
 }
@@ -139,7 +139,7 @@ func TestSuccess(t *testing.T) {
 	results := "success!"
 	var gotFn []byte
 	var gotInput []byte
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool, pcrSlice []string) (*sentinelEntities.RunResults, error) {
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*sentinelEntities.RunResults, error) {
 		gotFn, gotInput = testReq.Function, testReq.Input
 		return &sentinelEntities.RunResults{Message: []byte(results)}, nil
 	}
@@ -183,7 +183,7 @@ func TestSuccessStdin(t *testing.T) {
 	results := "success!"
 	var gotFn []byte
 	var gotInput []byte
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool, pcrSlice []string) (*sentinelEntities.RunResults, error) {
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*sentinelEntities.RunResults, error) {
 		gotFn, gotInput = testReq.Function, testReq.Input
 		return &sentinelEntities.RunResults{Message: []byte(results)}, nil
 	}
@@ -227,7 +227,7 @@ func TestWSConnection(t *testing.T) {
 	type msg struct {
 		Message []byte `json:"msg"`
 	}
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool, pcrSlice []string) (*sentinelEntities.RunResults, error) {
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*sentinelEntities.RunResults, error) {
 		c, _, err := websocket.DefaultDialer.Dial(endpoint, nil)
 		if err != nil {
 			return nil, err
@@ -285,7 +285,7 @@ func TestWSConnection(t *testing.T) {
 func TestEndpoint(t *testing.T) {
 	// ensure that `cape test` hits the `/v1/test` endpoint
 	endpointHit := ""
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool, pcrSlice []string) (*sentinelEntities.RunResults, error) {
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*sentinelEntities.RunResults, error) {
 		endpointHit = endpoint
 		return &sentinelEntities.RunResults{Message: []byte("good job")}, nil
 	}
@@ -313,7 +313,7 @@ func TestEndpoint(t *testing.T) {
 func TestEnvVarConfigEndpoint(t *testing.T) {
 	// ensure that env var overrides work for hostname
 	endpointHit := ""
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool, pcrSlice []string) (*sentinelEntities.RunResults, error) {
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*sentinelEntities.RunResults, error) {
 		endpointHit = endpoint
 		return &sentinelEntities.RunResults{Message: []byte("good job")}, nil
 	}
@@ -346,7 +346,7 @@ func TestFileConfigEndpoint(t *testing.T) {
 	endpointHit := ""
 	fileEndpoint := "https://foo_file.capeprivacy.com"
 
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool, pcrSlice []string) (*sentinelEntities.RunResults, error) {
+	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*sentinelEntities.RunResults, error) {
 		endpointHit = endpoint
 		return &sentinelEntities.RunResults{Message: []byte("good job")}, nil
 	}

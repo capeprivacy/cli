@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"archive/zip"
 	"bytes"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -22,7 +23,6 @@ import (
 	sentinelEntities "github.com/capeprivacy/sentinel/entities"
 
 	"github.com/capeprivacy/cli/attest"
-	"github.com/capeprivacy/cli/pcrs"
 
 	"github.com/capeprivacy/sentinel/runner"
 
@@ -43,7 +43,7 @@ type DeployResponse struct {
 	ID string `json:"id"`
 }
 
-const storedFunctionMaxBytes = 128_000_000
+const storedFunctionMaxBytes = 1_000_000_000
 
 type OversizeFunctionError struct {
 	bytes int64
@@ -63,18 +63,25 @@ This will return an ID that can later be used to invoke the deployed function
 with cape run (see cape run -h for details).
 `,
 
-	RunE: deploy,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := deploy(cmd, args)
+		if _, ok := err.(UserError); !ok {
+			cmd.SilenceUsage = true
+		}
+		return err
+	},
 }
 
 func init() {
 	rootCmd.AddCommand(deployCmd)
 
 	deployCmd.PersistentFlags().StringP("name", "n", "", "a name to give this function (default is the directory name)")
+	deployCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
 }
 
 func deploy(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
-		return fmt.Errorf("you must specify a directory to upload")
+		return UserError{Msg: "you must specify a directory to upload", Err: fmt.Errorf("invalid number of input arguments")}
 	}
 
 	u := C.EnclaveHost
@@ -82,12 +89,12 @@ func deploy(cmd *cobra.Command, args []string) error {
 
 	n, err := cmd.Flags().GetString("name")
 	if err != nil {
-		return err
+		return UserError{Msg: "name not specified correctly", Err: err}
 	}
 
 	pcrSlice, err := cmd.Flags().GetStringSlice("pcr")
 	if err != nil {
-		return fmt.Errorf("error retrieving pcr flags %s", err)
+		return UserError{Msg: "error retrieving pcr flags", Err: err}
 	}
 
 	functionInput := args[0]
@@ -135,8 +142,12 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 			return "", nil, fmt.Errorf("expected argument %s to be a zip file or directory", functionInput)
 		}
 		isZip = true
-		fileSize = st.Size()
-		log.Warning("Deploying from zip file. Uncompressed file may exceed deployment size limit.")
+		zSize, err := zipSize(functionInput)
+		if err != nil {
+			return "", nil, err
+		}
+
+		fileSize = int64(zSize)
 	}
 
 	log.Debugf("Deployment size: %d bytes", fileSize)
@@ -188,12 +199,30 @@ func dirSize(path string) (int64, error) {
 	return size, err
 }
 
+func zipSize(path string) (uint64, error) {
+	var size uint64
+	r, err := zip.OpenReader(path)
+	if err != nil {
+		return 0, err
+	}
+	for _, f := range r.File {
+		size += f.UncompressedSize64
+	}
+
+	return size, nil
+}
+
 func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice []string) (string, []byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/deploy", url)
 
 	log.Info("Deploying function to Cape ...")
 
-	conn, res, err := websocketDial(endpoint, insecure)
+	token, err := getAuthToken()
+	if err != nil {
+		return "", nil, err
+	}
+
+	conn, res, err := websocketDial(endpoint, insecure, token)
 	if err != nil {
 		log.Error("error dialing websocket: ", err)
 		// This check is necessary because we don't necessarily return an http response from sentinel.
@@ -213,11 +242,6 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice
 	p := runner.Protocol{Websocket: conn}
 
 	nonce, err := crypto.GetNonce()
-	if err != nil {
-		return "", nil, err
-	}
-
-	token, err := getAuthToken()
 	if err != nil {
 		return "", nil, err
 	}
@@ -252,12 +276,6 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice
 	doc, _, err := attest.Attest(attestDoc, rootCert)
 	if err != nil {
 		log.Error("error attesting")
-		return "", nil, err
-	}
-
-	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(pcrSlice), doc)
-	if err != nil {
-		log.Println("error verifying PCRs")
 		return "", nil, err
 	}
 
@@ -301,7 +319,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice
 	return resData.ID, hash, nil
 }
 
-func websocketDial(url string, insecure bool) (*websocket.Conn, *http.Response, error) {
+func websocketDial(url string, insecure bool, authToken string) (*websocket.Conn, *http.Response, error) {
 	if insecure {
 		websocket.DefaultDialer.TLSClientConfig = &tls.Config{
 			InsecureSkipVerify: true,
@@ -313,8 +331,10 @@ func websocketDial(url string, insecure bool) (*websocket.Conn, *http.Response, 
 		str += " (insecure)"
 	}
 
+	secWebsocketProtocol := http.Header{"Sec-Websocket-Protocol": []string{"cape.runtime", authToken}}
+
 	log.Debug(str)
-	c, r, err := websocket.DefaultDialer.Dial(url, nil)
+	c, r, err := websocket.DefaultDialer.Dial(url, secWebsocketProtocol)
 	if err != nil {
 		return nil, r, err
 	}
