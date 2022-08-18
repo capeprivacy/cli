@@ -14,11 +14,10 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	sentinelEntities "github.com/capeprivacy/sentinel/entities"
-	"github.com/capeprivacy/sentinel/runner"
-
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
+	"github.com/capeprivacy/cli/entities"
+	"github.com/capeprivacy/cli/protocol"
 )
 
 // runCmd represents the run command
@@ -181,9 +180,9 @@ func doRun(url string, functionID string, data []byte, insecure bool, funcHash [
 		return nil, err
 	}
 
-	p := runner.Protocol{Websocket: c}
+	p := protocol.Protocol{Websocket: c}
 
-	req := sentinelEntities.StartRequest{Nonce: []byte(nonce), AuthToken: token}
+	req := entities.StartRequest{Nonce: []byte(nonce), AuthToken: token}
 	log.Debug("\n> Sending Nonce and Auth Token")
 	err = p.WriteStart(req)
 	if err != nil {

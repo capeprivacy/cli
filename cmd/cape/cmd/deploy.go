@@ -20,11 +20,10 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	sentinelEntities "github.com/capeprivacy/sentinel/entities"
+	"github.com/capeprivacy/cli/entities"
+	"github.com/capeprivacy/cli/protocol"
 
 	"github.com/capeprivacy/cli/attest"
-
-	"github.com/capeprivacy/sentinel/runner"
 
 	"github.com/capeprivacy/cli/crypto"
 
@@ -239,7 +238,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice
 	}
 	defer conn.Close()
 
-	p := runner.Protocol{Websocket: conn}
+	p := protocol.Protocol{Websocket: conn}
 
 	nonce, err := crypto.GetNonce()
 	if err != nil {
@@ -251,7 +250,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice
 		return "", nil, err
 	}
 
-	req := sentinelEntities.StartRequest{Nonce: []byte(nonce), AuthToken: token}
+	req := entities.StartRequest{Nonce: []byte(nonce), AuthToken: token}
 	log.Debug("\n> Sending Nonce and Auth Token")
 	if err := p.WriteStart(req); err != nil {
 		log.Error("error writing deploy request")

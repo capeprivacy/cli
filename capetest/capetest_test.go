@@ -9,23 +9,23 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	sentinelEntities "github.com/capeprivacy/sentinel/entities"
+	"github.com/capeprivacy/cli/entities"
 
 	"github.com/capeprivacy/cli/attest"
 )
 
 type testProtocol struct {
-	start   func(req sentinelEntities.StartRequest) error
+	start   func(req entities.StartRequest) error
 	attest  func() ([]byte, error)
-	results func() (*sentinelEntities.RunResults, error)
+	results func() (*entities.RunResults, error)
 	binary  func(b []byte) error
 }
 
-func (t testProtocol) WriteStart(request sentinelEntities.StartRequest) error {
+func (t testProtocol) WriteStart(request entities.StartRequest) error {
 	return t.start(request)
 }
 func (t testProtocol) ReadAttestationDoc() ([]byte, error) { return t.attest() }
-func (t testProtocol) ReadRunResults() (*sentinelEntities.RunResults, error) {
+func (t testProtocol) ReadRunResults() (*entities.RunResults, error) {
 	return t.results()
 }
 func (t testProtocol) WriteBinary(bytes []byte) error { return t.binary(bytes) }
@@ -45,10 +45,10 @@ func TestCapeTest(t *testing.T) {
 
 	getProtocol = func(ws *websocket.Conn) Protocol {
 		return testProtocol{
-			start:  func(req sentinelEntities.StartRequest) error { return nil },
+			start:  func(req entities.StartRequest) error { return nil },
 			attest: func() ([]byte, error) { return []byte{}, nil },
-			results: func() (*sentinelEntities.RunResults, error) {
-				return &sentinelEntities.RunResults{Message: []byte("good job")}, nil
+			results: func() (*entities.RunResults, error) {
+				return &entities.RunResults{Message: []byte("good job")}, nil
 			},
 			binary: func(b []byte) error { return nil },
 		}
