@@ -24,6 +24,8 @@ func walker(w *zip.Writer) filepath.WalkFunc {
 		}
 		defer file.Close()
 
+		path = filepath.ToSlash(path)
+
 		f, err := w.Create(path)
 		if err != nil {
 			return err
