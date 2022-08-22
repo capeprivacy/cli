@@ -102,7 +102,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 		name = n
 	}
 
-	dID, hash, err := Deploy(u, functionInput, name, insecure, pcrSlice)
+	dID, hash, err := doDeploy(u, functionInput, name, insecure, pcrSlice)
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func Deploy(url string, functionInput string, functionName string, insecure bool, pcrSlice []string) (string, []byte, error) {
+func doDeploy(url string, functionInput string, functionName string, insecure bool, pcrSlice []string) (string, []byte, error) {
 	file, err := os.Open(functionInput)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to read function directory or file: %w", err)
@@ -179,7 +179,12 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 		reader = bytes.NewBuffer(buf)
 	}
 
-	id, hash, err := doDeploy(url, functionName, reader, insecure, pcrSlice)
+	token, err := getAuthToken()
+	if err != nil {
+		return "", nil, err
+	}
+
+	id, hash, err := Deploy(url, token, functionName, reader, insecure, pcrSlice)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to deploy function: %w", err)
 	}
@@ -211,15 +216,10 @@ func zipSize(path string) (uint64, error) {
 	return size, nil
 }
 
-func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice []string) (string, []byte, error) {
+func Deploy(url string, token string, name string, reader io.Reader, insecure bool, pcrSlice []string) (string, []byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/deploy", url)
 
 	log.Info("Deploying function to Cape ...")
-
-	token, err := getAuthToken()
-	if err != nil {
-		return "", nil, err
-	}
 
 	conn, res, err := websocketDial(endpoint, insecure, token)
 	if err != nil {
