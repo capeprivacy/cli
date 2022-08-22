@@ -80,7 +80,7 @@ func Test(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	res, err := test(sdk.TestRequest{Function: fnZip, Input: input, AuthToken: token}, u+"/v1/test", insecure)
+	res, err := test(sdk.TestRequest{Function: fnZip, Input: input, AuthToken: token, Insecure: insecure}, u+"/v1/test")
 	if err != nil {
 		return err
 	}

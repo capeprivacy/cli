@@ -188,13 +188,15 @@ func doDeploy(url string, functionInput string, functionName string, authType en
 
 	id, hash, err := sdk.Deploy(sdk.DeployRequest{
 		Url:                    url,
-		Token:                  token,
 		Name:                   functionName,
 		Reader:                 reader,
 		Insecure:               insecure,
 		PcrSlice:               pcrSlice,
 		FunctionTokenPublicKey: functionTokenPublicKey,
-		AuthType:               authType,
+		FunctionAuth: entities.FunctionAuth{
+			Type:  authType,
+			Token: token,
+		},
 	})
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to deploy function: %w", err)

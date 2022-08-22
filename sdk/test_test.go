@@ -78,9 +78,10 @@ func TestCapeTest(t *testing.T) {
 	test := TestRequest{
 		Function: []byte("myfn"),
 		Input:    []byte("myinput"),
+		Insecure: true,
 	}
 
-	res, err := CapeTest(test, wsURL(s.URL), true)
+	res, err := CapeTest(test, wsURL(s.URL))
 	if err != nil {
 		t.Fatal(err)
 	}

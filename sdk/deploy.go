@@ -32,21 +32,25 @@ func GetProtocol(ws *websocket.Conn) Protocol {
 
 type DeployRequest struct {
 	Url                    string
-	Token                  string
 	Name                   string
 	Reader                 io.Reader
-	Insecure               bool
 	PcrSlice               []string
 	FunctionTokenPublicKey string
-	AuthType               entities.AuthenticationType
+	FunctionAuth           entities.FunctionAuth
+
+	// For development use only: circumvents some token authorization when true
+	Insecure bool
 }
 
+// Deploy encrypts the given function data within a secure enclave and stores the encrypted function for future use.
+// Returns a function ID upon successful deployment. The stored function can only be decrypted within an enclave.
 func Deploy(req DeployRequest) (string, []byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/deploy", req.Url)
 
 	log.Info("Deploying function to Cape ...")
 
-	conn, res, err := WebsocketDial(endpoint, req.Insecure, req.Token)
+	auth := req.FunctionAuth
+	conn, res, err := WebsocketDial(endpoint, req.Insecure, string(auth.Type), auth.Token)
 	if err != nil {
 		log.Error("error dialing websocket: ", err)
 		// This check is necessary because we don't necessarily return an http response from sentinel.
@@ -70,9 +74,9 @@ func Deploy(req DeployRequest) (string, []byte, error) {
 		return "", nil, err
 	}
 
-	metadata := entities.FunctionMetadata{FunctionAuthenticationType: string(req.AuthType)}
+	metadata := entities.FunctionMetadata{FunctionAuthenticationType: string(auth.Type)}
 
-	r := entities.StartRequest{Nonce: []byte(nonce), AuthToken: req.Token, Metadata: metadata}
+	r := entities.StartRequest{Nonce: []byte(nonce), AuthToken: auth.Token, Metadata: metadata}
 	log.Debug("\n> Sending Nonce and Auth Token")
 	if err := p.WriteStart(r); err != nil {
 		log.Error("error writing deploy request")

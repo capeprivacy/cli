@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/capeprivacy/cli/entities"
 	"io"
 	"os"
 
@@ -119,7 +120,7 @@ func run(cmd *cobra.Command, args []string) error {
 		input = buf.Bytes()
 	}
 
-	token, err := getAuthToken()
+	t, err := getAuthToken()
 	if err != nil {
 		return err
 	}
@@ -137,8 +138,7 @@ func run(cmd *cobra.Command, args []string) error {
 		FuncHash:      funcHash,
 		KeyPolicyHash: keyPolicyHash,
 		PcrSlice:      pcrSlice,
-		FunctionAuth:     auth,
-		FunctionToken: functionToken,
+		FunctionAuth:  auth,
 	})
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)
@@ -155,11 +155,6 @@ func Run(url string, token string, functionID string, file string, insecure bool
 		return nil, fmt.Errorf("unable to read data file: %w", err)
 	}
 
-	token, err := getAuthToken()
-	if err != nil {
-		return nil, err
-	}
-
 	a := entities.FunctionAuth{
 		Token: token,
 		Type:  entities.AuthenticationTypeAuth0,
@@ -167,12 +162,12 @@ func Run(url string, token string, functionID string, file string, insecure bool
 
 	// TODO: Tuner may want to verify function hash later.
 	res, err := sdk.Run(sdk.RunRequest{
-		URL:        url,
-		FunctionID: functionID,
-		Data:       input,
-		Insecure:   insecure,
-		PcrSlice:   []string{},
-		FunctionAuth:  a,
+		URL:          url,
+		FunctionID:   functionID,
+		Data:         input,
+		Insecure:     insecure,
+		PcrSlice:     []string{},
+		FunctionAuth: a,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error processing data: %w", err)

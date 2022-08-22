@@ -18,18 +18,25 @@ type RunRequest struct {
 	URL           string
 	FunctionID    string
 	Data          []byte
-	Insecure      bool
 	FuncHash      []byte
 	KeyPolicyHash []byte
 	PcrSlice      []string
-	AuthToken     string
-	FunctionToken string
+	FunctionAuth  entities.FunctionAuth
+
+	// For development use only: circumvents some authorization steps when true
+	Insecure bool
 }
 
+// Run loads the given function into a secure enclave and invokes it on the given data, then returns the result.
 func Run(req RunRequest) ([]byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/run/%s", req.URL, req.FunctionID)
 
-	c, res, err := WebsocketDial(endpoint, req.Insecure, req.AuthToken)
+	authProtocolType := "cape.runtime"
+	auth := req.FunctionAuth
+	if auth.Type == entities.AuthenticationTypeFunctionToken {
+		authProtocolType = "cape.function"
+	}
+	c, res, err := WebsocketDial(endpoint, req.Insecure, authProtocolType, auth.Token)
 	if err != nil {
 		log.Error("error dialing websocket: ", err)
 		// This check is necessary because we don't necessarily return an http response from sentinel.
@@ -53,7 +60,7 @@ func Run(req RunRequest) ([]byte, error) {
 
 	p := GetProtocol(c)
 
-	r := entities.StartRequest{Nonce: []byte(nonce), AuthToken: req.AuthToken}
+	r := entities.StartRequest{Nonce: []byte(nonce), AuthToken: auth.Token}
 	log.Debug("\n> Sending Nonce and Auth Token")
 	err = p.WriteStart(r)
 	if err != nil {

@@ -19,40 +19,20 @@ type TestRequest struct {
 	Function  []byte
 	Input     []byte
 	AuthToken string
+
+	// For development use only: circumvents some token authorization when true
+	Insecure bool
 }
 
 type ErrorMsg struct {
 	Error string `json:"error"`
 }
 
-func WebsocketDial(url string, insecure bool, authToken string) (*websocket.Conn, *http.Response, error) {
-	if insecure {
-		websocket.DefaultDialer.TLSClientConfig = &tls.Config{
-			InsecureSkipVerify: true,
-		}
-	}
-
-	str := fmt.Sprintf("* Dialing %s", url)
-	if insecure {
-		str += " (insecure)"
-	}
-
-	secWebsocketProtocol := http.Header{"Sec-Websocket-Protocol": []string{"cape.runtime", authToken}}
-
-	log.Debug(str)
-	c, r, err := websocket.DefaultDialer.Dial(url, secWebsocketProtocol)
-	if err != nil {
-		return nil, r, err
-	}
-
-	log.Debugf("* Websocket connection established")
-	return c, r, nil
-}
-
-var getProtocol = GetProtocol
-
-func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*entities.RunResults, error) {
-	conn, resp, err := WebsocketDial(endpoint, insecure, testReq.AuthToken)
+// CapeTest simulates the workflow of Deploy and Run, without storing the function.
+// It loads the given function into an enclave, runs it on the given data, and returns the result.
+// Use CapeTest to verify that your function will work before storing it via Deploy.
+func CapeTest(testReq TestRequest, endpoint string) (*entities.RunResults, error) {
+	conn, resp, err := WebsocketDial(endpoint, testReq.Insecure, "cape.runtime", testReq.AuthToken)
 	if err != nil {
 		log.Error("error dialing websocket", err)
 		// This check is necessary because we don't necessarily return an http response from sentinel.
@@ -131,5 +111,30 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*entities.Ru
 	return res, nil
 }
 
+func WebsocketDial(url string, insecure bool, authProtocolType string, authToken string) (*websocket.Conn, *http.Response, error) {
+	if insecure {
+		websocket.DefaultDialer.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
+
+	str := fmt.Sprintf("* Dialing %s", url)
+	if insecure {
+		str += " (insecure)"
+	}
+
+	secWebsocketProtocol := http.Header{"Sec-Websocket-Protocol": []string{authProtocolType, authToken}}
+
+	log.Debug(str)
+	c, r, err := websocket.DefaultDialer.Dial(url, secWebsocketProtocol)
+	if err != nil {
+		return nil, r, err
+	}
+
+	log.Debugf("* Websocket connection established")
+	return c, r, nil
+}
+
+var getProtocol = GetProtocol
 var runAttestation = attest.Attest
 var localEncrypt = crypto.LocalEncrypt
