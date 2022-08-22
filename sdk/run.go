@@ -15,7 +15,7 @@ import (
 )
 
 type RunRequest struct {
-	Url           string
+	URL           string
 	FunctionID    string
 	Data          []byte
 	Insecure      bool
@@ -26,7 +26,7 @@ type RunRequest struct {
 }
 
 func Run(req RunRequest) ([]byte, error) {
-	endpoint := fmt.Sprintf("%s/v1/run/%s", req.Url, req.FunctionID)
+	endpoint := fmt.Sprintf("%s/v1/run/%s", req.URL, req.FunctionID)
 
 	c, res, err := WebsocketDial(endpoint, req.Insecure, req.AuthToken)
 	if err != nil {

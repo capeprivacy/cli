@@ -123,7 +123,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	results, err := sdk.Run(sdk.RunRequest{
-		Url:           u,
+		URL:           u,
 		FunctionID:    functionID,
 		Data:          input,
 		Insecure:      insecure,
@@ -153,7 +153,7 @@ func Run(url string, functionID string, file string, insecure bool) ([]byte, err
 
 	// TODO: Tuner may want to verify function hash later.
 	res, err := sdk.Run(sdk.RunRequest{
-		Url:        url,
+		URL:        url,
 		FunctionID: functionID,
 		Data:       input,
 		Insecure:   insecure,
