@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/capeprivacy/cli/entities"
 	"io"
 	"os"
+
+	"github.com/capeprivacy/cli/entities"
 
 	"github.com/spf13/cobra"
 
