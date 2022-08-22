@@ -127,9 +127,15 @@ func run(cmd *cobra.Command, args []string) error {
 		input = buf.Bytes()
 	}
 
-	authType := entities.AuthenticationTypeAuth0
-	if functionToken != "" {
+	authType := entities.AuthenticationTypeFunctionToken
+	if functionToken == "" {
 		authType = entities.AuthenticationTypeFunctionToken
+		t, err := getAuthToken()
+		if err != nil {
+			return err
+		}
+
+		functionToken = t
 	}
 
 	a := entities.FunctionAuth{
