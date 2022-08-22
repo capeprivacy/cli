@@ -1,6 +1,10 @@
 package entities
 
-import "github.com/capeprivacy/go-kit/id"
+import (
+	"fmt"
+
+	"github.com/capeprivacy/go-kit/id"
+)
 
 type StartRequest struct {
 	// Nonce is used by the client to verify the nonce received back in
@@ -56,3 +60,23 @@ type RunResults struct {
 	Type    string `json:"type"`
 	Message []byte `json:"message"`
 }
+
+type AuthenticationType string
+
+func (a AuthenticationType) Validate() error {
+	switch a {
+	case AuthenticationTypeAuth0, AuthenticationTypeFunctionToken:
+		return nil
+	default:
+		return fmt.Errorf("invalid authentication type: %s", a)
+	}
+}
+
+func (a AuthenticationType) String() string {
+	return string(a)
+}
+
+const (
+	AuthenticationTypeAuth0         AuthenticationType = "auth0"
+	AuthenticationTypeFunctionToken AuthenticationType = "token"
+)
