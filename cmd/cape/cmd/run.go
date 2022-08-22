@@ -169,7 +169,11 @@ func Run(url string, token string, functionID string, file string, insecure bool
 func doRun(url string, functionID string, data []byte, insecure bool, funcHash []byte, auth entities.FunctionAuth, keyPolicyHash []byte, pcrSlice []string) ([]byte, error) { //nolint:gocognit
 	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
 
-	c, res, err := websocketDial(endpoint, insecure, string(auth.Type), auth.Token)
+	authProtocolType := "cape.runtime"
+	if auth.Type == entities.AuthenticationTypeFunctionToken {
+		authProtocolType = "cape.function"
+	}
+	c, res, err := websocketDial(endpoint, insecure, authProtocolType, auth.Token)
 	if err != nil {
 		log.Error("error dialing websocket: ", err)
 		// This check is necessary because we don't necessarily return an http response from sentinel.
