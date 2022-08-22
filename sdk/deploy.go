@@ -38,6 +38,7 @@ type DeployRequest struct {
 	Insecure               bool
 	PcrSlice               []string
 	FunctionTokenPublicKey string
+	AuthType               entities.AuthenticationType
 }
 
 func Deploy(req DeployRequest) (string, []byte, error) {
@@ -69,7 +70,9 @@ func Deploy(req DeployRequest) (string, []byte, error) {
 		return "", nil, err
 	}
 
-	r := entities.StartRequest{Nonce: []byte(nonce), AuthToken: req.Token}
+	metadata := entities.FunctionMetadata{FunctionAuthenticationType: string(req.AuthType)}
+
+	r := entities.StartRequest{Nonce: []byte(nonce), AuthToken: req.Token, Metadata: metadata}
 	log.Debug("\n> Sending Nonce and Auth Token")
 	if err := p.WriteStart(r); err != nil {
 		log.Error("error writing deploy request")

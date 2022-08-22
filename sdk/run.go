@@ -23,6 +23,7 @@ type RunRequest struct {
 	KeyPolicyHash []byte
 	PcrSlice      []string
 	AuthToken     string
+	FunctionToken string
 }
 
 func Run(req RunRequest) ([]byte, error) {

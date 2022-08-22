@@ -8,6 +8,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/capeprivacy/cli/entities"
 	"io"
 	"os"
 	"path/filepath"
@@ -193,7 +194,7 @@ func doDeploy(url string, functionInput string, functionName string, authType en
 		Insecure:               insecure,
 		PcrSlice:               pcrSlice,
 		FunctionTokenPublicKey: functionTokenPublicKey,
-		AuthType: authType,
+		AuthType:               authType,
 	})
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to deploy function: %w", err)
