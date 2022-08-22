@@ -1,4 +1,4 @@
-package capetest
+package sdk
 
 import (
 	"crypto/tls"
@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 
-	proto "github.com/capeprivacy/cli/protocol"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 
@@ -22,13 +21,11 @@ type TestRequest struct {
 	AuthToken string
 }
 
-// TODO -- cmd package also defines this
 type ErrorMsg struct {
 	Error string `json:"error"`
 }
 
-// TODO -- cmd package also defines this
-func websocketDial(url string, insecure bool, authToken string) (*websocket.Conn, *http.Response, error) {
+func WebsocketDial(url string, insecure bool, authToken string) (*websocket.Conn, *http.Response, error) {
 	if insecure {
 		websocket.DefaultDialer.TLSClientConfig = &tls.Config{
 			InsecureSkipVerify: true,
@@ -52,21 +49,10 @@ func websocketDial(url string, insecure bool, authToken string) (*websocket.Conn
 	return c, r, nil
 }
 
-type Protocol interface {
-	WriteStart(request entities.StartRequest) error
-	ReadAttestationDoc() ([]byte, error)
-	ReadRunResults() (*entities.RunResults, error)
-	WriteBinary([]byte) error
-}
-
-func protocol(ws *websocket.Conn) Protocol {
-	return proto.Protocol{Websocket: ws}
-}
-
-var getProtocol = protocol
+var getProtocol = GetProtocol
 
 func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*entities.RunResults, error) {
-	conn, resp, err := websocketDial(endpoint, insecure, testReq.AuthToken)
+	conn, resp, err := WebsocketDial(endpoint, insecure, testReq.AuthToken)
 	if err != nil {
 		log.Error("error dialing websocket", err)
 		// This check is necessary because we don't necessarily return an http response from sentinel.

@@ -1,4 +1,4 @@
-package capetest
+package sdk
 
 import (
 	"crypto/x509"
@@ -19,6 +19,14 @@ type testProtocol struct {
 	attest  func() ([]byte, error)
 	results func() (*entities.RunResults, error)
 	binary  func(b []byte) error
+}
+
+func (t testProtocol) WriteFunctionPublicKey(key string) error {
+	return nil
+}
+
+func (t testProtocol) ReadDeploymentResults() (*entities.SetDeploymentIDRequest, error) {
+	return nil, nil
 }
 
 func (t testProtocol) WriteStart(request entities.StartRequest) error {
