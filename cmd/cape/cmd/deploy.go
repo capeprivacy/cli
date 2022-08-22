@@ -76,6 +76,7 @@ func init() {
 
 	deployCmd.PersistentFlags().StringP("name", "n", "", "a name to give this function (default is the directory name)")
 	deployCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
+	deployCmd.PersistentFlags().StringP("authType", "", entities.AuthenticationTypeAuth0.String(), "function authentication type")
 }
 
 func deploy(cmd *cobra.Command, args []string) error {
@@ -96,13 +97,23 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "error retrieving pcr flags", Err: err}
 	}
 
+	authTypeStr, err := cmd.Flags().GetString("authType")
+	if err != nil {
+		return fmt.Errorf("error retrieving auth type %s", err)
+	}
+
+	authType := entities.AuthenticationType(authTypeStr)
+	if err := authType.Validate(); err != nil {
+		return err
+	}
+
 	functionInput := args[0]
 	name := functionInput
 	if n != "" {
 		name = n
 	}
 
-	dID, hash, err := doDeploy(u, functionInput, name, insecure, pcrSlice)
+	dID, hash, err := doDeploy(u, functionInput, name, authType, insecure, pcrSlice)
 	if err != nil {
 		return err
 	}
@@ -112,7 +123,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func doDeploy(url string, functionInput string, functionName string, insecure bool, pcrSlice []string) (string, []byte, error) {
+func doDeploy(url string, functionInput string, functionName string, authType entities.AuthenticationType, insecure bool, pcrSlice []string) (string, []byte, error) {
 	file, err := os.Open(functionInput)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to read function directory or file: %w", err)
@@ -184,7 +195,7 @@ func doDeploy(url string, functionInput string, functionName string, insecure bo
 		return "", nil, err
 	}
 
-	id, hash, err := Deploy(url, token, functionName, reader, insecure, pcrSlice)
+	id, hash, err := Deploy(url, token, functionName, reader, authType, insecure, pcrSlice)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to deploy function: %w", err)
 	}
@@ -216,12 +227,12 @@ func zipSize(path string) (uint64, error) {
 	return size, nil
 }
 
-func Deploy(url string, token string, name string, reader io.Reader, insecure bool, pcrSlice []string) (string, []byte, error) {
+func Deploy(url string, token string, name string, reader io.Reader, authType entities.AuthenticationType, insecure bool, pcrSlice []string) (string, []byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/deploy", url)
 
 	log.Info("Deploying function to Cape ...")
 
-	conn, res, err := websocketDial(endpoint, insecure, token)
+	conn, res, err := websocketDial(endpoint, insecure, "cape.runtime", token)
 	if err != nil {
 		log.Error("error dialing websocket: ", err)
 		// This check is necessary because we don't necessarily return an http response from sentinel.
@@ -250,7 +261,9 @@ func Deploy(url string, token string, name string, reader io.Reader, insecure bo
 		return "", nil, err
 	}
 
-	req := entities.StartRequest{Nonce: []byte(nonce), AuthToken: token}
+	metadata := entities.FunctionMetadata{FunctionAuthenticationType: string(authType)}
+
+	req := entities.StartRequest{Nonce: []byte(nonce), AuthToken: token, Metadata: metadata}
 	log.Debug("\n> Sending Nonce and Auth Token")
 	if err := p.WriteStart(req); err != nil {
 		log.Error("error writing deploy request")
@@ -318,7 +331,7 @@ func Deploy(url string, token string, name string, reader io.Reader, insecure bo
 	return resData.ID, hash, nil
 }
 
-func websocketDial(url string, insecure bool, authToken string) (*websocket.Conn, *http.Response, error) {
+func websocketDial(url string, insecure bool, authProtocolType string, authToken string) (*websocket.Conn, *http.Response, error) {
 	if insecure {
 		websocket.DefaultDialer.TLSClientConfig = &tls.Config{
 			InsecureSkipVerify: true,
@@ -330,7 +343,7 @@ func websocketDial(url string, insecure bool, authToken string) (*websocket.Conn
 		str += " (insecure)"
 	}
 
-	secWebsocketProtocol := http.Header{"Sec-Websocket-Protocol": []string{"cape.runtime", authToken}}
+	secWebsocketProtocol := http.Header{"Sec-Websocket-Protocol": []string{authProtocolType, authToken}}
 
 	log.Debug(str)
 	c, r, err := websocket.DefaultDialer.Dial(url, secWebsocketProtocol)

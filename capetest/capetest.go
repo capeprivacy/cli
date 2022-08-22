@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"net/http"
 
-	proto "github.com/capeprivacy/cli/protocol"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
+
+	proto "github.com/capeprivacy/cli/protocol"
 
 	"github.com/capeprivacy/cli/entities"
 
