@@ -57,7 +57,7 @@ type ErrorRunResponse struct {
 func init() {
 	rootCmd.AddCommand(runCmd)
 
-	runCmd.PersistentFlags().StringP("token", "t", "", "token to use")
+	runCmd.PersistentFlags().StringP("token", "t", "", "function token to use")
 	runCmd.PersistentFlags().StringP("file", "f", "", "input data file")
 	runCmd.PersistentFlags().StringP("function-hash", "", "", "function hash to attest")
 	runCmd.PersistentFlags().StringP("key-policy-hash", "", "", "key policy hash to attest")
@@ -105,6 +105,8 @@ func run(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "error reading key policy hash", Err: err}
 	}
 
+	functionToken, _ := cmd.Flags().GetString("token")
+
 	switch {
 	case file != "":
 		// input file was provided
@@ -125,7 +127,7 @@ func run(cmd *cobra.Command, args []string) error {
 		input = buf.Bytes()
 	}
 
-	results, err := doRun(u, functionID, input, insecure, funcHash, keyPolicyHash, pcrSlice)
+	results, err := doRun(u, functionID, input, insecure, funcHash, functionToken, keyPolicyHash, pcrSlice)
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)
 	}
@@ -142,7 +144,7 @@ func Run(url string, functionID string, file string, insecure bool) ([]byte, err
 	}
 
 	// TODO: Tuner may want to verify function hash later.
-	res, err := doRun(url, functionID, input, insecure, nil, nil, []string{})
+	res, err := doRun(url, functionID, input, insecure, nil, "", nil, []string{})
 	if err != nil {
 		return nil, fmt.Errorf("error processing data: %w", err)
 	}
@@ -150,15 +152,24 @@ func Run(url string, functionID string, file string, insecure bool) ([]byte, err
 	return res, nil
 }
 
-func doRun(url string, functionID string, data []byte, insecure bool, funcHash []byte, keyPolicyHash []byte, pcrSlice []string) ([]byte, error) {
+func doRun(url string, functionID string, data []byte, insecure bool, funcHash []byte, functionToken string, keyPolicyHash []byte, pcrSlice []string) ([]byte, error) { //nolint:gocognit
+	var authToken string
+	var authProtocolType = "cape.runtime"
+
 	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
 
-	token, err := getAuthToken()
-	if err != nil {
-		return nil, err
+	if functionToken == "" {
+		userToken, err := getAuthToken()
+		if err != nil {
+			return nil, err
+		}
+		authToken = userToken
+	} else {
+		authProtocolType = "cape.function"
+		authToken = functionToken
 	}
 
-	c, res, err := websocketDial(endpoint, insecure, token)
+	c, res, err := websocketDial(endpoint, insecure, authProtocolType, authToken)
 	if err != nil {
 		log.Error("error dialing websocket: ", err)
 		// This check is necessary because we don't necessarily return an http response from sentinel.
@@ -182,7 +193,7 @@ func doRun(url string, functionID string, data []byte, insecure bool, funcHash [
 
 	p := protocol.Protocol{Websocket: c}
 
-	req := entities.StartRequest{Nonce: []byte(nonce), AuthToken: token}
+	req := entities.StartRequest{Nonce: []byte(nonce), AuthToken: authToken}
 	log.Debug("\n> Sending Nonce and Auth Token")
 	err = p.WriteStart(req)
 	if err != nil {
