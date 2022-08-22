@@ -8,6 +8,7 @@ main() {
 		exit 1
 	fi
 
+	cape_install="${CAPE_INSTALL:-$HOME/.cape}"
 	if [ "$OS" = "Windows_NT" ]; then
 		target="Windows_x86_64"
 	else
@@ -18,8 +19,13 @@ main() {
 			echo "Error: Official Cape builds for Linux aarch64 are not available" 1>&2
 			exit 1
 			;;
-		"Linux x86_64") target="Linux_x86_64" ;;
-		*) target="Linux_arm64"
+		"Linux x86_64")
+			target="Linux_x86_64"
+			cape_install="${CAPE_INSTALL:-$HOME/.local}"
+			;;
+		*)
+			target="Linux_arm64"
+			cape_install="${CAPE_INSTALL:-$HOME/.local}"
 		esac
 	fi
 
@@ -29,7 +35,6 @@ main() {
 		cape_uri="https://github.com/capeprivacy/cli/releases/download/${1}/cape_${target}.tar.gz"
 	fi
 
-	cape_install="${CAPE_INSTALL:-$HOME/.cape}"
 	bin_dir="$cape_install/bin"
 	exe="$bin_dir/cape"
 

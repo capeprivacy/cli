@@ -123,6 +123,11 @@ func run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t}
+	if functionToken != "" {
+		auth.Type = entities.AuthenticationTypeFunctionToken
+		auth.Token = functionToken
+	}
 
 	results, err := sdk.Run(sdk.RunRequest{
 		URL:           u,
@@ -132,7 +137,7 @@ func run(cmd *cobra.Command, args []string) error {
 		FuncHash:      funcHash,
 		KeyPolicyHash: keyPolicyHash,
 		PcrSlice:      pcrSlice,
-		AuthToken:     token,
+		FunctionAuth:     auth,
 		FunctionToken: functionToken,
 	})
 	if err != nil {
@@ -143,7 +148,8 @@ func run(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func Run(url string, functionID string, file string, insecure bool) ([]byte, error) {
+// This function is exported for tuner to use.
+func Run(url string, token string, functionID string, file string, insecure bool) ([]byte, error) {
 	input, err := os.ReadFile(file)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read data file: %w", err)
@@ -154,6 +160,11 @@ func Run(url string, functionID string, file string, insecure bool) ([]byte, err
 		return nil, err
 	}
 
+	a := entities.FunctionAuth{
+		Token: token,
+		Type:  entities.AuthenticationTypeAuth0,
+	}
+
 	// TODO: Tuner may want to verify function hash later.
 	res, err := sdk.Run(sdk.RunRequest{
 		URL:        url,
@@ -161,7 +172,7 @@ func Run(url string, functionID string, file string, insecure bool) ([]byte, err
 		Data:       input,
 		Insecure:   insecure,
 		PcrSlice:   []string{},
-		AuthToken:  token,
+		FunctionAuth:  a,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error processing data: %w", err)
