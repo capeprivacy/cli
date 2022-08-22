@@ -78,3 +78,8 @@ const (
 	AuthenticationTypeAuth0         AuthenticationType = "auth0"
 	AuthenticationTypeFunctionToken AuthenticationType = "token"
 )
+
+type FunctionAuth struct {
+	Token string
+	Type  AuthenticationType
+}
