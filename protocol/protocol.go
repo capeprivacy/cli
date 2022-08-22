@@ -3,8 +3,9 @@ package protocol
 import (
 	"errors"
 
-	"github.com/capeprivacy/cli/entities"
 	"github.com/gorilla/websocket"
+
+	"github.com/capeprivacy/cli/entities"
 )
 
 type msg[T any] struct {

@@ -49,7 +49,7 @@ type ErrorRunResponse struct {
 func init() {
 	rootCmd.AddCommand(runCmd)
 
-	runCmd.PersistentFlags().StringP("token", "t", "", "token to use")
+	runCmd.PersistentFlags().StringP("token", "t", "", "function token to use")
 	runCmd.PersistentFlags().StringP("file", "f", "", "input data file")
 	runCmd.PersistentFlags().StringP("function-hash", "", "", "function hash to attest")
 	runCmd.PersistentFlags().StringP("key-policy-hash", "", "", "key policy hash to attest")
@@ -97,6 +97,8 @@ func run(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "error reading key policy hash", Err: err}
 	}
 
+	functionToken, _ := cmd.Flags().GetString("token")
+
 	switch {
 	case file != "":
 		// input file was provided
@@ -131,6 +133,7 @@ func run(cmd *cobra.Command, args []string) error {
 		KeyPolicyHash: keyPolicyHash,
 		PcrSlice:      pcrSlice,
 		AuthToken:     token,
+		FunctionToken: functionToken,
 	})
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)

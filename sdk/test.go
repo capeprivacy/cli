@@ -9,6 +9,8 @@ import (
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 
+	proto "github.com/capeprivacy/cli/protocol"
+
 	"github.com/capeprivacy/cli/entities"
 
 	"github.com/capeprivacy/cli/attest"

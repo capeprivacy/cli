@@ -1,5 +1,11 @@
 name: Main
-on: [push]
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - "v*.*.*"
+  pull_request:
+    branches: [ main ]
 jobs:
   build:
     name: Build & Test
@@ -26,23 +32,8 @@ jobs:
         restore-keys:
           ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           ${{ runner.os }}-go-
-    - name: Setup SSH Keys and known_hosts
-      env:
-        SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-      run: |
-        ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-        ssh-add - <<< "${{ secrets.CAPEBOT_SSH_KEY }}"
-    - name: Configure git for private modules
-      run: git config --global url."git@github.com:".insteadOf "https://github.com"
-    - uses: docker/login-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
     - name: Build and Test
-      env:
-        SSH_AUTH_SOCK: /tmp/ssh_agent.sock
       run: |
-        go env -w GOPRIVATE=github.com/capeprivacy/*
         go test ./... -race -coverprofile=coverage.out -covermode=atomic
   golangci:
     name: lint
@@ -52,18 +43,8 @@ jobs:
         with:
           go-version: '1.18.4'
       - uses: actions/checkout@v2
-      - name: Setup SSH Keys and known_hosts
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          ssh-add - <<< "${{ secrets.CAPEBOT_SSH_KEY }}"
-      - name: Configure git for private modules
-        run: git config --global url."git@github.com:".insteadOf "https://github.com"
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         with:
           version: v1.47.2
           args: --timeout=3m0s --verbose
