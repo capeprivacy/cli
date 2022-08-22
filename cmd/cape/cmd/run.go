@@ -127,16 +127,17 @@ func run(cmd *cobra.Command, args []string) error {
 		input = buf.Bytes()
 	}
 
-	authType := entities.AuthenticationTypeAuth0
+	t, err := getAuthToken()
+	if err != nil {
+		return err
+	}
+	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t}
 	if functionToken != "" {
-		authType = entities.AuthenticationTypeFunctionToken
+		auth.Type = entities.AuthenticationTypeFunctionToken
+		auth.Token = functionToken
 	}
 
-	a := entities.FunctionAuth{
-		Token: functionToken,
-		Type:  authType,
-	}
-	results, err := doRun(u, functionID, input, insecure, funcHash, a, keyPolicyHash, pcrSlice)
+	results, err := doRun(u, functionID, input, insecure, funcHash, auth, keyPolicyHash, pcrSlice)
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)
 	}
