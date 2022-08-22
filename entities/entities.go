@@ -2,8 +2,6 @@ package entities
 
 import (
 	"fmt"
-
-	"github.com/capeprivacy/go-kit/id"
 )
 
 type StartRequest struct {
@@ -43,8 +41,8 @@ type TestRequest struct {
 }
 
 type RunJobsResponse struct {
-	FunctionID *id.ID `json:"function_id"`
-	Done       bool   `json:"done"`
+	FunctionID ID   `json:"function_id"`
+	Done       bool `json:"done"`
 }
 
 type SetDeploymentIDRequest struct {
