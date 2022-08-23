@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -37,7 +37,7 @@ type TokenResponse struct {
 
 var loginCmd = &cobra.Command{
 	Use:   "login",
-	Short: "Login to cape application",
+	Short: "Login to Cape",
 	RunE:  login,
 }
 
@@ -72,6 +72,7 @@ func login(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println("Congratulations, you're all set!")
+	fmt.Printf("Your access token: %s \n", tokenResponse.AccessToken)
 	return nil
 }
 
@@ -90,7 +91,7 @@ func newDeviceCode() (*DeviceCodeResponse, error) {
 	}
 
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +130,7 @@ func getToken(deviceCode string) (*TokenResponse, error) {
 	}
 
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +159,7 @@ func persistTokenResponse(response *TokenResponse) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(C.LocalConfigDir, C.LocalAuthFileName), authJSON, 0644)
+	err = os.WriteFile(filepath.Join(C.LocalConfigDir, C.LocalAuthFileName), authJSON, 0644)
 	if err != nil {
 		return err
 	}
@@ -173,7 +174,7 @@ func getTokenResponse() (*TokenResponse, error) {
 	}
 	defer authFile.Close()
 
-	byteValue, err := ioutil.ReadAll(authFile)
+	byteValue, err := io.ReadAll(authFile)
 	if err != nil {
 		return nil, err
 	}
@@ -185,45 +186,6 @@ func getTokenResponse() (*TokenResponse, error) {
 	}
 
 	return &response, nil
-}
-
-func refreshTokenResponse(refreshToken string) error {
-	deviceCodeURL := fmt.Sprintf("%s/oauth/token", C.AuthHost)
-	payloadStr := fmt.Sprintf("grant_type=refresh_token&client_id=%s&refresh_token=%s", C.ClientID, refreshToken)
-	req, err := http.NewRequest("POST", deviceCodeURL, strings.NewReader(payloadStr))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Add("content-type", "application/x-www-form-urlencoded")
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
-
-	if res.StatusCode != 200 {
-		return errors.New("unable to refresh authentication details")
-	}
-
-	response := TokenResponse{}
-	err = json.Unmarshal(body, &response)
-	if err != nil {
-		return err
-	}
-
-	response.RefreshToken = refreshToken
-	err = persistTokenResponse(&response)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // Based on GIST: https://gist.github.com/hyg/9c4afcd91fe24316cbf0

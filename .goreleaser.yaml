@@ -24,7 +24,7 @@ builds:
       # by removing unneeded symbol information.
       - -s -w -X github.com/capeprivacy/cli/cmd/cape/cmd.version={{.Version}}
 archives:
-  - name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  - name_template: "{{ .Binary }}_{{ .Os }}_{{ .Arch }}"
     files:
       - none*
     replacements:

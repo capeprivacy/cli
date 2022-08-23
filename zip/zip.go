@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 )
 
-func Walker(w *zip.Writer, zipRoot string) filepath.WalkFunc {
+func walker(w *zip.Writer) filepath.WalkFunc {
 	return func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -23,6 +23,8 @@ func Walker(w *zip.Writer, zipRoot string) filepath.WalkFunc {
 			return err
 		}
 		defer file.Close()
+
+		path = filepath.ToSlash(path)
 
 		f, err := w.Create(path)
 		if err != nil {
@@ -43,7 +45,19 @@ func Create(input string) ([]byte, error) {
 	zipRoot := filepath.Base(input)
 	w := zip.NewWriter(buf)
 
-	if err := filepath.Walk(input, Walker(w, zipRoot)); err != nil {
+	savedDir, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
+	// change dir to just above zip root incase we're many nested directories in
+	err = os.Chdir(filepath.Join(input, ".."))
+	if err != nil {
+		return nil, err
+	}
+	defer os.Chdir(savedDir) // nolint: errcheck
+
+	if err := filepath.Walk(zipRoot, walker(w)); err != nil {
 		return nil, fmt.Errorf("zipping directory failed: %w", err)
 	}
 

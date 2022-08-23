@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/capeprivacy/cli/config"
 
@@ -21,6 +22,15 @@ type PlainFormatter struct {
 
 func (f *PlainFormatter) Format(entry *log.Entry) ([]byte, error) {
 	return []byte(fmt.Sprintf("%s\n", entry.Message)), nil
+}
+
+type UserError struct {
+	Msg string
+	Err error
+}
+
+func (e UserError) Error() string {
+	return fmt.Sprintf("%s: %s", e.Msg, e.Err.Error())
 }
 
 // rootCmd represents the base command when called without any subcommands
@@ -46,17 +56,19 @@ var rootCmd = &cobra.Command{
 // ExecuteCLI adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func ExecuteCLI() {
-	cobra.CheckErr(rootCmd.Execute())
+	if rootCmd.Execute() != nil {
+		fmt.Println("Command failed with error.")
+		os.Exit(1)
+	}
 }
 
 func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringP("config", "c", "$HOME/.config/cape/presets.json", "config file")
-	rootCmd.PersistentFlags().StringP("url", "u", "https://maestro-dev.us.auth0.com", "cape cloud URL")
+	rootCmd.PersistentFlags().StringP("url", "u", "wss://enclave.capeprivacy.com", "cape cloud URL")
 	rootCmd.PersistentFlags().Bool("insecure", false, "!!! For development only !!! Disable TLS certificate verification.")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
-	rootCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
 
 	if err := rootCmd.PersistentFlags().MarkHidden("insecure"); err != nil {
 		log.Error("flag not found")
@@ -115,19 +127,19 @@ func initConfig() {
 		log.Error("failed to bind config variable.")
 		cobra.CheckErr(err)
 	}
-	viper.SetDefault("AUDIENCE", "https://newdemo.capeprivacy.com/v1/")
+	viper.SetDefault("AUDIENCE", "https://app.capeprivacy.com/v1/")
 
 	if err := viper.BindEnv("ENCLAVE_HOST"); err != nil {
 		log.Error("failed to bind config variable.")
 		cobra.CheckErr(err)
 	}
-	viper.SetDefault("ENCLAVE_HOST", "wss://hackathon.capeprivacy.com")
+	viper.SetDefault("ENCLAVE_HOST", "wss://enclave.capeprivacy.com")
 
 	if err := viper.BindEnv("CLIENT_ID"); err != nil {
 		log.Error("failed to bind config variable.")
 		cobra.CheckErr(err)
 	}
-	viper.SetDefault("CLIENT_ID", "yQnobkOr1pvdDAyXwNojkNV2IPbNfXxx")
+	viper.SetDefault("CLIENT_ID", "oXITxpCdjvRYSDJtaMeycvveqE9qadUS")
 
 	if err := viper.BindEnv("LOCAL_AUTH_FILE_NAME"); err != nil {
 		log.Error("failed to bind config variable.")
@@ -142,8 +154,8 @@ func initConfig() {
 	viper.SetDefault("DEV_DISABLE_SSL", false)
 
 	C.Audience = viper.GetString("AUDIENCE")
-	C.AuthHost = "https://api.capeprivacy.com"
-	C.EnclaveHost = viper.GetString("ENCLAVE_HOST")
+	C.AuthHost = "https://app.capeprivacy.com"
+	C.EnclaveHost = strings.TrimSuffix(viper.GetString("ENCLAVE_HOST"), "/")
 	C.ClientID = viper.GetString("CLIENT_ID")
 	C.LocalConfigDir = viper.GetString("LOCAL_CONFIG_DIR")
 	C.LocalAuthFileName = viper.GetString("LOCAL_AUTH_FILE_NAME")

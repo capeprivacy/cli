@@ -54,7 +54,7 @@ func LocalEncrypt(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) {
 	log.Debug("\n* Encrypting Inputs")
 	log.Debugf("\t* Loading Public Key from Attestation Document")
 	publicKey := doc.PublicKey
-	log.Debugf("\t** Retrieved Public Key: %s", publicKey)
+	log.Debugf("\t** Retrieved Public Key: %x", publicKey)
 
 	log.Debugf("\t* Configuring Hybrid Public Key Encryption (HPKE): ")
 	suite := hpke.NewSuite(kemID, kdfID, aeadID)
@@ -76,7 +76,7 @@ func LocalEncrypt(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to encrypt %s", err)
 	}
-	log.Debugf("\t** Encapsulated Key: %s", encapsulatedKey)
+	log.Debugf("\t** Encapsulated Key: %x", encapsulatedKey)
 
 	log.Debugf("\t* Generating Ciphertext")
 	ciphertext, err := sealer.Seal(plaintext, nil)

@@ -20,12 +20,10 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	sentinelEntities "github.com/capeprivacy/sentinel/entities"
+	"github.com/capeprivacy/cli/entities"
+	"github.com/capeprivacy/cli/protocol"
 
 	"github.com/capeprivacy/cli/attest"
-	"github.com/capeprivacy/cli/pcrs"
-
-	"github.com/capeprivacy/sentinel/runner"
 
 	"github.com/capeprivacy/cli/crypto"
 
@@ -44,6 +42,16 @@ type DeployResponse struct {
 	ID string `json:"id"`
 }
 
+const storedFunctionMaxBytes = 1_000_000_000
+
+type OversizeFunctionError struct {
+	bytes int64
+}
+
+func (e OversizeFunctionError) Error() string {
+	return fmt.Sprintf("deployment (%d bytes) exceeds size limit of %d bytes", e.bytes, storedFunctionMaxBytes)
+}
+
 // deployCmd represents the request command
 var deployCmd = &cobra.Command{
 	Use:   "deploy directory | zip_file",
@@ -54,18 +62,25 @@ This will return an ID that can later be used to invoke the deployed function
 with cape run (see cape run -h for details).
 `,
 
-	RunE: deploy,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := deploy(cmd, args)
+		if _, ok := err.(UserError); !ok {
+			cmd.SilenceUsage = true
+		}
+		return err
+	},
 }
 
 func init() {
 	rootCmd.AddCommand(deployCmd)
 
 	deployCmd.PersistentFlags().StringP("name", "n", "", "a name to give this function (default is the directory name)")
+	deployCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
 }
 
 func deploy(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
-		return fmt.Errorf("you must specify a directory to upload")
+		return UserError{Msg: "you must specify a directory to upload", Err: fmt.Errorf("invalid number of input arguments")}
 	}
 
 	u := C.EnclaveHost
@@ -73,12 +88,12 @@ func deploy(cmd *cobra.Command, args []string) error {
 
 	n, err := cmd.Flags().GetString("name")
 	if err != nil {
-		return err
+		return UserError{Msg: "name not specified correctly", Err: err}
 	}
 
 	pcrSlice, err := cmd.Flags().GetStringSlice("pcr")
 	if err != nil {
-		return fmt.Errorf("error retrieving pcr flags %s", err)
+		return UserError{Msg: "error retrieving pcr flags", Err: err}
 	}
 
 	functionInput := args[0]
@@ -87,7 +102,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 		name = n
 	}
 
-	dID, hash, err := Deploy(u, functionInput, name, insecure, pcrSlice)
+	dID, hash, err := doDeploy(u, functionInput, name, insecure, pcrSlice)
 	if err != nil {
 		return err
 	}
@@ -97,7 +112,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func Deploy(url string, functionInput string, functionName string, insecure bool, pcrSlice []string) (string, []byte, error) {
+func doDeploy(url string, functionInput string, functionName string, insecure bool, pcrSlice []string) (string, []byte, error) {
 	file, err := os.Open(functionInput)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to read function directory or file: %w", err)
@@ -109,10 +124,15 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 	}
 
 	isZip := false
+	var fileSize int64
 	if st.IsDir() {
 		_, err = file.Readdirnames(1)
 		if err != nil {
 			return "", nil, fmt.Errorf("please pass in a non-empty directory: %w", err)
+		}
+		fileSize, err = dirSize(functionInput)
+		if err != nil {
+			return "", nil, fmt.Errorf("error reading file size: %w", err)
 		}
 	} else {
 		// Check if file ends with ".zip" extension.
@@ -121,6 +141,19 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 			return "", nil, fmt.Errorf("expected argument %s to be a zip file or directory", functionInput)
 		}
 		isZip = true
+		zSize, err := zipSize(functionInput)
+		if err != nil {
+			return "", nil, err
+		}
+
+		fileSize = int64(zSize)
+	}
+
+	log.Debugf("Deployment size: %d bytes", fileSize)
+	if fileSize > storedFunctionMaxBytes {
+		err = OversizeFunctionError{bytes: fileSize}
+		log.Error(err.Error())
+		return "", nil, err
 	}
 
 	err = file.Close()
@@ -138,26 +171,20 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 
 		reader = f
 	} else {
-		buf := new(bytes.Buffer)
-		zipRoot := filepath.Base(functionInput)
-		w := zip.NewWriter(buf)
-
-		err = filepath.Walk(functionInput, czip.Walker(w, zipRoot))
+		buf, err := czip.Create(functionInput)
 		if err != nil {
-			return "", nil, fmt.Errorf("zipping directory failed: %w", err)
+			return "", nil, err
 		}
 
-		// Explicitly close now so that the bytes are flushed and
-		// available in buf.Bytes() below.
-		err = w.Close()
-		if err != nil {
-			return "", nil, fmt.Errorf("zipping directory failed: %w", err)
-		}
-
-		reader = buf
+		reader = bytes.NewBuffer(buf)
 	}
 
-	id, hash, err := doDeploy(url, functionName, reader, insecure, pcrSlice)
+	token, err := getAuthToken()
+	if err != nil {
+		return "", nil, err
+	}
+
+	id, hash, err := Deploy(url, token, functionName, reader, insecure, pcrSlice)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to deploy function: %w", err)
 	}
@@ -165,12 +192,36 @@ func Deploy(url string, functionInput string, functionName string, insecure bool
 	return id, hash, nil
 }
 
-func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice []string) (string, []byte, error) {
+func dirSize(path string) (int64, error) {
+	var size int64
+	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return nil
+	})
+	return size, err
+}
+
+func zipSize(path string) (uint64, error) {
+	var size uint64
+	r, err := zip.OpenReader(path)
+	if err != nil {
+		return 0, err
+	}
+	for _, f := range r.File {
+		size += f.UncompressedSize64
+	}
+
+	return size, nil
+}
+
+func Deploy(url string, token string, name string, reader io.Reader, insecure bool, pcrSlice []string) (string, []byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/deploy", url)
 
 	log.Info("Deploying function to Cape ...")
 
-	conn, res, err := websocketDial(endpoint, insecure)
+	conn, res, err := websocketDial(endpoint, insecure, "cape.runtime", token)
 	if err != nil {
 		log.Error("error dialing websocket: ", err)
 		// This check is necessary because we don't necessarily return an http response from sentinel.
@@ -185,15 +236,11 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice
 		}
 		return "", nil, err
 	}
+	defer conn.Close()
 
-	p := runner.Protocol{Websocket: conn}
+	p := protocol.Protocol{Websocket: conn}
 
 	nonce, err := crypto.GetNonce()
-	if err != nil {
-		return "", nil, err
-	}
-
-	token, err := getAuthToken()
 	if err != nil {
 		return "", nil, err
 	}
@@ -203,7 +250,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice
 		return "", nil, err
 	}
 
-	req := sentinelEntities.StartRequest{Nonce: []byte(nonce), AuthToken: token}
+	req := entities.StartRequest{Nonce: []byte(nonce), AuthToken: token}
 	log.Debug("\n> Sending Nonce and Auth Token")
 	if err := p.WriteStart(req); err != nil {
 		log.Error("error writing deploy request")
@@ -231,12 +278,6 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice
 		return "", nil, err
 	}
 
-	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(pcrSlice), doc)
-	if err != nil {
-		log.Println("error verifying PCRs")
-		return "", nil, err
-	}
-
 	hasher := sha256.New()
 	// tReader is used to stream data to the hasher function.
 	tReader := io.TeeReader(reader, hasher)
@@ -245,6 +286,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice
 		log.Error("error reading plaintext function")
 		return "", nil, err
 	}
+
 	// Print out the hash to the user.
 	hash := hasher.Sum(nil)
 	ciphertext, err := crypto.LocalEncrypt(*doc, plaintext)
@@ -276,7 +318,7 @@ func doDeploy(url string, name string, reader io.Reader, insecure bool, pcrSlice
 	return resData.ID, hash, nil
 }
 
-func websocketDial(url string, insecure bool) (*websocket.Conn, *http.Response, error) {
+func websocketDial(url string, insecure bool, authProtocolType string, authToken string) (*websocket.Conn, *http.Response, error) {
 	if insecure {
 		websocket.DefaultDialer.TLSClientConfig = &tls.Config{
 			InsecureSkipVerify: true,
@@ -288,10 +330,12 @@ func websocketDial(url string, insecure bool) (*websocket.Conn, *http.Response, 
 		str += " (insecure)"
 	}
 
+	secWebsocketProtocol := http.Header{"Sec-Websocket-Protocol": []string{authProtocolType, authToken}}
+
 	log.Debug(str)
-	c, r, err := websocket.DefaultDialer.Dial(url, nil)
+	c, r, err := websocket.DefaultDialer.Dial(url, secWebsocketProtocol)
 	if err != nil {
-		return nil, nil, err
+		return nil, r, err
 	}
 
 	log.Debugf("* Websocket connection established")
