@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/capeprivacy/cli/config"
 
@@ -65,7 +66,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringP("config", "c", "$HOME/.config/cape/presets.json", "config file")
-	rootCmd.PersistentFlags().StringP("url", "u", "https://enclave.capeprivacy.com", "cape cloud URL")
+	rootCmd.PersistentFlags().StringP("url", "u", "wss://enclave.capeprivacy.com", "cape cloud URL")
 	rootCmd.PersistentFlags().Bool("insecure", false, "!!! For development only !!! Disable TLS certificate verification.")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
 
@@ -162,9 +163,9 @@ func initConfig() {
 	}
 	viper.SetDefault("DEV_DISABLE_SSL", false)
 
-	C.Audience = viper.GetString("AUDIENCE")
-	C.AuthHost = viper.GetString("AUTH_HOST")
-	C.EnclaveHost = viper.GetString("ENCLAVE_HOST")
+	C.Audience = strings.TrimSuffix(viper.GetString("AUDIENCE"), "/")
+	C.AuthHost = strings.TrimSuffix(viper.GetString("AUTH_HOST"), "/")
+	C.EnclaveHost = strings.TrimSuffix(viper.GetString("ENCLAVE_HOST"), "/")
 	C.ClientID = viper.GetString("CLIENT_ID")
 	C.LocalConfigDir = viper.GetString("LOCAL_CONFIG_DIR")
 	C.LocalAuthFileName = viper.GetString("LOCAL_AUTH_FILE_NAME")
