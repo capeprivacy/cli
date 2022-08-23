@@ -72,6 +72,10 @@ func run(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "you must pass a function ID", Err: fmt.Errorf("invalid number of input arguments")}
 	}
 
+	if len(args) > 2 {
+		return UserError{Msg: "you must pass in only one input data (stdin, string or filename)", Err: fmt.Errorf("invalid number of input arguments")}
+	}
+
 	functionID := args[0]
 
 	var input []byte
@@ -127,16 +131,17 @@ func run(cmd *cobra.Command, args []string) error {
 		input = buf.Bytes()
 	}
 
-	authType := entities.AuthenticationTypeAuth0
+	t, err := getAuthToken()
+	if err != nil {
+		return err
+	}
+	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t}
 	if functionToken != "" {
-		authType = entities.AuthenticationTypeFunctionToken
+		auth.Type = entities.AuthenticationTypeFunctionToken
+		auth.Token = functionToken
 	}
 
-	a := entities.FunctionAuth{
-		Token: functionToken,
-		Type:  authType,
-	}
-	results, err := doRun(u, functionID, input, insecure, funcHash, a, keyPolicyHash, pcrSlice)
+	results, err := doRun(u, functionID, input, insecure, funcHash, auth, keyPolicyHash, pcrSlice)
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)
 	}
