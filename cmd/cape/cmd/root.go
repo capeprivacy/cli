@@ -163,7 +163,7 @@ func initConfig() {
 	}
 	viper.SetDefault("DEV_DISABLE_SSL", false)
 
-	C.Audience = strings.TrimSuffix(viper.GetString("AUDIENCE"), "/")
+	C.Audience = viper.GetString("AUDIENCE")
 	C.AuthHost = strings.TrimSuffix(viper.GetString("AUTH_HOST"), "/")
 	C.EnclaveHost = strings.TrimSuffix(viper.GetString("ENCLAVE_HOST"), "/")
 	C.ClientID = viper.GetString("CLIENT_ID")
