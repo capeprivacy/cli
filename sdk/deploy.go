@@ -74,9 +74,7 @@ func Deploy(req DeployRequest) (string, []byte, error) {
 		return "", nil, err
 	}
 
-	metadata := entities.FunctionMetadata{FunctionAuthenticationType: string(auth.Type)}
-
-	r := entities.StartRequest{Nonce: []byte(nonce), AuthToken: auth.Token, Metadata: metadata}
+	r := entities.StartRequest{Nonce: []byte(nonce), AuthToken: auth.Token}
 	log.Debug("\n> Sending Nonce and Auth Token")
 	if err := p.WriteStart(r); err != nil {
 		log.Error("error writing deploy request")

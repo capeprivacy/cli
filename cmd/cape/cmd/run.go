@@ -66,6 +66,10 @@ func run(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "you must pass a function ID", Err: fmt.Errorf("invalid number of input arguments")}
 	}
 
+	if len(args) > 2 {
+		return UserError{Msg: "you must pass in only one input data (stdin, string or filename)", Err: fmt.Errorf("invalid number of input arguments")}
+	}
+
 	functionID := args[0]
 
 	var input []byte

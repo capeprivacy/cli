@@ -62,7 +62,6 @@ func init() {
 
 	deployCmd.PersistentFlags().StringP("name", "n", "", "a name to give this function (default is the directory name)")
 	deployCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
-	deployCmd.PersistentFlags().StringP("authType", "", entities.AuthenticationTypeAuth0.String(), "function authentication type")
 }
 
 func deploy(cmd *cobra.Command, args []string) error {
@@ -83,23 +82,13 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "error retrieving pcr flags", Err: err}
 	}
 
-	authTypeStr, err := cmd.Flags().GetString("authType")
-	if err != nil {
-		return fmt.Errorf("error retrieving auth type %s", err)
-	}
-
-	authType := entities.AuthenticationType(authTypeStr)
-	if err := authType.Validate(); err != nil {
-		return err
-	}
-
 	functionInput := args[0]
 	name := functionInput
 	if n != "" {
 		name = n
 	}
 
-	dID, hash, err := doDeploy(u, functionInput, name, authType, insecure, pcrSlice)
+	dID, hash, err := doDeploy(u, functionInput, name, insecure, pcrSlice)
 	if err != nil {
 		return err
 	}
@@ -109,7 +98,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func doDeploy(url string, functionInput string, functionName string, authType entities.AuthenticationType, insecure bool, pcrSlice []string) (string, []byte, error) {
+func doDeploy(url string, functionInput string, functionName string, insecure bool, pcrSlice []string) (string, []byte, error) {
 	file, err := os.Open(functionInput)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to read function directory or file: %w", err)
@@ -194,7 +183,6 @@ func doDeploy(url string, functionInput string, functionName string, authType en
 		PcrSlice:               pcrSlice,
 		FunctionTokenPublicKey: functionTokenPublicKey,
 		FunctionAuth: entities.FunctionAuth{
-			Type:  authType,
 			Token: token,
 		},
 	})
