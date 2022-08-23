@@ -154,15 +154,10 @@ func run(cmd *cobra.Command, args []string) error {
 }
 
 // This function is exported for tuner to use.
-func Run(url string, token string, functionID string, file string, insecure bool) ([]byte, error) {
+func Run(url string, auth entities.FunctionAuth, functionID string, file string, insecure bool) ([]byte, error) {
 	input, err := os.ReadFile(file)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read data file: %w", err)
-	}
-
-	a := entities.FunctionAuth{
-		Token: token,
-		Type:  entities.AuthenticationTypeAuth0,
 	}
 
 	// TODO: Tuner may want to verify function hash later.
@@ -172,7 +167,7 @@ func Run(url string, token string, functionID string, file string, insecure bool
 		Data:         input,
 		Insecure:     insecure,
 		PcrSlice:     []string{},
-		FunctionAuth: a,
+		FunctionAuth: auth,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error processing data: %w", err)
