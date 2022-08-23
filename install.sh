@@ -56,9 +56,8 @@ main() {
 		/bin/zsh) shell_profile=".zshrc" ;;
 		*) shell_profile=".bashrc" ;;
 		esac
-		echo "Manually add the directory to your \$HOME/$shell_profile (or similar)"
-		echo "  export CAPE_INSTALL=\"$cape_install\""
-		echo "  export PATH=\"\$CAPE_INSTALL/bin:\$PATH\""
+		echo "Run the following to make cape accessible globally:"
+		echo "  sudo cp $bin_dir/cape /usr/local/bin/"
 		echo "Run '$exe --help' to get started"
 	fi
 
