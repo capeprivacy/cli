@@ -10,7 +10,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/capeprivacy/cli/capetest"
+	"github.com/capeprivacy/cli/sdk"
 	czip "github.com/capeprivacy/cli/zip"
 )
 
@@ -80,7 +80,7 @@ func Test(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	res, err := test(capetest.TestRequest{Function: fnZip, Input: input, AuthToken: token}, u+"/v1/test", insecure)
+	res, err := test(sdk.TestRequest{Function: fnZip, Input: input, AuthToken: token, Insecure: insecure}, u+"/v1/test")
 	if err != nil {
 		return err
 	}
@@ -94,4 +94,4 @@ func Test(cmd *cobra.Command, args []string) error {
 }
 
 var authToken = getAuthToken
-var test = capetest.CapeTest
+var test = sdk.Test

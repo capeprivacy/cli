@@ -3,21 +3,15 @@ package cmd
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
-	"reflect"
 
-	"github.com/gorilla/websocket"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
+	"github.com/capeprivacy/cli/entities"
+
 	"github.com/spf13/cobra"
 
-	"github.com/capeprivacy/cli/attest"
-	"github.com/capeprivacy/cli/crypto"
-	"github.com/capeprivacy/cli/entities"
-	"github.com/capeprivacy/cli/protocol"
+	"github.com/capeprivacy/cli/sdk"
 )
 
 // runCmd represents the run command
@@ -141,7 +135,16 @@ func run(cmd *cobra.Command, args []string) error {
 		auth.Token = functionToken
 	}
 
-	results, err := doRun(u, functionID, input, insecure, funcHash, auth, keyPolicyHash, pcrSlice)
+	results, err := sdk.Run(sdk.RunRequest{
+		URL:           u,
+		FunctionID:    functionID,
+		Data:          input,
+		Insecure:      insecure,
+		FuncHash:      funcHash,
+		KeyPolicyHash: keyPolicyHash,
+		PcrSlice:      pcrSlice,
+		FunctionAuth:  auth,
+	})
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)
 	}
@@ -150,7 +153,7 @@ func run(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// This function is exported for tuner to use.
+// TODO: This function is exported for tuner to use. Remove once tuner is using sdk.Run directly
 func Run(url string, auth entities.FunctionAuth, functionID string, file string, insecure bool) ([]byte, error) {
 	input, err := os.ReadFile(file)
 	if err != nil {
@@ -158,124 +161,17 @@ func Run(url string, auth entities.FunctionAuth, functionID string, file string,
 	}
 
 	// TODO: Tuner may want to verify function hash later.
-	res, err := doRun(url, functionID, input, insecure, nil, auth, nil, []string{})
+	res, err := sdk.Run(sdk.RunRequest{
+		URL:          url,
+		FunctionID:   functionID,
+		Data:         input,
+		Insecure:     insecure,
+		PcrSlice:     []string{},
+		FunctionAuth: auth,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("error processing data: %w", err)
 	}
 
 	return res, nil
-}
-
-func doRun(url string, functionID string, data []byte, insecure bool, funcHash []byte, auth entities.FunctionAuth, keyPolicyHash []byte, pcrSlice []string) ([]byte, error) { //nolint:gocognit
-	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
-
-	authProtocolType := "cape.runtime"
-	if auth.Type == entities.AuthenticationTypeFunctionToken {
-		authProtocolType = "cape.function"
-	}
-	c, res, err := websocketDial(endpoint, insecure, authProtocolType, auth.Token)
-	if err != nil {
-		log.Error("error dialing websocket: ", err)
-		// This check is necessary because we don't necessarily return an http response from sentinel.
-		// Http error code and message is returned if network routing fails.
-		if res != nil {
-			var e ErrorMsg
-			if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-				return nil, err
-			}
-			res.Body.Close()
-			return nil, fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
-		}
-		return nil, err
-	}
-	defer c.Close()
-
-	nonce, err := crypto.GetNonce()
-	if err != nil {
-		return nil, err
-	}
-
-	p := protocol.Protocol{Websocket: c}
-
-	req := entities.StartRequest{Nonce: []byte(nonce), AuthToken: auth.Token}
-	log.Debug("\n> Sending Nonce and Auth Token")
-	err = p.WriteStart(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "error writing run request")
-	}
-
-	log.Debug("* Waiting for attestation document...")
-
-	attestDoc, err := p.ReadAttestationDoc()
-	if err != nil {
-		log.Println("error reading attestation doc")
-		return nil, err
-	}
-
-	log.Debug("< Downloading AWS Root Certificate")
-	rootCert, err := attest.GetRootAWSCert()
-	if err != nil {
-		return nil, err
-	}
-
-	log.Debug("< Auth Completed. Received Attestation Document")
-	doc, userData, err := attest.Attest(attestDoc, rootCert)
-	if err != nil {
-		log.Println("error attesting")
-		return nil, err
-	}
-
-	if userData.FuncHash == nil && len(funcHash) > 0 {
-		return nil, fmt.Errorf("did not receive function hash from enclave")
-	}
-
-	// If function hash as an optional parameter has not been specified by the user, then we don't check the value.
-	if len(funcHash) > 0 && !reflect.DeepEqual(funcHash, userData.FuncHash) {
-		return nil, fmt.Errorf("returned function hash did not match provided, got: %x, want %x", userData.FuncHash, funcHash)
-	}
-
-	if userData.KeyPolicyHash == nil && len(keyPolicyHash) > 0 {
-		return nil, fmt.Errorf("did not receive key policy hash from enclave")
-	}
-
-	if len(keyPolicyHash) > 0 && !reflect.DeepEqual(keyPolicyHash, userData.KeyPolicyHash) {
-		return nil, fmt.Errorf("returned key policy hash did not match provided, got: %x, want %x", userData.KeyPolicyHash, keyPolicyHash)
-	}
-
-	encryptedData, err := crypto.LocalEncrypt(*doc, data)
-	if err != nil {
-		log.Println("error encrypting")
-		return nil, err
-	}
-
-	log.Debug("\n> Sending Encrypted Inputs")
-	err = writeData(c, encryptedData)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Debug("* Waiting for function results...")
-
-	resData, err := p.ReadRunResults()
-	if err != nil {
-		return nil, err
-	}
-	log.Debugf("< Received Function Results.")
-
-	return resData.Message, nil
-}
-
-func writeData(conn *websocket.Conn, data []byte) error {
-	w, err := conn.NextWriter(websocket.BinaryMessage)
-	if err != nil {
-		return err
-	}
-	defer w.Close()
-
-	_, err = w.Write(data)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
