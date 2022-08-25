@@ -15,7 +15,7 @@ var functionCmd = &cobra.Command{
 
 var functionCreateCmd = &cobra.Command{
 	Use:   "create [name]",
-	Short: "Creates the boilerplate code for creating a function",
+	Short: "Creates the boilerplate code for a function",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := create(cmd, args)
 		if _, ok := err.(UserError); !ok {
