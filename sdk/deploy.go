@@ -30,7 +30,7 @@ func GetProtocol(ws *websocket.Conn) Protocol {
 }
 
 type DeployRequest struct {
-	Url                    string
+	URL                    string
 	Name                   string
 	Reader                 io.Reader
 	PcrSlice               []string
@@ -44,7 +44,7 @@ type DeployRequest struct {
 // Deploy encrypts the given function data within a secure enclave and stores the encrypted function for future use.
 // Returns a function ID upon successful deployment. The stored function can only be decrypted within an enclave.
 func Deploy(req DeployRequest) (string, []byte, error) {
-	endpoint := fmt.Sprintf("%s/v1/deploy", req.Url)
+	endpoint := fmt.Sprintf("%s/v1/deploy", req.URL)
 
 	log.Info("Deploying function to Cape ...")
 

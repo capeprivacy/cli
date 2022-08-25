@@ -175,7 +175,7 @@ func doDeploy(url string, functionInput string, functionName string, insecure bo
 	}
 
 	id, hash, err := sdk.Deploy(sdk.DeployRequest{
-		Url:                    url,
+		URL:                    url,
 		Name:                   functionName,
 		Reader:                 reader,
 		Insecure:               insecure,
