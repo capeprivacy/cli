@@ -1,6 +1,5 @@
 package sdk
 
-import "C"
 import (
 	"bytes"
 	"crypto/sha256"
