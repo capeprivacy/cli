@@ -74,13 +74,13 @@ func create(cmd *cobra.Command, args []string) error {
 
 	reqF, err := os.Create(filepath.Join(name, "requirements.txt"))
 	if err != nil {
-		return UserError{Msg: "unable to create app.py file", Err: err}
+		return UserError{Msg: "unable to create requirements.txt file", Err: err}
 	}
 	defer reqF.Close()
 
 	_, err = reqF.Write([]byte(requirementsContents))
 	if err != nil {
-		return UserError{Msg: "unable to write to app.py", Err: err}
+		return UserError{Msg: "unable to write to requirements.txt", Err: err}
 	}
 
 	return nil
