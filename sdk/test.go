@@ -28,11 +28,11 @@ type ErrorMsg struct {
 	Error string `json:"error"`
 }
 
-// CapeTest simulates the workflow of Deploy and Run, without storing the function.
+// Test simulates the workflow of Deploy and Run, without storing the function.
 // It loads the given function into an enclave, runs it on the given data, and returns the result.
-// Use CapeTest to verify that your function will work before storing it via Deploy.
-func CapeTest(testReq TestRequest, endpoint string) (*entities.RunResults, error) {
-	conn, resp, err := WebsocketDial(endpoint, testReq.Insecure, "cape.runtime", testReq.AuthToken)
+// Use Test to verify that your function will work before storing it via Deploy.
+func Test(testReq TestRequest, endpoint string) (*entities.RunResults, error) {
+	conn, resp, err := websocketDial(endpoint, testReq.Insecure, "cape.runtime", testReq.AuthToken)
 	if err != nil {
 		log.Error("error dialing websocket", err)
 		// This check is necessary because we don't necessarily return an http response from sentinel.
@@ -111,7 +111,7 @@ func CapeTest(testReq TestRequest, endpoint string) (*entities.RunResults, error
 	return res, nil
 }
 
-func WebsocketDial(url string, insecure bool, authProtocolType string, authToken string) (*websocket.Conn, *http.Response, error) {
+func websocketDial(url string, insecure bool, authProtocolType string, authToken string) (*websocket.Conn, *http.Response, error) {
 	if insecure {
 		websocket.DefaultDialer.TLSClientConfig = &tls.Config{
 			InsecureSkipVerify: true,
@@ -135,6 +135,5 @@ func WebsocketDial(url string, insecure bool, authProtocolType string, authToken
 	return c, r, nil
 }
 
-var getProtocol = GetProtocol
 var runAttestation = attest.Attest
 var localEncrypt = crypto.LocalEncrypt

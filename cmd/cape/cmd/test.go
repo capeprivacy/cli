@@ -94,4 +94,4 @@ func Test(cmd *cobra.Command, args []string) error {
 }
 
 var authToken = getAuthToken
-var test = sdk.CapeTest
+var test = sdk.Test

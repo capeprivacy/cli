@@ -153,7 +153,7 @@ func run(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// This function is exported for tuner to use.
+// TODO: This function is exported for tuner to use. Remove once tuner is using sdk.Run directly
 func Run(url string, auth entities.FunctionAuth, functionID string, file string, insecure bool) ([]byte, error) {
 	input, err := os.ReadFile(file)
 	if err != nil {

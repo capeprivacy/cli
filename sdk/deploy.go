@@ -16,7 +16,7 @@ import (
 	proto "github.com/capeprivacy/cli/protocol"
 )
 
-type Protocol interface {
+type protocol interface {
 	WriteStart(request entities.StartRequest) error
 	ReadAttestationDoc() ([]byte, error)
 	ReadRunResults() (*entities.RunResults, error)
@@ -25,7 +25,7 @@ type Protocol interface {
 	ReadDeploymentResults() (*entities.SetDeploymentIDRequest, error)
 }
 
-func GetProtocol(ws *websocket.Conn) Protocol {
+func getProtocol(ws *websocket.Conn) protocol {
 	return proto.Protocol{Websocket: ws}
 }
 
@@ -37,7 +37,7 @@ type DeployRequest struct {
 	FunctionTokenPublicKey string
 	AuthToken              string
 
-	// For development use only: circumvents some token authorization when true
+	// For development use only: skips validating TLS certificate from the URL
 	Insecure bool
 }
 
@@ -48,7 +48,7 @@ func Deploy(req DeployRequest) (string, []byte, error) {
 
 	log.Info("Deploying function to Cape ...")
 
-	conn, res, err := WebsocketDial(endpoint, req.Insecure, "cape.runtime", req.AuthToken)
+	conn, res, err := websocketDial(endpoint, req.Insecure, "cape.runtime", req.AuthToken)
 	if err != nil {
 		log.Error("error dialing websocket: ", err)
 		// This check is necessary because we don't necessarily return an http response from sentinel.
@@ -65,7 +65,7 @@ func Deploy(req DeployRequest) (string, []byte, error) {
 	}
 	defer conn.Close()
 
-	p := GetProtocol(conn)
+	p := getProtocol(conn)
 
 	nonce, err := crypto.GetNonce()
 	if err != nil {

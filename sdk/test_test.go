@@ -81,7 +81,7 @@ func TestCapeTest(t *testing.T) {
 		Insecure: true,
 	}
 
-	res, err := CapeTest(test, wsURL(s.URL))
+	res, err := Test(test, wsURL(s.URL))
 	if err != nil {
 		t.Fatal(err)
 	}

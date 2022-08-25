@@ -115,7 +115,7 @@ func TestServerError(t *testing.T) {
 		return "so logged in", nil
 	}
 	defer func() {
-		test = sdk.CapeTest
+		test = sdk.Test
 		authToken = getAuthToken
 	}()
 
@@ -147,7 +147,7 @@ func TestSuccess(t *testing.T) {
 		return "so logged in", nil
 	}
 	defer func() {
-		test = sdk.CapeTest
+		test = sdk.Test
 		authToken = getAuthToken
 	}()
 
@@ -191,7 +191,7 @@ func TestSuccessStdin(t *testing.T) {
 		return "so logged in", nil
 	}
 	defer func() {
-		test = sdk.CapeTest
+		test = sdk.Test
 		authToken = getAuthToken
 	}()
 
@@ -245,7 +245,7 @@ func TestWSConnection(t *testing.T) {
 		return "so logged in", nil
 	}
 	defer func() {
-		test = sdk.CapeTest
+		test = sdk.Test
 		authToken = getAuthToken
 	}()
 
@@ -293,7 +293,7 @@ func TestEndpoint(t *testing.T) {
 		return "so logged in", nil
 	}
 	defer func() {
-		test = sdk.CapeTest
+		test = sdk.Test
 		authToken = getAuthToken
 	}()
 
@@ -321,7 +321,7 @@ func TestEnvVarConfigEndpoint(t *testing.T) {
 		return "so logged in", nil
 	}
 	defer func() {
-		test = sdk.CapeTest
+		test = sdk.Test
 		authToken = getAuthToken
 	}()
 
@@ -358,7 +358,7 @@ func TestFileConfigEndpoint(t *testing.T) {
 		return nil
 	}
 	defer func() {
-		test = sdk.CapeTest
+		test = sdk.Test
 		authToken = getAuthToken
 		readConfFile = viper.ReadInConfig
 	}()

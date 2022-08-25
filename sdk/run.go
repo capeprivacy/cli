@@ -23,7 +23,7 @@ type RunRequest struct {
 	PcrSlice      []string
 	FunctionAuth  entities.FunctionAuth
 
-	// For development use only: circumvents some authorization steps when true
+	// For development use only: skips validating TLS certificate from the URL
 	Insecure bool
 }
 
@@ -36,7 +36,7 @@ func Run(req RunRequest) ([]byte, error) {
 	if auth.Type == entities.AuthenticationTypeFunctionToken {
 		authProtocolType = "cape.function"
 	}
-	c, res, err := WebsocketDial(endpoint, req.Insecure, authProtocolType, auth.Token)
+	c, res, err := websocketDial(endpoint, req.Insecure, authProtocolType, auth.Token)
 	if err != nil {
 		log.Error("error dialing websocket: ", err)
 		// This check is necessary because we don't necessarily return an http response from sentinel.
