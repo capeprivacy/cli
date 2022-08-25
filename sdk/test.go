@@ -54,7 +54,7 @@ func Test(testReq TestRequest, endpoint string) (*entities.RunResults, error) {
 		return nil, err
 	}
 
-	p := getProtocol(conn)
+	p := getProtocolFn(conn)
 
 	startReq := entities.StartRequest{
 		AuthToken: testReq.AuthToken,
@@ -135,5 +135,6 @@ func websocketDial(url string, insecure bool, authProtocolType string, authToken
 	return c, r, nil
 }
 
+var getProtocolFn = getProtocol
 var runAttestation = attest.Attest
 var localEncrypt = crypto.LocalEncrypt

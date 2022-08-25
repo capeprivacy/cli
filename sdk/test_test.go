@@ -51,7 +51,7 @@ func TestCapeTest(t *testing.T) {
 	}
 	localEncrypt = func(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) { return plaintext, nil }
 
-	getProtocol = func(ws *websocket.Conn) Protocol {
+	getProtocolFn = func(ws *websocket.Conn) protocol {
 		return testProtocol{
 			start:  func(req entities.StartRequest) error { return nil },
 			attest: func() ([]byte, error) { return []byte{}, nil },
