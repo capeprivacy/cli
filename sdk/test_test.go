@@ -1,4 +1,4 @@
-package capetest
+package sdk
 
 import (
 	"crypto/x509"
@@ -19,6 +19,14 @@ type testProtocol struct {
 	attest  func() ([]byte, error)
 	results func() (*entities.RunResults, error)
 	binary  func(b []byte) error
+}
+
+func (t testProtocol) WriteFunctionPublicKey(key string) error {
+	return nil
+}
+
+func (t testProtocol) ReadDeploymentResults() (*entities.SetDeploymentIDRequest, error) {
+	return nil, nil
 }
 
 func (t testProtocol) WriteStart(request entities.StartRequest) error {
@@ -43,7 +51,7 @@ func TestCapeTest(t *testing.T) {
 	}
 	localEncrypt = func(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) { return plaintext, nil }
 
-	getProtocol = func(ws *websocket.Conn) Protocol {
+	getProtocolFn = func(ws *websocket.Conn) protocol {
 		return testProtocol{
 			start:  func(req entities.StartRequest) error { return nil },
 			attest: func() ([]byte, error) { return []byte{}, nil },
@@ -70,9 +78,10 @@ func TestCapeTest(t *testing.T) {
 	test := TestRequest{
 		Function: []byte("myfn"),
 		Input:    []byte("myinput"),
+		Insecure: true,
 	}
 
-	res, err := CapeTest(test, wsURL(s.URL), true)
+	res, err := Test(test, wsURL(s.URL))
 	if err != nil {
 		t.Fatal(err)
 	}

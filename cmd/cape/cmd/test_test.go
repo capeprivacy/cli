@@ -18,7 +18,7 @@ import (
 
 	"github.com/capeprivacy/cli/entities"
 
-	"github.com/capeprivacy/cli/capetest"
+	"github.com/capeprivacy/cli/sdk"
 	czip "github.com/capeprivacy/cli/zip"
 )
 
@@ -108,14 +108,14 @@ func TestServerError(t *testing.T) {
 	cmd.SetArgs([]string{"test", "testdata/my_fn", "hello world"})
 
 	errMsg := "something went wrong"
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, endpoint string) (*entities.RunResults, error) {
 		return nil, errors.New(errMsg)
 	}
 	authToken = func() (string, error) {
 		return "so logged in", nil
 	}
 	defer func() {
-		test = capetest.CapeTest
+		test = sdk.Test
 		authToken = getAuthToken
 	}()
 
@@ -139,7 +139,7 @@ func TestSuccess(t *testing.T) {
 	results := "success!"
 	var gotFn []byte
 	var gotInput []byte
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, endpoint string) (*entities.RunResults, error) {
 		gotFn, gotInput = testReq.Function, testReq.Input
 		return &entities.RunResults{Message: []byte(results)}, nil
 	}
@@ -147,7 +147,7 @@ func TestSuccess(t *testing.T) {
 		return "so logged in", nil
 	}
 	defer func() {
-		test = capetest.CapeTest
+		test = sdk.Test
 		authToken = getAuthToken
 	}()
 
@@ -183,7 +183,7 @@ func TestSuccessStdin(t *testing.T) {
 	results := "success!"
 	var gotFn []byte
 	var gotInput []byte
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, endpoint string) (*entities.RunResults, error) {
 		gotFn, gotInput = testReq.Function, testReq.Input
 		return &entities.RunResults{Message: []byte(results)}, nil
 	}
@@ -191,7 +191,7 @@ func TestSuccessStdin(t *testing.T) {
 		return "so logged in", nil
 	}
 	defer func() {
-		test = capetest.CapeTest
+		test = sdk.Test
 		authToken = getAuthToken
 	}()
 
@@ -227,7 +227,7 @@ func TestWSConnection(t *testing.T) {
 	type msg struct {
 		Message []byte `json:"msg"`
 	}
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, endpoint string) (*entities.RunResults, error) {
 		c, _, err := websocket.DefaultDialer.Dial(endpoint, nil)
 		if err != nil {
 			return nil, err
@@ -245,7 +245,7 @@ func TestWSConnection(t *testing.T) {
 		return "so logged in", nil
 	}
 	defer func() {
-		test = capetest.CapeTest
+		test = sdk.Test
 		authToken = getAuthToken
 	}()
 
@@ -285,7 +285,7 @@ func TestWSConnection(t *testing.T) {
 func TestEndpoint(t *testing.T) {
 	// ensure that `cape test` hits the `/v1/test` endpoint
 	endpointHit := ""
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, endpoint string) (*entities.RunResults, error) {
 		endpointHit = endpoint
 		return &entities.RunResults{Message: []byte("good job")}, nil
 	}
@@ -293,7 +293,7 @@ func TestEndpoint(t *testing.T) {
 		return "so logged in", nil
 	}
 	defer func() {
-		test = capetest.CapeTest
+		test = sdk.Test
 		authToken = getAuthToken
 	}()
 
@@ -313,7 +313,7 @@ func TestEndpoint(t *testing.T) {
 func TestEnvVarConfigEndpoint(t *testing.T) {
 	// ensure that env var overrides work for hostname
 	endpointHit := ""
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, endpoint string) (*entities.RunResults, error) {
 		endpointHit = endpoint
 		return &entities.RunResults{Message: []byte("good job")}, nil
 	}
@@ -321,7 +321,7 @@ func TestEnvVarConfigEndpoint(t *testing.T) {
 		return "so logged in", nil
 	}
 	defer func() {
-		test = capetest.CapeTest
+		test = sdk.Test
 		authToken = getAuthToken
 	}()
 
@@ -346,7 +346,7 @@ func TestFileConfigEndpoint(t *testing.T) {
 	endpointHit := ""
 	fileEndpoint := "https://foo_file.capeprivacy.com"
 
-	test = func(testReq capetest.TestRequest, endpoint string, insecure bool) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, endpoint string) (*entities.RunResults, error) {
 		endpointHit = endpoint
 		return &entities.RunResults{Message: []byte("good job")}, nil
 	}
@@ -358,7 +358,7 @@ func TestFileConfigEndpoint(t *testing.T) {
 		return nil
 	}
 	defer func() {
-		test = capetest.CapeTest
+		test = sdk.Test
 		authToken = getAuthToken
 		readConfFile = viper.ReadInConfig
 	}()
