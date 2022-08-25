@@ -8,7 +8,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/cli/entities"
 	"github.com/capeprivacy/cli/protocol"
@@ -97,27 +96,6 @@ func doDelete(url string, functionID string, insecure bool, auth entities.Functi
 	err = p.WriteStart(req)
 	if err != nil {
 		return errors.Wrap(err, "error writing delete request")
-	}
-
-	log.Debug("* Waiting for attestation document...")
-
-	attestDoc, err := p.ReadAttestationDoc()
-	if err != nil {
-		log.Println("error reading attestation doc")
-		return err
-	}
-
-	log.Debug("< Downloading AWS Root Certificate")
-	rootCert, err := attest.GetRootAWSCert()
-	if err != nil {
-		return err
-	}
-
-	log.Debug("< Auth Completed. Received Attestation Document")
-	_, _, err = attest.Attest(attestDoc, rootCert)
-	if err != nil {
-		log.Println("error attesting")
-		return err
 	}
 
 	resData, err := p.ReadDeleteResults()
