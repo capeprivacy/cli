@@ -35,7 +35,7 @@ type DeployRequest struct {
 	Reader                 io.Reader
 	PcrSlice               []string
 	FunctionTokenPublicKey string
-	FunctionAuth           entities.FunctionAuth
+	AuthToken              string
 
 	// For development use only: circumvents some token authorization when true
 	Insecure bool
@@ -48,8 +48,7 @@ func Deploy(req DeployRequest) (string, []byte, error) {
 
 	log.Info("Deploying function to Cape ...")
 
-	auth := req.FunctionAuth
-	conn, res, err := WebsocketDial(endpoint, req.Insecure, string(auth.Type), auth.Token)
+	conn, res, err := WebsocketDial(endpoint, req.Insecure, "cape.runtime", req.AuthToken)
 	if err != nil {
 		log.Error("error dialing websocket: ", err)
 		// This check is necessary because we don't necessarily return an http response from sentinel.
@@ -73,7 +72,7 @@ func Deploy(req DeployRequest) (string, []byte, error) {
 		return "", nil, err
 	}
 
-	r := entities.StartRequest{Nonce: []byte(nonce), AuthToken: auth.Token}
+	r := entities.StartRequest{Nonce: []byte(nonce), AuthToken: req.AuthToken}
 	log.Debug("\n> Sending Nonce and Auth Token")
 	if err := p.WriteStart(r); err != nil {
 		log.Error("error writing deploy request")

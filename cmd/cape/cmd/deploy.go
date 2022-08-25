@@ -15,7 +15,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/capeprivacy/cli/entities"
 	"github.com/capeprivacy/cli/sdk"
 	czip "github.com/capeprivacy/cli/zip"
 )
@@ -182,9 +181,7 @@ func doDeploy(url string, functionInput string, functionName string, insecure bo
 		Insecure:               insecure,
 		PcrSlice:               pcrSlice,
 		FunctionTokenPublicKey: functionTokenPublicKey,
-		FunctionAuth: entities.FunctionAuth{
-			Token: token,
-		},
+		AuthToken:              token,
 	})
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to deploy function: %w", err)
