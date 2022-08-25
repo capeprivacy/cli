@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -59,7 +59,7 @@ func Test(cmd *cobra.Command, args []string) error {
 	switch {
 	case file != "":
 		// input file was provided
-		input, err = ioutil.ReadFile(file)
+		input, err = os.ReadFile(file)
 		if err != nil {
 			return UserError{Msg: "unable to read data file", Err: err}
 		}

@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -57,7 +56,7 @@ func Config(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		err = ioutil.WriteFile(configFile, []byte("{}"), 0644)
+		err = os.WriteFile(configFile, []byte("{}"), 0644)
 		if err != nil {
 			return err
 		}
@@ -70,7 +69,7 @@ func UpdateConfigFileJSON(jsonFile string, key string, value string) error {
 	// Read json buffer from jsonFile
 	var config map[string]interface{}
 
-	readBytes, err := ioutil.ReadFile(jsonFile)
+	readBytes, err := os.ReadFile(jsonFile)
 	if err != nil {
 		return err
 	}
@@ -89,7 +88,7 @@ func UpdateConfigFileJSON(jsonFile string, key string, value string) error {
 	}
 
 	// Write back to file
-	err = ioutil.WriteFile(jsonFile, writeBytes, 0644)
+	err = os.WriteFile(jsonFile, writeBytes, 0644)
 	return err
 }
 
