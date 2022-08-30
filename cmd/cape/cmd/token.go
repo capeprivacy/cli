@@ -30,6 +30,7 @@ func init() {
 	rootCmd.AddCommand(tokenCmd)
 
 	tokenCmd.PersistentFlags().IntP("expires", "e", 3600, "optional time to live (in seconds)")
+	tokenCmd.PersistentFlags().BoolP("owner", "", false, "optional owner token (debug logs)")
 }
 
 func token(cmd *cobra.Command, args []string) error {
@@ -43,7 +44,12 @@ func token(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	tokenString, err := Token(functionID, expires)
+	owner, err := cmd.Flags().GetBool("owner")
+	if err != nil {
+		return err
+	}
+
+	tokenString, err := Token(functionID, expires, owner)
 	if err != nil {
 		return err
 	}
@@ -52,14 +58,20 @@ func token(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func Token(functionID string, expires int) (string, error) {
+func Token(functionID string, expires int, owner bool) (string, error) {
 	privateKey, err := getOrGeneratePrivateKey()
 	if err != nil {
 		return "", err
 	}
 
+	var audience []string
+	if owner {
+		audience = append(audience, "owner")
+	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.RegisteredClaims{
 		Subject:   functionID,
+		Audience:  audience,
 		IssuedAt:  &jwt.NumericDate{Time: time.Now()},
 		ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Second * time.Duration(expires))},
 	})
