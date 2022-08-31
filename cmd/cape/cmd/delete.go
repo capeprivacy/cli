@@ -24,15 +24,6 @@ var deleteCmd = &cobra.Command{
 	},
 }
 
-type DeleteResponse struct {
-	Type    string `json:"type"`
-	Message []byte `json:"message"`
-}
-
-type ErrorDeleteResponse struct {
-	Message string `json:"message"`
-}
-
 func init() {
 	rootCmd.AddCommand(deleteCmd)
 }
