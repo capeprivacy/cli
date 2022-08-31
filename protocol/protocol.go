@@ -86,14 +86,6 @@ func (p Protocol) WriteRunResults(results entities.RunResults) error {
 	return writeMsg(p.Websocket, results)
 }
 
-func (p Protocol) WriteDeleteResults(res entities.DeleteResults) error {
-	return writeMsg(p.Websocket, res)
-}
-
-func (p Protocol) ReadDeleteResults() (*entities.DeleteResults, error) {
-	return readMsg[entities.DeleteResults](p.Websocket)
-}
-
 func (p Protocol) ReadFunctionPublicKey() (*entities.FunctionPublicKey, error) {
 	return readMsg[entities.FunctionPublicKey](p.Websocket)
 }

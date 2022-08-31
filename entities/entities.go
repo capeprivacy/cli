@@ -49,10 +49,6 @@ type SetDeploymentIDRequest struct {
 	ID string `json:"id"`
 }
 
-type DeleteResults struct {
-	Done bool `json:"id"`
-}
-
 type AttestationWrapper struct {
 	Type    string `json:"type"`
 	Message []byte `json:"message"`
