@@ -4,35 +4,20 @@ import (
 	"archive/zip"
 	"bytes"
 	"crypto/rsa"
-	"crypto/sha256"
-	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 
-	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/capeprivacy/cli/entities"
-	"github.com/capeprivacy/cli/protocol"
-
-	"github.com/capeprivacy/cli/attest"
-
-	"github.com/capeprivacy/cli/crypto"
-
+	"github.com/capeprivacy/cli/sdk"
 	czip "github.com/capeprivacy/cli/zip"
 )
-
-type ErrorMsg struct {
-	Error string `json:"error"`
-}
 
 type PublicKeyRequest struct {
 	FunctionTokenPublicKey string `json:"function_token_pk"`
@@ -184,7 +169,20 @@ func doDeploy(url string, functionInput string, functionName string, insecure bo
 		return "", nil, err
 	}
 
-	id, hash, err := Deploy(url, token, functionName, reader, insecure, pcrSlice)
+	functionTokenPublicKey, err := getFunctionTokenPublicKey()
+	if err != nil {
+		return "", nil, err
+	}
+
+	id, hash, err := sdk.Deploy(sdk.DeployRequest{
+		URL:                    url,
+		Name:                   functionName,
+		Reader:                 reader,
+		Insecure:               insecure,
+		PcrSlice:               pcrSlice,
+		FunctionTokenPublicKey: functionTokenPublicKey,
+		AuthToken:              token,
+	})
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to deploy function: %w", err)
 	}
@@ -214,148 +212,6 @@ func zipSize(path string) (uint64, error) {
 	}
 
 	return size, nil
-}
-
-func Deploy(url string, token string, name string, reader io.Reader, insecure bool, pcrSlice []string) (string, []byte, error) {
-	endpoint := fmt.Sprintf("%s/v1/deploy", url)
-
-	log.Info("Deploying function to Cape ...")
-
-	conn, res, err := websocketDial(endpoint, insecure, "cape.runtime", token)
-	if err != nil {
-		log.Error("error dialing websocket: ", err)
-		// This check is necessary because we don't necessarily return an http response from sentinel.
-		// Http error code and message is returned if network routing fails.
-		if res != nil {
-			var e ErrorMsg
-			if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-				return "", nil, err
-			}
-			res.Body.Close()
-			return "", nil, fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
-		}
-		return "", nil, err
-	}
-	defer conn.Close()
-
-	p := protocol.Protocol{Websocket: conn}
-
-	nonce, err := crypto.GetNonce()
-	if err != nil {
-		return "", nil, err
-	}
-
-	functionTokenPublicKey, err := getFunctionTokenPublicKey()
-	if err != nil {
-		return "", nil, err
-	}
-
-	req := entities.StartRequest{Nonce: []byte(nonce), AuthToken: token}
-	log.Debug("\n> Sending Nonce and Auth Token")
-	if err := p.WriteStart(req); err != nil {
-		log.Error("error writing deploy request")
-		return "", nil, err
-	}
-
-	log.Debug("* Waiting for attestation document...")
-
-	attestDoc, err := p.ReadAttestationDoc()
-	if err != nil {
-		log.Error("error reading attestation doc")
-		return "", nil, err
-	}
-
-	log.Debug("< Downloading AWS Root Certificate")
-	rootCert, err := attest.GetRootAWSCert()
-	if err != nil {
-		return "", nil, err
-	}
-
-	log.Debug("< Attestation document")
-	doc, _, err := attest.Attest(attestDoc, rootCert)
-	if err != nil {
-		log.Error("error attesting")
-		return "", nil, err
-	}
-
-	hasher := sha256.New()
-	// tReader is used to stream data to the hasher function.
-	tReader := io.TeeReader(reader, hasher)
-	plaintext, err := io.ReadAll(tReader)
-	if err != nil {
-		log.Error("error reading plaintext function")
-		return "", nil, err
-	}
-
-	// Print out the hash to the user.
-	hash := hasher.Sum(nil)
-	ciphertext, err := crypto.LocalEncrypt(*doc, plaintext)
-	if err != nil {
-		log.Error("error encrypting function")
-		return "", nil, err
-	}
-
-	log.Debug("\n> Sending Public Key")
-	if err := p.WriteFunctionPublicKey(functionTokenPublicKey); err != nil {
-		log.Error("error sending public key")
-		return "", nil, err
-	}
-
-	log.Debug("\n> Deploying Encrypted Function")
-	err = writeFunction(conn, bytes.NewBuffer(ciphertext))
-	if err != nil {
-		return "", nil, err
-	}
-
-	log.Debug("* Waiting for deploy response...")
-
-	resData, err := p.ReadDeploymentResults()
-	if err != nil {
-		return "", nil, err
-	}
-	log.Debugf("< Received Deploy Response %v", resData)
-
-	return resData.ID, hash, nil
-}
-
-func websocketDial(url string, insecure bool, authProtocolType string, authToken string) (*websocket.Conn, *http.Response, error) {
-	if insecure {
-		websocket.DefaultDialer.TLSClientConfig = &tls.Config{
-			InsecureSkipVerify: true,
-		}
-	}
-
-	str := fmt.Sprintf("* Dialing %s", url)
-	if insecure {
-		str += " (insecure)"
-	}
-
-	secWebsocketProtocol := http.Header{"Sec-Websocket-Protocol": []string{authProtocolType, authToken}}
-
-	log.Debug(str)
-	c, r, err := websocket.DefaultDialer.Dial(url, secWebsocketProtocol)
-	if err != nil {
-		return nil, r, err
-	}
-
-	log.Debugf("* Websocket connection established")
-	return c, r, nil
-}
-
-func writeFunction(conn *websocket.Conn, reader io.Reader) error {
-	writer, err := conn.NextWriter(websocket.BinaryMessage)
-	if err != nil {
-		log.Errorf("error getting writer for function: %v", err)
-		return err
-	}
-	defer writer.Close()
-
-	_, err = io.Copy(writer, reader)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func getAuthToken() (string, error) {
