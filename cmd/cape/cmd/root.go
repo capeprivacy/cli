@@ -157,6 +157,12 @@ func initConfig() {
 	}
 	viper.SetDefault("LOCAL_AUTH_FILE_NAME", "auth")
 
+	if err := viper.BindEnv("LOCAL_CAPE_KEY_FILE_NAME"); err != nil {
+		log.Error("failed to bind config variable.")
+		cobra.CheckErr(err)
+	}
+	viper.SetDefault("LOCAL_CAPE_KEY_FILE_NAME", "capekey.pub.der")
+
 	if err := viper.BindEnv("DEV_DISABLE_SSL"); err != nil {
 		log.Error("failed to bind config variable.")
 		cobra.CheckErr(err)
@@ -169,6 +175,7 @@ func initConfig() {
 	C.ClientID = viper.GetString("CLIENT_ID")
 	C.LocalConfigDir = viper.GetString("LOCAL_CONFIG_DIR")
 	C.LocalAuthFileName = viper.GetString("LOCAL_AUTH_FILE_NAME")
+	C.LocalCapeKeyFileName = viper.GetString("LOCAL_CAPE_KEY_FILE_NAME")
 	C.Insecure = viper.GetBool("DEV_DISABLE_SSL")
 
 	if err != nil {

@@ -42,6 +42,7 @@ type AttestationDoc struct {
 type AttestationUserData struct {
 	FuncHash      []byte `json:"func_hash"`
 	KeyPolicyHash []byte `json:"key_policy_hash"`
+	CapeKey       []byte `json:"key"`
 }
 
 func createSign1(d []byte) (*cose.Sign1Message, error) {
