@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -111,14 +112,20 @@ func Test(testReq TestRequest, endpoint string) (*entities.RunResults, error) {
 	return res, nil
 }
 
-func websocketDial(url string, insecure bool, authProtocolType string, authToken string) (*websocket.Conn, *http.Response, error) {
+func websocketDial(urlStr string, insecure bool, authProtocolType string, authToken string) (*websocket.Conn, *http.Response, error) {
+	u, err := transformURL(urlStr)
+	if err != nil {
+		log.Error("error transforming URL", err)
+		return nil, nil, err
+	}
+
 	if insecure {
 		websocket.DefaultDialer.TLSClientConfig = &tls.Config{
 			InsecureSkipVerify: true,
 		}
 	}
 
-	str := fmt.Sprintf("* Dialing %s", url)
+	str := fmt.Sprintf("* Dialing %s", u)
 	if insecure {
 		str += " (insecure)"
 	}
@@ -126,13 +133,29 @@ func websocketDial(url string, insecure bool, authProtocolType string, authToken
 	secWebsocketProtocol := http.Header{"Sec-Websocket-Protocol": []string{authProtocolType, authToken}}
 
 	log.Debug(str)
-	c, r, err := websocket.DefaultDialer.Dial(url, secWebsocketProtocol)
+
+	c, r, err := websocket.DefaultDialer.Dial(u, secWebsocketProtocol)
 	if err != nil {
 		return nil, r, err
 	}
 
 	log.Debugf("* Websocket connection established")
 	return c, r, nil
+}
+
+func transformURL(urlStr string) (string, error) {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", err
+	}
+
+	if u.Scheme == "http" {
+		u.Scheme = "ws"
+	} else if u.Scheme == "https" {
+		u.Scheme = "wss"
+	}
+
+	return u.String(), nil
 }
 
 var getProtocolFn = getProtocol

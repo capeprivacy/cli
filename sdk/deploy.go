@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -45,6 +46,28 @@ type DeployRequest struct {
 // Returns a function ID upon successful deployment. The stored function can only be decrypted within an enclave.
 func Deploy(req DeployRequest) (string, []byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/deploy", req.URL)
+	header := http.Header{"Sec-Websocket-Protocol": []string{"cape.runtime", req.AuthToken}}
+
+	request, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return "", nil, err
+	}
+	request.Header = header
+
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return "", nil, err
+	}
+
+	defer response.Body.Close()
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return "", nil, err
+	}
+
+	log.Infof("body: %+v", string(body))
+	log.Infof("response: %+v", response)
 
 	log.Info("Deploying function to Cape ...")
 
