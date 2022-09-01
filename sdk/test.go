@@ -1,4 +1,4 @@
-package capetest
+package sdk
 
 import (
 	"crypto/tls"
@@ -8,8 +8,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
-
-	proto "github.com/capeprivacy/cli/protocol"
 
 	"github.com/capeprivacy/cli/entities"
 
@@ -21,53 +19,20 @@ type TestRequest struct {
 	Function  []byte
 	Input     []byte
 	AuthToken string
+
+	// For development use only: circumvents some token authorization when true
+	Insecure bool
 }
 
-// TODO -- cmd package also defines this
 type ErrorMsg struct {
 	Error string `json:"error"`
 }
 
-// TODO -- cmd package also defines this
-func websocketDial(url string, insecure bool, authToken string) (*websocket.Conn, *http.Response, error) {
-	if insecure {
-		websocket.DefaultDialer.TLSClientConfig = &tls.Config{
-			InsecureSkipVerify: true,
-		}
-	}
-
-	str := fmt.Sprintf("* Dialing %s", url)
-	if insecure {
-		str += " (insecure)"
-	}
-
-	secWebsocketProtocol := http.Header{"Sec-Websocket-Protocol": []string{"cape.runtime", authToken}}
-
-	log.Debug(str)
-	c, r, err := websocket.DefaultDialer.Dial(url, secWebsocketProtocol)
-	if err != nil {
-		return nil, r, err
-	}
-
-	log.Debugf("* Websocket connection established")
-	return c, r, nil
-}
-
-type Protocol interface {
-	WriteStart(request entities.StartRequest) error
-	ReadAttestationDoc() ([]byte, error)
-	ReadRunResults() (*entities.RunResults, error)
-	WriteBinary([]byte) error
-}
-
-func protocol(ws *websocket.Conn) Protocol {
-	return proto.Protocol{Websocket: ws}
-}
-
-var getProtocol = protocol
-
-func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*entities.RunResults, error) {
-	conn, resp, err := websocketDial(endpoint, insecure, testReq.AuthToken)
+// Test simulates the workflow of Deploy and Run, without storing the function.
+// It loads the given function into an enclave, runs it on the given data, and returns the result.
+// Use Test to verify that your function will work before storing it via Deploy.
+func Test(testReq TestRequest, endpoint string) (*entities.RunResults, error) {
+	conn, resp, err := websocketDial(endpoint, testReq.Insecure, "cape.runtime", testReq.AuthToken)
 	if err != nil {
 		log.Error("error dialing websocket", err)
 		// This check is necessary because we don't necessarily return an http response from sentinel.
@@ -89,7 +54,7 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*entities.Ru
 		return nil, err
 	}
 
-	p := getProtocol(conn)
+	p := getProtocolFn(conn)
 
 	startReq := entities.StartRequest{
 		AuthToken: testReq.AuthToken,
@@ -146,5 +111,30 @@ func CapeTest(testReq TestRequest, endpoint string, insecure bool) (*entities.Ru
 	return res, nil
 }
 
+func websocketDial(url string, insecure bool, authProtocolType string, authToken string) (*websocket.Conn, *http.Response, error) {
+	if insecure {
+		websocket.DefaultDialer.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
+
+	str := fmt.Sprintf("* Dialing %s", url)
+	if insecure {
+		str += " (insecure)"
+	}
+
+	secWebsocketProtocol := http.Header{"Sec-Websocket-Protocol": []string{authProtocolType, authToken}}
+
+	log.Debug(str)
+	c, r, err := websocket.DefaultDialer.Dial(url, secWebsocketProtocol)
+	if err != nil {
+		return nil, r, err
+	}
+
+	log.Debugf("* Websocket connection established")
+	return c, r, nil
+}
+
+var getProtocolFn = getProtocol
 var runAttestation = attest.Attest
 var localEncrypt = crypto.LocalEncrypt
