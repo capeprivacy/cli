@@ -12,8 +12,13 @@ import (
 
 var keyCmd = &cobra.Command{
 	Use:   "key",
-	Short: "Retrieve a public key, signed by the enclave, which can encrypt data to later run",
-	RunE:  key,
+	Short: "Displays the Cape Key (Public Key) which is unqiue to your account.",
+	Long: "Displays the Cape Key (Public Key) which is unqiue to your account.\n" +
+		"The key is used by \"cape encrypt\" to encrypt data. \"cape encrypt\" calls \"cape key\" automatically." +
+		"The first call to \"cape key\" will download the public key from the enclave and save it. Subsequent calls will display the key from a local file." +
+		"The downloaded key is signed by the enclave, and the signature is verified before the key is saved." +
+		"Example: \"cape key\".\n",
+	RunE: key,
 }
 
 func init() {

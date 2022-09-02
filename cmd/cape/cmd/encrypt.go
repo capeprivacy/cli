@@ -13,8 +13,12 @@ import (
 
 var encryptCmd = &cobra.Command{
 	Use:   "encrypt",
-	Short: "Encrypt data",
-	RunE:  encrypt,
+	Short: "Encrypt data.",
+	Long: "Encrypt input data, takes data as the first and only argument.\n" +
+		"Encrypt can also read input data from stdin, example: \"echo '1234' | cape encrypt\".\n" +
+		"Encrypt can also read a file, example: \"echo 'Hello!' > example.txt; cape encrypt -f ./example.txt\".\n" +
+		"Results are output to stdout so you can easily pipe them elsewhere.",
+	RunE: encrypt,
 }
 
 func init() {
