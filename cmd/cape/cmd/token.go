@@ -10,10 +10,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
-
+	"github.com/lestrrat-go/jwx/v2/jwa"
+	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/spf13/cobra"
 )
 
@@ -64,20 +65,27 @@ func Token(functionID string, expires int, owner bool) (string, error) {
 		return "", err
 	}
 
-	var audience []string
+	var scope = []string{"function:invoke"}
 	if owner {
-		audience = append(audience, "owner")
+		scope = append(scope, "function:output")
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.RegisteredClaims{
-		Subject:   functionID,
-		Audience:  audience,
-		IssuedAt:  &jwt.NumericDate{Time: time.Now()},
-		ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Second * time.Duration(expires))},
-	})
-	tokenString, err := token.SignedString(privateKey)
+	token, err := jwt.NewBuilder().
+		Subject(functionID).
+		Claim("scope", strings.Join(scope, " ")).
+		IssuedAt(time.Now()).
+		Expiration(time.Now().Add(time.Second * time.Duration(expires))).
+		Build()
+	if err != nil {
+		return "", err
+	}
 
-	return tokenString, err
+	tokenString, err := jwt.Sign(token, jwt.WithKey(jwa.RS256, privateKey))
+	if err != nil {
+		return "", err
+	}
+
+	return string(tokenString), nil
 }
 
 func getOrGeneratePrivateKey() (*rsa.PrivateKey, error) {
