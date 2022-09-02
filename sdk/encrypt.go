@@ -57,7 +57,7 @@ func AESEncrypt(plaintext []byte) ([]byte, []byte, error) {
 		return nil, nil, err
 	}
 
-	// TODO: is dst needed?
+	// Including the nonce in the first parameter embeds it as a prefix in the ciphertext. This is so the nonce doesn't need to be returned and stored.
 	ciphertext := aesGCM.Seal(nonce, nonce, plaintext, nil)
 
 	return ciphertext, key, nil

@@ -44,7 +44,6 @@ func encrypt(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// TODO: Run could use this function.
 func parseInput(cmd *cobra.Command, args []string) ([]byte, *UserError) {
 	if len(args) > 1 {
 		return nil, &UserError{Msg: "you must pass in only one input data (stdin, string or filename)", Err: fmt.Errorf("invalid number of input arguments")}
