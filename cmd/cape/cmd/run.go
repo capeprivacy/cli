@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/capeprivacy/cli/entities"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 
@@ -18,7 +19,7 @@ import (
 var runCmd = &cobra.Command{
 	Use:   "run function_id [input data]",
 	Short: "Run a deployed function with data",
-	Long: "Run a deployed function with data, takes function id, path to data, and (optional) function hash.\n" +
+	Long: "Run a deployed function with data, takes function id, path to data, and (optional) checksum.\n" +
 		"Run will also read input data from stdin, example: \"echo '1234' | cape run id\".\n" +
 		"Results are output to stdout so you can easily pipe them elsewhere.",
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -53,9 +54,15 @@ func init() {
 
 	runCmd.PersistentFlags().StringP("token", "t", "", "function token to use")
 	runCmd.PersistentFlags().StringP("file", "f", "", "input data file")
+	runCmd.PersistentFlags().StringP("checksum", "", "", "checksum to attest")
 	runCmd.PersistentFlags().StringP("function-hash", "", "", "function hash to attest")
 	runCmd.PersistentFlags().StringP("key-policy-hash", "", "", "key policy hash to attest")
 	runCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
+
+	err := runCmd.Flags().MarkDeprecated("function-hash", "this flag has been deprecated for renaming, use 'checksum' instead")
+	if err != nil {
+		log.WithError(err).Error("unable to set flag 'function-hash' as deprecated")
+	}
 }
 
 func run(cmd *cobra.Command, args []string) error {
@@ -78,19 +85,33 @@ func run(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "error retrieving file flag", Err: err}
 	}
 
+	checksumArg, err := cmd.Flags().GetString("checksum")
+	if err != nil {
+		return UserError{Msg: "error retrieving checksum flag", Err: err}
+	}
+
+	// Deprecated
 	funcHashArg, err := cmd.Flags().GetString("function-hash")
 	if err != nil {
 		return UserError{Msg: "error retrieving function_hash flag", Err: err}
 	}
 
+	var checksum []byte
+	if checksumArg != "" {
+		checksum, err = hex.DecodeString(checksumArg)
+		if err != nil {
+			return UserError{Msg: "error reading in checksum", Err: err}
+		}
+	} else {
+		checksum, err = hex.DecodeString(funcHashArg)
+		if err != nil {
+			return UserError{Msg: "error reading function hash", Err: err}
+		}
+	}
+
 	pcrSlice, err := cmd.Flags().GetStringSlice("pcr")
 	if err != nil {
 		return UserError{Msg: "error retrieving pcr flags", Err: err}
-	}
-
-	funcHash, err := hex.DecodeString(funcHashArg)
-	if err != nil {
-		return UserError{Msg: "error reading function hash", Err: err}
 	}
 
 	keyPolicyHashArg, err := cmd.Flags().GetString("key-policy-hash")
@@ -140,7 +161,7 @@ func run(cmd *cobra.Command, args []string) error {
 		FunctionID:    functionID,
 		Data:          input,
 		Insecure:      insecure,
-		FuncHash:      funcHash,
+		FuncHash:      checksum,
 		KeyPolicyHash: keyPolicyHash,
 		PcrSlice:      pcrSlice,
 		FunctionAuth:  auth,
