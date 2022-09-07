@@ -46,44 +46,10 @@ type DeployRequest struct {
 // Returns a function ID upon successful deployment. The stored function can only be decrypted within an enclave.
 func Deploy(req DeployRequest) (string, []byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/deploy", req.URL)
-	header := http.Header{"Sec-Websocket-Protocol": []string{"cape.runtime", req.AuthToken}}
-
-	request, err := http.NewRequest("GET", endpoint, nil)
-	if err != nil {
-		return "", nil, err
-	}
-	request.Header = header
-
-	response, err := http.DefaultClient.Do(request)
-	if err != nil {
-		return "", nil, err
-	}
-
-	defer response.Body.Close()
-
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		return "", nil, err
-	}
-
-	log.Infof("body: %+v", string(body))
-	log.Infof("response: %+v", response)
-
 	log.Info("Deploying function to Cape ...")
 
-	conn, res, err := websocketDial(endpoint, req.Insecure, "cape.runtime", req.AuthToken)
+	conn, err := doDial(req, endpoint, req.Insecure, "cape.runtime", req.AuthToken)
 	if err != nil {
-		log.Error("error dialing websocket: ", err)
-		// This check is necessary because we don't necessarily return an http response from sentinel.
-		// Http error code and message is returned if network routing fails.
-		if res != nil {
-			var e ErrorMsg
-			if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-				return "", nil, err
-			}
-			res.Body.Close()
-			return "", nil, fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
-		}
 		return "", nil, err
 	}
 	defer conn.Close()
@@ -177,4 +143,40 @@ func writeFunction(conn *websocket.Conn, reader io.Reader) error {
 	}
 
 	return nil
+}
+
+func customError(res *http.Response) error {
+	var e ErrorMsg
+	if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
+		return err
+	}
+	res.Body.Close()
+	return fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
+}
+
+func doDial(req DeployRequest, endpoint string, insecure bool, authProtocolType string, authToken string) (*websocket.Conn, error) {
+	conn, res, err := websocketDial(endpoint, req.Insecure, "cape.runtime", req.AuthToken)
+	if err == nil {
+		return conn, nil
+	}
+
+	if res == nil {
+		return nil, err
+	}
+
+	if res.StatusCode != 307 {
+		return nil, customError(res)
+	}
+
+	location, err := res.Location()
+	if err != nil {
+		return nil, err
+	}
+
+	conn, _, err = websocketDial(location.String(), req.Insecure, "cape.runtime", req.AuthToken)
+	if err != nil {
+		return nil, err
+	}
+
+	return conn, nil
 }
