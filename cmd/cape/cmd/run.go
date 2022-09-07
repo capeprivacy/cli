@@ -59,7 +59,7 @@ func init() {
 	runCmd.PersistentFlags().StringP("key-policy-hash", "", "", "key policy hash to attest")
 	runCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
 
-	err := runCmd.Flags().MarkDeprecated("function-hash", "this flag has been deprecated for renaming, use 'checksum' instead")
+	err := runCmd.PersistentFlags().MarkDeprecated("function-hash", "this flag has been deprecated for renaming, use 'checksum' instead")
 	if err != nil {
 		log.WithError(err).Error("unable to set flag 'function-hash' as deprecated")
 	}
