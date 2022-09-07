@@ -10,10 +10,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
-
+	"github.com/lestrrat-go/jwx/v2/jwa"
+	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/spf13/cobra"
 )
 
@@ -30,6 +31,7 @@ func init() {
 	rootCmd.AddCommand(tokenCmd)
 
 	tokenCmd.PersistentFlags().IntP("expires", "e", 3600, "optional time to live (in seconds)")
+	tokenCmd.PersistentFlags().BoolP("owner", "", false, "optional owner token (debug logs)")
 }
 
 func token(cmd *cobra.Command, args []string) error {
@@ -43,7 +45,12 @@ func token(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	tokenString, err := Token(functionID, expires)
+	owner, err := cmd.Flags().GetBool("owner")
+	if err != nil {
+		return err
+	}
+
+	tokenString, err := Token(functionID, expires, owner)
 	if err != nil {
 		return err
 	}
@@ -52,20 +59,33 @@ func token(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func Token(functionID string, expires int) (string, error) {
+func Token(functionID string, expires int, owner bool) (string, error) {
 	privateKey, err := getOrGeneratePrivateKey()
 	if err != nil {
 		return "", err
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.RegisteredClaims{
-		Subject:   functionID,
-		IssuedAt:  &jwt.NumericDate{Time: time.Now()},
-		ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Second * time.Duration(expires))},
-	})
-	tokenString, err := token.SignedString(privateKey)
+	var scope = []string{"function:invoke"}
+	if owner {
+		scope = append(scope, "function:output")
+	}
 
-	return tokenString, err
+	token, err := jwt.NewBuilder().
+		Subject(functionID).
+		Claim("scope", strings.Join(scope, " ")).
+		IssuedAt(time.Now()).
+		Expiration(time.Now().Add(time.Second * time.Duration(expires))).
+		Build()
+	if err != nil {
+		return "", err
+	}
+
+	tokenString, err := jwt.Sign(token, jwt.WithKey(jwa.RS256, privateKey))
+	if err != nil {
+		return "", err
+	}
+
+	return string(tokenString), nil
 }
 
 func getOrGeneratePrivateKey() (*rsa.PrivateKey, error) {
