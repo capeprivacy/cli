@@ -66,7 +66,11 @@ func token(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("%s\n", tokenString)
+	_, err = cmd.OutOrStdout().Write([]byte(tokenString + "\n"))
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
