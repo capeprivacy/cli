@@ -27,7 +27,7 @@ type DeployResponse struct {
 	ID string `json:"id"`
 }
 
-const storedFunctionMaxBytes = 1_000_000_000
+const storedFunctionMaxBytes = 2_000_000_000
 
 type OversizeFunctionError struct {
 	bytes int64
