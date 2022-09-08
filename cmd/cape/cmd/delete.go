@@ -29,7 +29,7 @@ func init() {
 }
 
 func delete(cmd *cobra.Command, args []string) error {
-	u := C.EnclaveHost
+	u := C.SupervisorHost
 	insecure := C.Insecure
 
 	if len(args) != 1 {

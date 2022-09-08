@@ -145,6 +145,12 @@ func initConfig() {
 	}
 	viper.SetDefault("ENCLAVE_HOST", "wss://enclave.capeprivacy.com")
 
+	if err := viper.BindEnv("SUPERVISOR_HOST"); err != nil {
+		log.Error("failed to bind config variable.")
+		cobra.CheckErr(err)
+	}
+	viper.SetDefault("SUPERVISOR_HOST", "app.capeprivacy.com")
+
 	if err := viper.BindEnv("CLIENT_ID"); err != nil {
 		log.Error("failed to bind config variable.")
 		cobra.CheckErr(err)
@@ -166,6 +172,7 @@ func initConfig() {
 	C.Audience = viper.GetString("AUDIENCE")
 	C.AuthHost = strings.TrimSuffix(viper.GetString("AUTH_HOST"), "/")
 	C.EnclaveHost = strings.TrimSuffix(viper.GetString("ENCLAVE_HOST"), "/")
+	C.SupervisorHost = strings.TrimSuffix(viper.GetString("SUPERVISOR_HOST"), "/")
 	C.ClientID = viper.GetString("CLIENT_ID")
 	C.LocalConfigDir = viper.GetString("LOCAL_CONFIG_DIR")
 	C.LocalAuthFileName = viper.GetString("LOCAL_AUTH_FILE_NAME")
