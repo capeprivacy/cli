@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/spf13/cobra"
@@ -14,7 +16,7 @@ import (
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all deployed functions",
-	Long:  "List all deployed function, for your user.\n",
+	Long:  "List all deployed function for your user.\n",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := list(cmd, args)
 		if _, ok := err.(UserError); !ok {
@@ -22,6 +24,11 @@ var listCmd = &cobra.Command{
 		}
 		return err
 	},
+}
+
+type DeploymentName struct {
+	ID   string
+	Name string
 }
 
 func init() {
@@ -33,7 +40,7 @@ func list(cmd *cobra.Command, args []string) error {
 	insecure := C.Insecure
 
 	if len(args) > 0 {
-		return UserError{Msg: "too many arguments", Err: fmt.Errorf("invalid number of input arguments")}
+		return UserError{Msg: "list does not take any arguments", Err: fmt.Errorf("invalid number of input arguments")}
 	}
 
 	t, err := getAuthToken()
@@ -43,7 +50,7 @@ func list(cmd *cobra.Command, args []string) error {
 	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t}
 	err = doList(u, insecure, auth)
 	if err != nil {
-		return fmt.Errorf("error processing data: %w", err)
+		return fmt.Errorf("error calling list endpoint: %w", err)
 	}
 
 	return nil
@@ -66,6 +73,17 @@ func doList(url string, insecure bool, auth entities.FunctionAuth) error { //nol
 		return errors.New("list failed")
 	}
 
-	// TODO print list here
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return errors.New("could not read response body")
+	}
+
+	var deploymentNames []DeploymentName
+	err = json.Unmarshal(body, &deploymentNames)
+	if err != nil {
+		return errors.New("malformed body in response")
+	}
+
+	fmt.Printf("%v", deploymentNames)
 	return nil
 }

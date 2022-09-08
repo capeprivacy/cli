@@ -149,7 +149,7 @@ func initConfig() {
 		log.Error("failed to bind config variable.")
 		cobra.CheckErr(err)
 	}
-	viper.SetDefault("SUPERVISOR_HOST", "app.capeprivacy.com")
+	viper.SetDefault("SUPERVISOR_HOST", "https://app.capeprivacy.com")
 
 	if err := viper.BindEnv("CLIENT_ID"); err != nil {
 		log.Error("failed to bind config variable.")

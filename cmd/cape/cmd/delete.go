@@ -45,7 +45,7 @@ func delete(cmd *cobra.Command, args []string) error {
 	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t}
 	err = doDelete(u, functionID, insecure, auth)
 	if err != nil {
-		return fmt.Errorf("error processing data: %w", err)
+		return fmt.Errorf("error calling delete endpoint: %w", err)
 	}
 
 	return nil
