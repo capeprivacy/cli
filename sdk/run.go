@@ -18,7 +18,7 @@ type RunRequest struct {
 	URL           string
 	FunctionID    string
 	Data          []byte
-	FuncHash      []byte
+	FuncChecksum  []byte
 	KeyPolicyHash []byte
 	PcrSlice      []string
 	FunctionAuth  entities.FunctionAuth
@@ -88,13 +88,13 @@ func Run(req RunRequest) ([]byte, error) {
 		return nil, err
 	}
 
-	if userData.FuncHash == nil && len(req.FuncHash) > 0 {
+	if userData.FuncChecksum == nil && len(req.FuncChecksum) > 0 {
 		return nil, fmt.Errorf("did not receive checksum from enclave")
 	}
 
 	// If checksum as an optional parameter has not been specified by the user, then we don't check the value.
-	if len(req.FuncHash) > 0 && !reflect.DeepEqual(req.FuncHash, userData.FuncHash) {
-		return nil, fmt.Errorf("returned checksum did not match provided, got: %x, want %x", userData.FuncHash, req.FuncHash)
+	if len(req.FuncChecksum) > 0 && !reflect.DeepEqual(req.FuncChecksum, userData.FuncChecksum) {
+		return nil, fmt.Errorf("returned checksum did not match provided, got: %x, want %x", userData.FuncChecksum, req.FuncChecksum)
 	}
 
 	if userData.KeyPolicyHash == nil && len(req.KeyPolicyHash) > 0 {

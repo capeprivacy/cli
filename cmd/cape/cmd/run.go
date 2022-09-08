@@ -161,7 +161,7 @@ func run(cmd *cobra.Command, args []string) error {
 		FunctionID:    functionID,
 		Data:          input,
 		Insecure:      insecure,
-		FuncHash:      checksum,
+		FuncChecksum:  checksum,
 		KeyPolicyHash: keyPolicyHash,
 		PcrSlice:      pcrSlice,
 		FunctionAuth:  auth,
