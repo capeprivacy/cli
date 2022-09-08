@@ -92,7 +92,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	log.Infof("Success! Deployed function to Cape\nFunction ID ➜ %s\nFunction Hash ➜ %x\n", dID, hash)
+	log.Infof("Success! Deployed function to Cape\nFunction ID ➜ %s\nChecksum ➜ %x\n", dID, hash)
 
 	return nil
 }
