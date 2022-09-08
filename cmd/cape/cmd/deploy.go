@@ -87,12 +87,12 @@ func deploy(cmd *cobra.Command, args []string) error {
 		name = n
 	}
 
-	dID, hash, err := doDeploy(u, functionInput, name, insecure, pcrSlice)
+	dID, checksum, err := doDeploy(u, functionInput, name, insecure, pcrSlice)
 	if err != nil {
 		return err
 	}
 
-	log.Infof("Success! Deployed function to Cape\nFunction ID ➜ %s\nChecksum ➜ %x\n", dID, hash)
+	log.Infof("Success! Deployed function to Cape\nFunction ID ➜ %s\nChecksum ➜ %x\n", dID, checksum)
 
 	return nil
 }
@@ -174,7 +174,7 @@ func doDeploy(url string, functionInput string, functionName string, insecure bo
 		return "", nil, err
 	}
 
-	id, hash, err := sdk.Deploy(sdk.DeployRequest{
+	id, checksum, err := sdk.Deploy(sdk.DeployRequest{
 		URL:                    url,
 		Name:                   functionName,
 		Reader:                 reader,
@@ -187,7 +187,7 @@ func doDeploy(url string, functionInput string, functionName string, insecure bo
 		return "", nil, fmt.Errorf("unable to deploy function: %w", err)
 	}
 
-	return id, hash, nil
+	return id, checksum, nil
 }
 
 func dirSize(path string) (int64, error) {
