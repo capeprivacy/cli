@@ -115,7 +115,7 @@ func Test(testReq TestRequest, endpoint string) (*entities.RunResults, error) {
 func websocketDial(urlStr string, insecure bool, authProtocolType string, authToken string) (*websocket.Conn, *http.Response, error) {
 	u, err := transformURL(urlStr)
 	if err != nil {
-		log.Error("error transforming URL", err)
+		log.Error("error transforming URL: ", err)
 		return nil, nil, err
 	}
 
@@ -136,6 +136,7 @@ func websocketDial(urlStr string, insecure bool, authProtocolType string, authTo
 
 	c, r, err := websocket.DefaultDialer.Dial(u, secWebsocketProtocol)
 	if err != nil {
+		log.Error("could not create a new client connection")
 		return nil, r, err
 	}
 
