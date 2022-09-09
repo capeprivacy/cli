@@ -78,12 +78,12 @@ func Run(req RunRequest) ([]byte, error) {
 	}
 
 	if userData.FuncHash == nil && len(req.FuncHash) > 0 {
-		return nil, fmt.Errorf("did not receive function hash from enclave")
+		return nil, fmt.Errorf("did not receive checksum from enclave")
 	}
 
-	// If function hash as an optional parameter has not been specified by the user, then we don't check the value.
+	// If checksum as an optional parameter has not been specified by the user, then we don't check the value.
 	if len(req.FuncHash) > 0 && !reflect.DeepEqual(req.FuncHash, userData.FuncHash) {
-		return nil, fmt.Errorf("returned function hash did not match provided, got: %x, want %x", userData.FuncHash, req.FuncHash)
+		return nil, fmt.Errorf("returned checksum did not match provided, got: %x, want %x", userData.FuncHash, req.FuncHash)
 	}
 
 	if userData.KeyPolicyHash == nil && len(req.KeyPolicyHash) > 0 {
