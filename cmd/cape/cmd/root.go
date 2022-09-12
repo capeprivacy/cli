@@ -137,7 +137,7 @@ func initConfig() {
 		log.Error("failed to bind config variable.")
 		cobra.CheckErr(err)
 	}
-	viper.SetDefault("AUTH_HOST", "https://app.capeprivacy.com")
+	viper.SetDefault("AUTH_HOST", "https://login.capeprivacy.com")
 
 	if err := viper.BindEnv("ENCLAVE_HOST"); err != nil {
 		log.Error("failed to bind config variable.")

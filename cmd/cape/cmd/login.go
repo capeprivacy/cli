@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,10 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/lestrrat-go/jwx/v2/jwk"
+
+	"github.com/spf13/viper"
 
 	"github.com/avast/retry-go"
 	"github.com/lestrrat-go/jwx/v2/jwt"
@@ -188,12 +193,21 @@ func getTokenResponse() (*TokenResponse, error) {
 	return &response, nil
 }
 
-func getAccessTokenParsed() (jwt.Token, error) {
+func getAccessTokenVerifyAndParse() (jwt.Token, error) {
 	tokenResponse, err := getTokenResponse()
 	if err != nil {
 		return nil, err
 	}
-	return jwt.Parse([]byte(tokenResponse.AccessToken), jwt.WithVerify(false))
+	var option = jwt.WithVerify(false)
+	// We cannot easily validate the JWKS in test as the test access token is self generated.
+	if viper.Get("GO_ENV") != "test" {
+		set, err := jwk.Fetch(context.Background(), fmt.Sprintf("%s/.well-known/jwks.json", C.AuthHost))
+		if err != nil {
+			return nil, errors.New("failed to parse JWKS")
+		}
+		option = jwt.WithKeySet(set)
+	}
+	return jwt.Parse([]byte(tokenResponse.AccessToken), option)
 }
 
 // Based on GIST: https://gist.github.com/hyg/9c4afcd91fe24316cbf0

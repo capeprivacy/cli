@@ -16,9 +16,10 @@ import (
 
 // `cape token` uses the token subject from the currently logged in cape user.
 // this helper creates a dummy auth file for that purpose.
-func BeforeOnce(t *testing.T) { //nolint: thelper
+func beforeOnce() error {
 	localConfigDir := "./.config/"
 	viper.Set("LOCAL_CONFIG_DIR", localConfigDir)
+	viper.Set("GO_ENV", "test")
 
 	accessToken, err := jwt.NewBuilder().
 		Subject("github|test-user").
@@ -26,39 +27,44 @@ func BeforeOnce(t *testing.T) { //nolint: thelper
 		Expiration(time.Now().Add(time.Hour)).
 		Build()
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
 
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
 
 	accessTokenString, err := jwt.Sign(accessToken, jwt.WithKey(jwa.RS256, key))
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
 
 	tokenResponse, err := json.MarshalIndent(&TokenResponse{
 		AccessToken: string(accessTokenString),
 	}, "", "  ")
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
 
 	err = os.MkdirAll(localConfigDir, os.ModePerm)
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
 
 	err = os.WriteFile(localConfigDir+"auth", tokenResponse, 0644)
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
+
+	return nil
 }
 
 func TestToken(t *testing.T) {
-	BeforeOnce(t)
+	err := beforeOnce()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	cmd, stdout, _ := getCmd()
 

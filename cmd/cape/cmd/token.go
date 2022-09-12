@@ -50,12 +50,13 @@ func token(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	accessTokenParsed, err := getAccessTokenParsed()
+	accessTokenParsed, err := getAccessTokenVerifyAndParse()
 	if err != nil {
 		return err
 	}
 
 	// Use the AccessToken sub (user id) as the issuer for the function token.
+	// The issuer is used to determine which KMS key to use inside the enclave.
 	issuer := accessTokenParsed.Subject()
 	if issuer == "" {
 		return fmt.Errorf("could not detect your user id, perhaps retry logging in")
