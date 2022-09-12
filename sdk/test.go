@@ -33,19 +33,8 @@ type ErrorMsg struct {
 // It loads the given function into an enclave, runs it on the given data, and returns the result.
 // Use Test to verify that your function will work before storing it via Deploy.
 func Test(testReq TestRequest, endpoint string) (*entities.RunResults, error) {
-	conn, resp, err := websocketDial(endpoint, testReq.Insecure, "cape.runtime", testReq.AuthToken)
+	conn, err := doDial(endpoint, testReq.Insecure, "cape.runtime", testReq.AuthToken)
 	if err != nil {
-		log.Error("error dialing websocket", err)
-		// This check is necessary because we don't necessarily return an http response from sentinel.
-		// Http error code and message is returned if network routing fails.
-		if resp != nil {
-			var e ErrorMsg
-			if err := json.NewDecoder(resp.Body).Decode(&e); err != nil {
-				return nil, err
-			}
-			resp.Body.Close()
-			return nil, fmt.Errorf("error code: %d, reason: %s", resp.StatusCode, e.Error)
-		}
 		return nil, err
 	}
 	defer conn.Close()
