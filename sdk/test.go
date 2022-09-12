@@ -159,6 +159,15 @@ func transformURL(urlStr string) (string, error) {
 	return u.String(), nil
 }
 
+func customError(res *http.Response) error {
+	var e ErrorMsg
+	if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
+		return err
+	}
+	res.Body.Close()
+	return fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
+}
+
 func doDial(endpoint string, insecure bool, authProtocolType string, authToken string) (*websocket.Conn, error) {
 	conn, res, err := websocketDial(endpoint, insecure, authProtocolType, authToken)
 	if err == nil {

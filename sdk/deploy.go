@@ -3,10 +3,8 @@ package sdk
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -143,13 +141,4 @@ func writeFunction(conn *websocket.Conn, reader io.Reader) error {
 	}
 
 	return nil
-}
-
-func customError(res *http.Response) error {
-	var e ErrorMsg
-	if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-		return err
-	}
-	res.Body.Close()
-	return fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
 }
