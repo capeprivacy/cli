@@ -159,6 +159,37 @@ func transformURL(urlStr string) (string, error) {
 	return u.String(), nil
 }
 
+func doDial(endpoint string, insecure bool, authProtocolType string, authToken string) (*websocket.Conn, error) {
+	conn, res, err := websocketDial(endpoint, insecure, authProtocolType, authToken)
+	if err == nil {
+		return conn, nil
+	}
+
+	if res == nil {
+		return nil, err
+	}
+
+	if res.StatusCode != 307 {
+		return nil, customError(res)
+	}
+
+	log.Info("received 307 redirect")
+
+	location, err := res.Location()
+	if err != nil {
+		log.Error("could not get location off header")
+		return nil, err
+	}
+
+	conn, _, err = websocketDial(location.String(), insecure, authProtocolType, authToken)
+	if err != nil {
+		log.Error("could not dial websocket again after 307 redirect")
+		return nil, err
+	}
+
+	return conn, nil
+}
+
 var getProtocolFn = getProtocol
 var runAttestation = attest.Attest
 var localEncrypt = crypto.LocalEncrypt

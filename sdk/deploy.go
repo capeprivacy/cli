@@ -48,7 +48,7 @@ func Deploy(req DeployRequest) (string, []byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/deploy", req.URL)
 	log.Info("Deploying function to Cape ...")
 
-	conn, err := doDeployDial(req, endpoint, req.Insecure, "cape.runtime", req.AuthToken)
+	conn, err := doDial(endpoint, req.Insecure, "cape.runtime", req.AuthToken)
 	if err != nil {
 		return "", nil, err
 	}
@@ -152,35 +152,4 @@ func customError(res *http.Response) error {
 	}
 	res.Body.Close()
 	return fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
-}
-
-func doDeployDial(req DeployRequest, endpoint string, insecure bool, authProtocolType string, authToken string) (*websocket.Conn, error) {
-	conn, res, err := websocketDial(endpoint, req.Insecure, authProtocolType, authToken)
-	if err == nil {
-		return conn, nil
-	}
-
-	if res == nil {
-		log.Error("non-nil error and response is nil: ", err)
-		return nil, err
-	}
-
-	if res.StatusCode != 307 {
-		log.Error("non-nil error and not a 307 status code: ", err)
-		return nil, customError(res)
-	}
-
-	log.Info("received 307 status code")
-
-	location, err := res.Location()
-	if err != nil {
-		return nil, err
-	}
-
-	conn, _, err = websocketDial(location.String(), req.Insecure, authProtocolType, authToken)
-	if err != nil {
-		return nil, err
-	}
-
-	return conn, nil
 }

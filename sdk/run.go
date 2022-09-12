@@ -36,7 +36,7 @@ func Run(req RunRequest) ([]byte, error) {
 		authProtocolType = "cape.function"
 	}
 
-	conn, err := doRunDial(req, endpoint, req.Insecure, authProtocolType, auth.Token)
+	conn, err := doDial(endpoint, req.Insecure, authProtocolType, auth.Token)
 	if err != nil {
 		return nil, err
 	}
@@ -130,35 +130,4 @@ func writeData(conn *websocket.Conn, data []byte) error {
 	}
 
 	return nil
-}
-
-func doRunDial(req RunRequest, endpoint string, insecure bool, authProtocolType string, authToken string) (*websocket.Conn, error) {
-	conn, res, err := websocketDial(endpoint, req.Insecure, authProtocolType, authToken)
-	if err == nil {
-		return conn, nil
-	}
-
-	if res == nil {
-		return nil, err
-	}
-
-	if res.StatusCode != 307 {
-		return nil, customError(res)
-	}
-
-	log.Info("received 307 redirect")
-
-	location, err := res.Location()
-	if err != nil {
-		log.Error("could not get location off header")
-		return nil, err
-	}
-
-	conn, _, err = websocketDial(location.String(), req.Insecure, authProtocolType, authToken)
-	if err != nil {
-		log.Error("could not dial websocket again after 307 redirect")
-		return nil, err
-	}
-
-	return conn, nil
 }
