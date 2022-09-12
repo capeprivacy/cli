@@ -171,7 +171,7 @@ func doDial(endpoint string, insecure bool, authProtocolType string, authToken s
 		return nil, customError(res)
 	}
 
-	log.Info("received 307 redirect")
+	log.Debug("received 307 redirect")
 
 	location, err := res.Location()
 	if err != nil {
