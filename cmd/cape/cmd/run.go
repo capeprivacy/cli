@@ -54,13 +54,13 @@ func init() {
 
 	runCmd.PersistentFlags().StringP("token", "t", "", "function token to use")
 	runCmd.PersistentFlags().StringP("file", "f", "", "input data file")
-	runCmd.PersistentFlags().StringP("func-checksum", "", "", "function checksum to attest")
+	runCmd.PersistentFlags().StringP("function-checksum", "", "", "function checksum to attest")
 	runCmd.PersistentFlags().StringP("function-hash", "", "", "function hash to attest")
 	runCmd.PersistentFlags().StringP("key-policy-hash", "", "", "key policy hash to attest")
 	runCmd.PersistentFlags().StringP("key-policy-checksum", "", "", "key policy checksum to attest")
 	runCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
 
-	err := runCmd.PersistentFlags().MarkDeprecated("function-hash", "this flag has been deprecated for renaming, use 'func-checksum' instead")
+	err := runCmd.PersistentFlags().MarkDeprecated("function-hash", "this flag has been deprecated for renaming, use 'function-checksum' instead")
 	if err != nil {
 		log.WithError(err).Error("unable to set flag 'function-hash' as deprecated")
 	}
@@ -91,9 +91,9 @@ func run(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "error retrieving file flag", Err: err}
 	}
 
-	funcChecksumArg, err := cmd.Flags().GetString("func-checksum")
+	funcChecksumArg, err := cmd.Flags().GetString("function-checksum")
 	if err != nil {
-		return UserError{Msg: "error retrieving func-checksum flag", Err: err}
+		return UserError{Msg: "error retrieving function-checksum flag", Err: err}
 	}
 
 	// Deprecated
