@@ -8,11 +8,9 @@ import (
 	"os"
 
 	log "github.com/sirupsen/logrus"
-
-	"github.com/capeprivacy/cli/entities"
-
 	"github.com/spf13/cobra"
 
+	"github.com/capeprivacy/cli/entities"
 	"github.com/capeprivacy/cli/sdk"
 )
 
