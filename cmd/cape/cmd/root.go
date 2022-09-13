@@ -66,7 +66,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringP("config", "c", "$HOME/.config/cape/presets.json", "config file")
-	rootCmd.PersistentFlags().StringP("url", "u", "wss://enclave.capeprivacy.com", "cape cloud URL")
+	rootCmd.PersistentFlags().StringP("url", "u", "https://app.capeprivacy.com", "cape cloud URL")
 	rootCmd.PersistentFlags().Bool("insecure", false, "!!! For development only !!! Disable TLS certificate verification.")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
 
@@ -143,7 +143,7 @@ func initConfig() {
 		log.Error("failed to bind config variable.")
 		cobra.CheckErr(err)
 	}
-	viper.SetDefault("ENCLAVE_HOST", "wss://enclave.capeprivacy.com")
+	viper.SetDefault("ENCLAVE_HOST", "https://app.capeprivacy.com")
 
 	if err := viper.BindEnv("CLIENT_ID"); err != nil {
 		log.Error("failed to bind config variable.")
