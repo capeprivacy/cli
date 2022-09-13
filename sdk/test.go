@@ -158,6 +158,7 @@ func customError(res *http.Response) error {
 }
 
 func doDial(endpoint string, insecure bool, authProtocolType string, authToken string) (*websocket.Conn, error) {
+	log.Debug("Connecting ...")
 	conn, res, err := websocketDial(endpoint, insecure, authProtocolType, authToken)
 	if err == nil {
 		return conn, nil
@@ -171,7 +172,7 @@ func doDial(endpoint string, insecure bool, authProtocolType string, authToken s
 		return nil, customError(res)
 	}
 
-	log.Debug("received 307 redirect")
+	log.Debug("* Received 307 redirect")
 
 	location, err := res.Location()
 	if err != nil {
