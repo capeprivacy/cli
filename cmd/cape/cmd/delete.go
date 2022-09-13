@@ -52,7 +52,7 @@ func delete(cmd *cobra.Command, args []string) error {
 }
 
 func doDelete(url string, functionID string, insecure bool, auth entities.FunctionAuth) error { //nolint:gocognit
-	endpoint := fmt.Sprintf("%s/v1/delete/%s", url, functionID)
+	endpoint := fmt.Sprintf("%s/v1/functions/%s", url, functionID)
 
 	req, err := http.NewRequest("DELETE", endpoint, nil)
 	if err != nil {

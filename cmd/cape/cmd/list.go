@@ -57,7 +57,7 @@ func list(cmd *cobra.Command, args []string) error {
 }
 
 func doList(url string, insecure bool, auth entities.FunctionAuth) error { //nolint:gocognit
-	endpoint := fmt.Sprintf("%s/v1/list", url)
+	endpoint := fmt.Sprintf("%s/v1/functions", url)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
