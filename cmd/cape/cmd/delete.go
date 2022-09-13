@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/capeprivacy/cli/entities"
@@ -45,7 +45,7 @@ func delete(cmd *cobra.Command, args []string) error {
 	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t}
 	err = doDelete(u, functionID, insecure, auth)
 	if err != nil {
-		return fmt.Errorf("error calling delete endpoint: %w", err)
+		return fmt.Errorf("delete failed: %w", err)
 	}
 
 	return nil
@@ -56,17 +56,19 @@ func doDelete(url string, functionID string, insecure bool, auth entities.Functi
 
 	req, err := http.NewRequest("DELETE", endpoint, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot create http request: %s", err)
 	}
 
-	res, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot complete http request: %s", err)
 	}
 
-	if res.StatusCode != 200 {
-		return errors.New("delete failed")
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("server response code %d", resp.StatusCode)
 	}
+
+	log.Infof("Success! Function %s deleted.\n", functionID)
 
 	return nil
 }
