@@ -90,3 +90,36 @@ func TestCapeTest(t *testing.T) {
 		t.Fatalf("didn't get expected results, got %s, wanted %s", got, want)
 	}
 }
+
+func TestTransformURL(t *testing.T) {
+	var tests = []struct {
+		name        string
+		url         string
+		transformed string
+	}{
+		{
+			name:        "transform http to ws",
+			url:         "http://hellothere.capeprivacy.com",
+			transformed: "ws://hellothere.capeprivacy.com",
+		},
+		{
+			name:        "transform https to wss",
+			url:         "https://goodbye.capeprivacy.com",
+			transformed: "wss://goodbye.capeprivacy.com",
+		},
+		{
+			name:        "do not transform wss",
+			url:         "wss://seeyou.capeprivacy.com",
+			transformed: "wss://seeyou.capeprivacy.com",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, _ := transformURL(tt.url)
+			if got != tt.transformed {
+				t.Errorf("got unexpected transformed URL: got %v, want %v", got, tt.transformed)
+			}
+		})
+	}
+}

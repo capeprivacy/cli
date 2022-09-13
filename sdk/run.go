@@ -1,7 +1,6 @@
 package sdk
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 
@@ -15,13 +14,13 @@ import (
 )
 
 type RunRequest struct {
-	URL           string
-	FunctionID    string
-	Data          []byte
-	FuncHash      []byte
-	KeyPolicyHash []byte
-	PcrSlice      []string
-	FunctionAuth  entities.FunctionAuth
+	URL          string
+	FunctionID   string
+	Data         []byte
+	FuncChecksum []byte
+	KeyChecksum  []byte
+	PcrSlice     []string
+	FunctionAuth entities.FunctionAuth
 
 	// For development use only: skips validating TLS certificate from the URL
 	Insecure bool
@@ -36,29 +35,19 @@ func Run(req RunRequest) ([]byte, error) {
 	if auth.Type == entities.AuthenticationTypeFunctionToken {
 		authProtocolType = "cape.function"
 	}
-	c, res, err := websocketDial(endpoint, req.Insecure, authProtocolType, auth.Token)
+
+	conn, err := doDial(endpoint, req.Insecure, authProtocolType, auth.Token)
 	if err != nil {
-		log.Error("error dialing websocket: ", err)
-		// This check is necessary because we don't necessarily return an http response from sentinel.
-		// Http error code and message is returned if network routing fails.
-		if res != nil {
-			var e ErrorMsg
-			if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-				return nil, err
-			}
-			res.Body.Close()
-			return nil, fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
-		}
 		return nil, err
 	}
-	defer c.Close()
+	defer conn.Close()
 
 	nonce, err := crypto.GetNonce()
 	if err != nil {
 		return nil, err
 	}
 
-	p := getProtocol(c)
+	p := getProtocol(conn)
 
 	r := entities.StartRequest{Nonce: []byte(nonce), AuthToken: auth.Token}
 	log.Debug("\n> Sending Nonce and Auth Token")
@@ -88,21 +77,21 @@ func Run(req RunRequest) ([]byte, error) {
 		return nil, err
 	}
 
-	if userData.FuncHash == nil && len(req.FuncHash) > 0 {
+	if userData.FuncChecksum == nil && len(req.FuncChecksum) > 0 {
 		return nil, fmt.Errorf("did not receive checksum from enclave")
 	}
 
 	// If checksum as an optional parameter has not been specified by the user, then we don't check the value.
-	if len(req.FuncHash) > 0 && !reflect.DeepEqual(req.FuncHash, userData.FuncHash) {
-		return nil, fmt.Errorf("returned checksum did not match provided, got: %x, want %x", userData.FuncHash, req.FuncHash)
+	if len(req.FuncChecksum) > 0 && !reflect.DeepEqual(req.FuncChecksum, userData.FuncChecksum) {
+		return nil, fmt.Errorf("returned checksum did not match provided, got: %x, want %x", userData.FuncChecksum, req.FuncChecksum)
 	}
 
-	if userData.KeyPolicyHash == nil && len(req.KeyPolicyHash) > 0 {
-		return nil, fmt.Errorf("did not receive key policy hash from enclave")
+	if userData.KeyChecksum == nil && len(req.KeyChecksum) > 0 {
+		return nil, fmt.Errorf("did not receive key policy checksum from enclave")
 	}
 
-	if len(req.KeyPolicyHash) > 0 && !reflect.DeepEqual(req.KeyPolicyHash, userData.KeyPolicyHash) {
-		return nil, fmt.Errorf("returned key policy hash did not match provided, got: %x, want %x", userData.KeyPolicyHash, req.KeyPolicyHash)
+	if len(req.KeyChecksum) > 0 && !reflect.DeepEqual(req.KeyChecksum, userData.KeyChecksum) {
+		return nil, fmt.Errorf("returned key policy checksum did not match provided, got: %x, want %x", userData.KeyChecksum, req.KeyChecksum)
 	}
 
 	encryptedData, err := crypto.LocalEncrypt(*doc, req.Data)
@@ -112,7 +101,7 @@ func Run(req RunRequest) ([]byte, error) {
 	}
 
 	log.Debug("\n> Sending Encrypted Inputs")
-	err = writeData(c, encryptedData)
+	err = writeData(conn, encryptedData)
 	if err != nil {
 		return nil, err
 	}

@@ -3,7 +3,6 @@ package sdk
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"io"
 
@@ -45,22 +44,10 @@ type DeployRequest struct {
 // Returns a function ID upon successful deployment. The stored function can only be decrypted within an enclave.
 func Deploy(req DeployRequest) (string, []byte, error) {
 	endpoint := fmt.Sprintf("%s/v1/deploy", req.URL)
-
 	log.Info("Deploying function to Cape ...")
 
-	conn, res, err := websocketDial(endpoint, req.Insecure, "cape.runtime", req.AuthToken)
+	conn, err := doDial(endpoint, req.Insecure, "cape.runtime", req.AuthToken)
 	if err != nil {
-		log.Error("error dialing websocket: ", err)
-		// This check is necessary because we don't necessarily return an http response from sentinel.
-		// Http error code and message is returned if network routing fails.
-		if res != nil {
-			var e ErrorMsg
-			if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-				return "", nil, err
-			}
-			res.Body.Close()
-			return "", nil, fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
-		}
 		return "", nil, err
 	}
 	defer conn.Close()
