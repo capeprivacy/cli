@@ -89,7 +89,6 @@ func Test(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	log.Info()
 	return nil
 }
 
