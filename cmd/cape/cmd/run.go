@@ -55,14 +55,20 @@ func init() {
 
 	runCmd.PersistentFlags().StringP("token", "t", "", "function token to use")
 	runCmd.PersistentFlags().StringP("file", "f", "", "input data file")
-	runCmd.PersistentFlags().StringP("checksum", "", "", "checksum to attest")
+	runCmd.PersistentFlags().StringP("function-checksum", "", "", "function checksum to attest")
 	runCmd.PersistentFlags().StringP("function-hash", "", "", "function hash to attest")
 	runCmd.PersistentFlags().StringP("key-policy-hash", "", "", "key policy hash to attest")
+	runCmd.PersistentFlags().StringP("key-policy-checksum", "", "", "key policy checksum to attest")
 	runCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
 
-	err := runCmd.PersistentFlags().MarkDeprecated("function-hash", "this flag has been deprecated for renaming, use 'checksum' instead")
+	err := runCmd.PersistentFlags().MarkDeprecated("function-hash", "this flag has been deprecated for renaming, use 'function-checksum' instead")
 	if err != nil {
 		log.WithError(err).Error("unable to set flag 'function-hash' as deprecated")
+	}
+
+	err = runCmd.PersistentFlags().MarkDeprecated("key-policy-hash", "this flag has been deprecated for renaming, use 'key-checksum' instead")
+	if err != nil {
+		log.WithError(err).Error("unable to set flag 'key-policy-hash' as deprecated")
 	}
 }
 
@@ -86,9 +92,9 @@ func run(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "error retrieving file flag", Err: err}
 	}
 
-	checksumArg, err := cmd.Flags().GetString("checksum")
+	funcChecksumArg, err := cmd.Flags().GetString("function-checksum")
 	if err != nil {
-		return UserError{Msg: "error retrieving checksum flag", Err: err}
+		return UserError{Msg: "error retrieving function-checksum flag", Err: err}
 	}
 
 	// Deprecated
@@ -97,14 +103,14 @@ func run(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "error retrieving function_hash flag", Err: err}
 	}
 
-	var checksum []byte
-	if checksumArg != "" {
-		checksum, err = hex.DecodeString(checksumArg)
+	var funcChecksum []byte
+	if funcChecksumArg != "" {
+		funcChecksum, err = hex.DecodeString(funcChecksumArg)
 		if err != nil {
 			return UserError{Msg: "error reading in checksum", Err: err}
 		}
 	} else {
-		checksum, err = hex.DecodeString(funcHashArg)
+		funcChecksum, err = hex.DecodeString(funcHashArg)
 		if err != nil {
 			return UserError{Msg: "error reading function hash", Err: err}
 		}
@@ -115,14 +121,28 @@ func run(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "error retrieving pcr flags", Err: err}
 	}
 
+	keyChecksumArg, err := cmd.Flags().GetString("key-checksum")
+	if err != nil {
+		return UserError{Msg: "error retrieving key_checksum flag", Err: err}
+	}
+
+	// Deprecated
 	keyPolicyHashArg, err := cmd.Flags().GetString("key-policy-hash")
 	if err != nil {
 		return UserError{Msg: "error retrieving key_policy_hash flag", Err: err}
 	}
 
-	keyPolicyHash, err := hex.DecodeString(keyPolicyHashArg)
-	if err != nil {
-		return UserError{Msg: "error reading key policy hash", Err: err}
+	var keyChecksum []byte
+	if keyChecksumArg != "" {
+		keyChecksum, err = hex.DecodeString(keyChecksumArg)
+		if err != nil {
+			return UserError{Msg: "error reading in key policy checksum", Err: err}
+		}
+	} else {
+		keyChecksum, err = hex.DecodeString(keyPolicyHashArg)
+		if err != nil {
+			return UserError{Msg: "error reading in key policy checksum", Err: err}
+		}
 	}
 
 	functionToken, _ := cmd.Flags().GetString("token")
@@ -158,14 +178,14 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	results, err := sdk.Run(sdk.RunRequest{
-		URL:           u,
-		FunctionID:    functionID,
-		Data:          input,
-		Insecure:      insecure,
-		FuncHash:      checksum,
-		KeyPolicyHash: keyPolicyHash,
-		PcrSlice:      pcrSlice,
-		FunctionAuth:  auth,
+		URL:          u,
+		FunctionID:   functionID,
+		Data:         input,
+		Insecure:     insecure,
+		FuncChecksum: funcChecksum,
+		KeyChecksum:  keyChecksum,
+		PcrSlice:     pcrSlice,
+		FunctionAuth: auth,
 	})
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)
@@ -182,7 +202,7 @@ func Run(url string, auth entities.FunctionAuth, functionID string, file string,
 		return nil, fmt.Errorf("unable to read data file: %w", err)
 	}
 
-	// TODO: Tuner may want to verify function hash later.
+	// TODO: Tuner may want to verify function checksum later.
 	res, err := sdk.Run(sdk.RunRequest{
 		URL:          url,
 		FunctionID:   functionID,

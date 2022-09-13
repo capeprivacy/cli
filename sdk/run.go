@@ -14,13 +14,13 @@ import (
 )
 
 type RunRequest struct {
-	URL           string
-	FunctionID    string
-	Data          []byte
-	FuncHash      []byte
-	KeyPolicyHash []byte
-	PcrSlice      []string
-	FunctionAuth  entities.FunctionAuth
+	URL          string
+	FunctionID   string
+	Data         []byte
+	FuncChecksum []byte
+	KeyChecksum  []byte
+	PcrSlice     []string
+	FunctionAuth entities.FunctionAuth
 
 	// For development use only: skips validating TLS certificate from the URL
 	Insecure bool
@@ -77,21 +77,21 @@ func Run(req RunRequest) ([]byte, error) {
 		return nil, err
 	}
 
-	if userData.FuncHash == nil && len(req.FuncHash) > 0 {
+	if userData.FuncChecksum == nil && len(req.FuncChecksum) > 0 {
 		return nil, fmt.Errorf("did not receive checksum from enclave")
 	}
 
 	// If checksum as an optional parameter has not been specified by the user, then we don't check the value.
-	if len(req.FuncHash) > 0 && !reflect.DeepEqual(req.FuncHash, userData.FuncHash) {
-		return nil, fmt.Errorf("returned checksum did not match provided, got: %x, want %x", userData.FuncHash, req.FuncHash)
+	if len(req.FuncChecksum) > 0 && !reflect.DeepEqual(req.FuncChecksum, userData.FuncChecksum) {
+		return nil, fmt.Errorf("returned checksum did not match provided, got: %x, want %x", userData.FuncChecksum, req.FuncChecksum)
 	}
 
-	if userData.KeyPolicyHash == nil && len(req.KeyPolicyHash) > 0 {
-		return nil, fmt.Errorf("did not receive key policy hash from enclave")
+	if userData.KeyChecksum == nil && len(req.KeyChecksum) > 0 {
+		return nil, fmt.Errorf("did not receive key policy checksum from enclave")
 	}
 
-	if len(req.KeyPolicyHash) > 0 && !reflect.DeepEqual(req.KeyPolicyHash, userData.KeyPolicyHash) {
-		return nil, fmt.Errorf("returned key policy hash did not match provided, got: %x, want %x", userData.KeyPolicyHash, req.KeyPolicyHash)
+	if len(req.KeyChecksum) > 0 && !reflect.DeepEqual(req.KeyChecksum, userData.KeyChecksum) {
+		return nil, fmt.Errorf("returned key policy checksum did not match provided, got: %x, want %x", userData.KeyChecksum, req.KeyChecksum)
 	}
 
 	encryptedData, err := crypto.LocalEncrypt(*doc, req.Data)
