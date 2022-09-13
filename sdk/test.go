@@ -124,7 +124,6 @@ func websocketDial(urlStr string, insecure bool, authProtocolType string, authTo
 
 	c, r, err := websocket.DefaultDialer.Dial(u, secWebsocketProtocol)
 	if err != nil {
-		log.Error("could not create a new client connection")
 		return nil, r, err
 	}
 
