@@ -64,7 +64,7 @@ func init() {
 		log.WithError(err).Error("unable to set flag 'function-hash' as deprecated")
 	}
 
-	err = runCmd.PersistentFlags().MarkDeprecated("key-policy-hash", "this flag has been deprecated for renaming, use 'key-checksum' instead")
+	err = runCmd.PersistentFlags().MarkDeprecated("key-policy-hash", "this flag has been deprecated for renaming, use 'key-policy-checksum' instead")
 	if err != nil {
 		log.WithError(err).Error("unable to set flag 'key-policy-hash' as deprecated")
 	}
@@ -119,7 +119,7 @@ func run(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "error retrieving pcr flags", Err: err}
 	}
 
-	keyChecksumArg, err := cmd.Flags().GetString("key-checksum")
+	keyChecksumArg, err := cmd.Flags().GetString("key-policy-checksum")
 	if err != nil {
 		return UserError{Msg: "error retrieving key_checksum flag", Err: err}
 	}
