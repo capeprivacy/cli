@@ -10,10 +10,9 @@ import (
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/capeprivacy/cli/entities"
-
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
+	"github.com/capeprivacy/cli/entities"
 )
 
 type TestRequest struct {

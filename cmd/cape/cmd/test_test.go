@@ -17,7 +17,6 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/capeprivacy/cli/entities"
-
 	"github.com/capeprivacy/cli/sdk"
 	czip "github.com/capeprivacy/cli/zip"
 )
