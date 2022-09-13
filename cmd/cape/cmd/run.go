@@ -7,8 +7,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/capeprivacy/cli/entities"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/capeprivacy/cli/entities"
 
 	"github.com/spf13/cobra"
 
