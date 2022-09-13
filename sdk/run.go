@@ -1,7 +1,6 @@
 package sdk
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 
@@ -36,29 +35,19 @@ func Run(req RunRequest) ([]byte, error) {
 	if auth.Type == entities.AuthenticationTypeFunctionToken {
 		authProtocolType = "cape.function"
 	}
-	c, res, err := websocketDial(endpoint, req.Insecure, authProtocolType, auth.Token)
+
+	conn, err := doDial(endpoint, req.Insecure, authProtocolType, auth.Token)
 	if err != nil {
-		log.Error("error dialing websocket: ", err)
-		// This check is necessary because we don't necessarily return an http response from sentinel.
-		// Http error code and message is returned if network routing fails.
-		if res != nil {
-			var e ErrorMsg
-			if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-				return nil, err
-			}
-			res.Body.Close()
-			return nil, fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
-		}
 		return nil, err
 	}
-	defer c.Close()
+	defer conn.Close()
 
 	nonce, err := crypto.GetNonce()
 	if err != nil {
 		return nil, err
 	}
 
-	p := getProtocol(c)
+	p := getProtocol(conn)
 
 	r := entities.StartRequest{Nonce: []byte(nonce), AuthToken: auth.Token}
 	log.Debug("\n> Sending Nonce and Auth Token")
@@ -112,7 +101,7 @@ func Run(req RunRequest) ([]byte, error) {
 	}
 
 	log.Debug("\n> Sending Encrypted Inputs")
-	err = writeData(c, encryptedData)
+	err = writeData(conn, encryptedData)
 	if err != nil {
 		return nil, err
 	}
