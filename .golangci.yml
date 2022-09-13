@@ -17,4 +17,4 @@ linters:
     - staticcheck
 linters-settings:
   goimports:
-    local-prefixes: github.com/capeprivacy/maestro
+    local-prefixes: github.com/capeprivacy

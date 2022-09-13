@@ -9,9 +9,8 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/capeprivacy/cli/entities"
-
 	"github.com/capeprivacy/cli/attest"
+	"github.com/capeprivacy/cli/entities"
 )
 
 type testProtocol struct {
