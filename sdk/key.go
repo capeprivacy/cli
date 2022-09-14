@@ -11,6 +11,7 @@ import (
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/cli/entities"
+	"github.com/capeprivacy/cli/pcrs"
 )
 
 type KeyRequest struct {
@@ -18,6 +19,7 @@ type KeyRequest struct {
 	FunctionAuth entities.FunctionAuth
 	ConfigDir    string
 	CapeKeyFile  string
+	PcrSlice     []string
 
 	// For development use only: skips validating TLS certificate from the URL
 	Insecure bool
@@ -108,6 +110,12 @@ func ConnectAndAttest(keyReq KeyRequest) (*attest.AttestationDoc, *attest.Attest
 	doc, userData, err := attest.Attest(attestDoc, rootCert)
 	if err != nil {
 		log.Println("error attesting")
+		return nil, nil, err
+	}
+
+	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(keyReq.PcrSlice), doc)
+	if err != nil {
+		log.Println("error verifying PCRs")
 		return nil, nil, err
 	}
 
