@@ -86,12 +86,12 @@ func (p Protocol) WriteRunResults(results entities.RunResults) error {
 	return writeMsg(p.Websocket, results)
 }
 
-func (p Protocol) ReadFunctionPublicKey() (*entities.FunctionPublicKey, error) {
-	return readMsg[entities.FunctionPublicKey](p.Websocket)
+func (p Protocol) ReadFunctionPublicKey() (*entities.FunctionInfo, error) {
+	return readMsg[entities.FunctionInfo](p.Websocket)
 }
 
 func (p Protocol) WriteFunctionPublicKey(key string, name string) error {
-	return writeMsg(p.Websocket, entities.FunctionPublicKey{FunctionTokenPublicKey: key, FunctionName: name})
+	return writeMsg(p.Websocket, entities.FunctionInfo{FunctionTokenPublicKey: key, FunctionName: name})
 }
 
 func (p Protocol) ReadAttestationDoc() ([]byte, error) {

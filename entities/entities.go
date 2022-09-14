@@ -27,7 +27,7 @@ type DeployRequest struct {
 	AuthToken string `json:"auth_token"`
 }
 
-type FunctionPublicKey struct {
+type FunctionInfo struct {
 	FunctionTokenPublicKey string `json:"function_token_pk"`
 	FunctionName           string `json:"function_name"`
 }
