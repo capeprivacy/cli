@@ -8,7 +8,6 @@ type StartRequest struct {
 	// Nonce is used by the client to verify the nonce received back in
 	// the attestation doc
 	Nonce         []byte           `json:"nonce"`
-	AuthToken     string           `json:"auth_token"`
 	FunctionToken string           `json:"function_token,omitempty"`
 	Metadata      FunctionMetadata `json:"metadata,omitempty"`
 }

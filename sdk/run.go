@@ -49,7 +49,7 @@ func Run(req RunRequest) ([]byte, error) {
 
 	p := getProtocol(conn)
 
-	r := entities.StartRequest{Nonce: []byte(nonce), AuthToken: auth.Token}
+	r := entities.StartRequest{Nonce: []byte(nonce)}
 	log.Debug("\n> Sending Nonce and Auth Token")
 	err = p.WriteStart(r)
 	if err != nil {
