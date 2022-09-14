@@ -20,7 +20,7 @@ type testProtocol struct {
 	binary  func(b []byte) error
 }
 
-func (t testProtocol) WriteFunctionPublicKey(key string, name string) error {
+func (t testProtocol) WriteFunctionInfo(key string, name string) error {
 	return nil
 }
 

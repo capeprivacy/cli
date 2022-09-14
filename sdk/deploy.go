@@ -21,7 +21,7 @@ type protocol interface {
 	ReadAttestationDoc() ([]byte, error)
 	ReadRunResults() (*entities.RunResults, error)
 	WriteBinary([]byte) error
-	WriteFunctionPublicKey(key string, name string) error
+	WriteFunctionInfo(key string, name string) error
 	ReadDeploymentResults() (*entities.SetDeploymentIDRequest, error)
 }
 
@@ -112,7 +112,7 @@ func Deploy(req DeployRequest) (string, []byte, error) {
 	}
 
 	log.Debug("\n> Sending Public Key")
-	if err := p.WriteFunctionPublicKey(req.FunctionTokenPublicKey, req.Name); err != nil {
+	if err := p.WriteFunctionInfo(req.FunctionTokenPublicKey, req.Name); err != nil {
 		log.Error("error sending public key")
 		return "", nil, err
 	}
