@@ -32,6 +32,7 @@ Usage:
 Flags:
   -f, --file string   input data file
   -h, --help          help for test
+  -p, --pcr strings   pass multiple PCRs to validate against
 
 `
 
@@ -41,6 +42,7 @@ Flags:
 Flags:
   -f, --file string   input data file
   -h, --help          help for test
+  -p, --pcr strings   pass multiple PCRs to validate against
 
 `
 )
@@ -107,7 +109,7 @@ func TestServerError(t *testing.T) {
 	cmd.SetArgs([]string{"test", "testdata/my_fn", "hello world"})
 
 	errMsg := "something went wrong"
-	test = func(testReq sdk.TestRequest, endpoint string) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, endpoint string, pcrSlice []string) (*entities.RunResults, error) {
 		return nil, errors.New(errMsg)
 	}
 	authToken = func() (string, error) {
@@ -138,7 +140,7 @@ func TestSuccess(t *testing.T) {
 	results := "success!"
 	var gotFn []byte
 	var gotInput []byte
-	test = func(testReq sdk.TestRequest, endpoint string) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, endpoint string, pcrSlice []string) (*entities.RunResults, error) {
 		gotFn, gotInput = testReq.Function, testReq.Input
 		return &entities.RunResults{Message: []byte(results)}, nil
 	}
@@ -182,7 +184,7 @@ func TestSuccessStdin(t *testing.T) {
 	results := "success!"
 	var gotFn []byte
 	var gotInput []byte
-	test = func(testReq sdk.TestRequest, endpoint string) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, endpoint string, pcrSlice []string) (*entities.RunResults, error) {
 		gotFn, gotInput = testReq.Function, testReq.Input
 		return &entities.RunResults{Message: []byte(results)}, nil
 	}
@@ -226,7 +228,7 @@ func TestWSConnection(t *testing.T) {
 	type msg struct {
 		Message []byte `json:"msg"`
 	}
-	test = func(testReq sdk.TestRequest, endpoint string) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, endpoint string, pcrSlice []string) (*entities.RunResults, error) {
 		c, _, err := websocket.DefaultDialer.Dial(endpoint, nil)
 		if err != nil {
 			return nil, err
@@ -284,7 +286,7 @@ func TestWSConnection(t *testing.T) {
 func TestEndpoint(t *testing.T) {
 	// ensure that `cape test` hits the `/v1/test` endpoint
 	endpointHit := ""
-	test = func(testReq sdk.TestRequest, endpoint string) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, endpoint string, pcrSlice []string) (*entities.RunResults, error) {
 		endpointHit = endpoint
 		return &entities.RunResults{Message: []byte("good job")}, nil
 	}
@@ -312,7 +314,7 @@ func TestEndpoint(t *testing.T) {
 func TestEnvVarConfigEndpoint(t *testing.T) {
 	// ensure that env var overrides work for hostname
 	endpointHit := ""
-	test = func(testReq sdk.TestRequest, endpoint string) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, endpoint string, pcrSlice []string) (*entities.RunResults, error) {
 		endpointHit = endpoint
 		return &entities.RunResults{Message: []byte("good job")}, nil
 	}
@@ -345,7 +347,7 @@ func TestFileConfigEndpoint(t *testing.T) {
 	endpointHit := ""
 	fileEndpoint := "https://foo_file.capeprivacy.com"
 
-	test = func(testReq sdk.TestRequest, endpoint string) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, endpoint string, pcrSlice []string) (*entities.RunResults, error) {
 		endpointHit = endpoint
 		return &entities.RunResults{Message: []byte("good job")}, nil
 	}
