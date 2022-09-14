@@ -90,6 +90,11 @@ func doList(url string, insecure bool, auth entities.FunctionAuth) error { //nol
 		return errors.New("malformed body in response")
 	}
 
+	if len(deploymentNames) == 0 {
+		fmt.Println("No functions deployed.")
+		return nil
+	}
+
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"#", "Name", "ID", "Created At"})

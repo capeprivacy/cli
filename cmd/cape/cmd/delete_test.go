@@ -39,7 +39,7 @@ func TestDeleteTooManyArgs(t *testing.T) {
 
 func TestDeleteBadFunction(t *testing.T) {
 	cmd, _, stderr := getCmd()
-	cmd.SetArgs([]string{"delete", "invalid", "--url", "http://app.capeprivacy.com"})
+	cmd.SetArgs([]string{"delete", "invalid", "--url", "https://app.capeprivacy.com"})
 
 	authToken = func() (string, error) {
 		return "so logged in", nil
