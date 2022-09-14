@@ -1,7 +1,6 @@
 package sdk
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"os"
@@ -12,6 +11,7 @@ import (
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/cli/entities"
+	"github.com/capeprivacy/cli/pcrs"
 )
 
 type KeyRequest struct {
@@ -19,6 +19,7 @@ type KeyRequest struct {
 	FunctionAuth entities.FunctionAuth
 	ConfigDir    string
 	CapeKeyFile  string
+	PcrSlice     []string
 
 	// For development use only: skips validating TLS certificate from the URL
 	Insecure bool
@@ -28,7 +29,7 @@ func Key(keyReq KeyRequest) ([]byte, error) {
 	var capeKey, err = readCapeKey(keyReq.CapeKeyFile)
 	if err != nil {
 		// If the key file isn't present we download it, but log this error anyway in case something else happened.
-		log.Debug("Unable to open cape key file: %w", err)
+		log.Debugf("Unable to open cape key file: %s", err)
 
 		capeKey, err = downloadAndSaveKey(keyReq)
 		if err != nil {
@@ -71,21 +72,8 @@ func ConnectAndAttest(keyReq KeyRequest) (*attest.AttestationDoc, *attest.Attest
 		authProtocolType = "cape.function"
 	}
 
-	c, res, err := websocketDial(endpoint, keyReq.Insecure, authProtocolType, auth.Token)
+	c, err := doDial(endpoint, keyReq.Insecure, authProtocolType, auth.Token)
 	if err != nil {
-		log.Error("error dialing websocket: ", err)
-		// This check is necessary because we don't necessarily return an http response from sentinel.
-		// Http error code and message is returned if network routing fails.
-		if res != nil {
-			fmt.Println("res.Body", res.Body)
-			fmt.Println("res", res)
-			var e ErrorMsg
-			if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-				return nil, nil, err
-			}
-			res.Body.Close()
-			return nil, nil, fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
-		}
 		return nil, nil, err
 	}
 	defer c.Close()
@@ -122,6 +110,12 @@ func ConnectAndAttest(keyReq KeyRequest) (*attest.AttestationDoc, *attest.Attest
 	doc, userData, err := attest.Attest(attestDoc, rootCert)
 	if err != nil {
 		log.Println("error attesting")
+		return nil, nil, err
+	}
+
+	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(keyReq.PcrSlice), doc)
+	if err != nil {
+		log.Println("error verifying PCRs")
 		return nil, nil, err
 	}
 

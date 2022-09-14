@@ -9,9 +9,8 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/capeprivacy/cli/entities"
-
 	"github.com/capeprivacy/cli/attest"
+	"github.com/capeprivacy/cli/entities"
 )
 
 type testProtocol struct {
@@ -81,7 +80,7 @@ func TestCapeTest(t *testing.T) {
 		Insecure: true,
 	}
 
-	res, err := Test(test, wsURL(s.URL))
+	res, err := Test(test, wsURL(s.URL), []string{})
 	if err != nil {
 		t.Fatal(err)
 	}
