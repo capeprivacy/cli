@@ -27,7 +27,7 @@ func Key(keyReq KeyRequest) ([]byte, error) {
 	var capeKey, err = readCapeKey(keyReq.CapeKeyFile)
 	if err != nil {
 		// If the key file isn't present we download it, but log this error anyway in case something else happened.
-		log.Debug("Unable to open cape key file: %w", err)
+		log.Debugf("Unable to open cape key file: %s", err)
 
 		capeKey, err = downloadAndSaveKey(keyReq)
 		if err != nil {
