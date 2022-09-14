@@ -50,16 +50,32 @@ func token(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	tokenString, err := Token(functionID, expires, owner)
+	accessTokenParsed, err := getAccessTokenVerifyAndParse()
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("%s\n", tokenString)
+	// Use the AccessToken sub (user id) as the issuer for the function token.
+	// The issuer is used to determine which KMS key to use inside the enclave.
+	issuer := accessTokenParsed.Subject()
+	if issuer == "" {
+		return fmt.Errorf("could not detect your user id, perhaps retry logging in")
+	}
+
+	tokenString, err := Token(issuer, functionID, expires, owner)
+	if err != nil {
+		return err
+	}
+
+	_, err = cmd.OutOrStdout().Write([]byte(tokenString + "\n"))
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func Token(functionID string, expires int, owner bool) (string, error) {
+func Token(issuer string, functionID string, expires int, owner bool) (string, error) {
 	privateKey, err := getOrGeneratePrivateKey()
 	if err != nil {
 		return "", err
@@ -71,6 +87,7 @@ func Token(functionID string, expires int, owner bool) (string, error) {
 	}
 
 	token, err := jwt.NewBuilder().
+		Issuer(issuer).
 		Subject(functionID).
 		Claim("scope", strings.Join(scope, " ")).
 		IssuedAt(time.Now()).
