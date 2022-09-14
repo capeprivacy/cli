@@ -25,15 +25,21 @@ func init() {
 	rootCmd.AddCommand(encryptCmd)
 
 	encryptCmd.PersistentFlags().StringP("file", "f", "", "input data file")
+	encryptCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against, used while getting key for the first time")
 }
 
 func encrypt(cmd *cobra.Command, args []string) error {
+	pcrSlice, err := cmd.Flags().GetStringSlice("pcr")
+	if err != nil {
+		return UserError{Msg: "error retrieving pcr flags", Err: err}
+	}
+
 	input, userError := parseInput(cmd, args)
 	if userError != nil {
 		return userError
 	}
 
-	keyReq, err := GetKeyRequest(nil)
+	keyReq, err := GetKeyRequest(pcrSlice)
 	if err != nil {
 		return err
 	}

@@ -26,7 +26,7 @@ var keyCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(keyCmd)
 
-	keyCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
+	keyCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against, used while getting key for the first time")
 }
 
 func key(cmd *cobra.Command, args []string) error {
