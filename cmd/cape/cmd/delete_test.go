@@ -58,7 +58,7 @@ func TestDeleteBadFunction(t *testing.T) {
 }
 
 func TestDeleteServerError(t *testing.T) {
-	cmd, stdout, stderr := getCmd()
+	cmd, _, stderr := getCmd()
 	cmd.SetArgs([]string{"delete", "foo"})
 
 	errMsg := "Error: delete failed: server response code"
@@ -75,10 +75,6 @@ func TestDeleteServerError(t *testing.T) {
 
 	if got, want := stderr.String(), errMsg; !strings.HasPrefix(got, want) {
 		t.Fatalf("didn't get expected stderr, got %s, wanted %s", got, want)
-	}
-
-	if got, want := stdout.String(), ""; got != want {
-		t.Fatalf("didn't get expected response, got %s, wanted %s", got, want)
 	}
 }
 
