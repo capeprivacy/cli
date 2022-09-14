@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/capeprivacy/cli/entities"
+	"github.com/jedib0t/go-pretty/v6/table"
 )
 
 // listCmd represents the run command
@@ -27,8 +29,9 @@ var listCmd = &cobra.Command{
 }
 
 type DeploymentName struct {
-	ID   string
-	Name string
+	ID        string
+	Name      string
+	CreatedAt string
 }
 
 func init() {
@@ -87,6 +90,14 @@ func doList(url string, insecure bool, auth entities.FunctionAuth) error { //nol
 		return errors.New("malformed body in response")
 	}
 
-	fmt.Printf("%v", deploymentNames)
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"#", "Name", "ID", "Created At"})
+	for i, deployment := range deploymentNames {
+		t.AppendRow([]interface{}{i, deployment.Name, deployment.ID, deployment.CreatedAt})
+	}
+	t.SetStyle(table.StyleLight)
+	t.Render()
+
 	return nil
 }
