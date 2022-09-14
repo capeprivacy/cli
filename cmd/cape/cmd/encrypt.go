@@ -33,7 +33,7 @@ func encrypt(cmd *cobra.Command, args []string) error {
 		return userError
 	}
 
-	keyReq, err := GetKeyRequest()
+	keyReq, err := GetKeyRequest(nil)
 	if err != nil {
 		return err
 	}

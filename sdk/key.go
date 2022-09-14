@@ -12,6 +12,7 @@ import (
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/cli/entities"
+	"github.com/capeprivacy/cli/pcrs"
 )
 
 type KeyRequest struct {
@@ -19,6 +20,7 @@ type KeyRequest struct {
 	FunctionAuth entities.FunctionAuth
 	ConfigDir    string
 	CapeKeyFile  string
+	PcrSlice     []string
 
 	// For development use only: skips validating TLS certificate from the URL
 	Insecure bool
@@ -74,11 +76,9 @@ func ConnectAndAttest(keyReq KeyRequest) (*attest.AttestationDoc, *attest.Attest
 	c, res, err := websocketDial(endpoint, keyReq.Insecure, authProtocolType, auth.Token)
 	if err != nil {
 		log.Error("error dialing websocket: ", err)
-		// This check is necessary because we don't necessarily return an http response from sentinel.
-		// Http error code and message is returned if network routing fails.
+		// This check is necessary because we don't necessarily return an http response from runtime.
+		// HTTP error code and message is returned if network routing fails.
 		if res != nil {
-			fmt.Println("res.Body", res.Body)
-			fmt.Println("res", res)
 			var e ErrorMsg
 			if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
 				return nil, nil, err
@@ -122,6 +122,12 @@ func ConnectAndAttest(keyReq KeyRequest) (*attest.AttestationDoc, *attest.Attest
 	doc, userData, err := attest.Attest(attestDoc, rootCert)
 	if err != nil {
 		log.Println("error attesting")
+		return nil, nil, err
+	}
+
+	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(keyReq.PcrSlice), doc)
+	if err != nil {
+		log.Println("error verifying PCRs")
 		return nil, nil, err
 	}
 
