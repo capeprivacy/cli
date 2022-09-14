@@ -1,7 +1,6 @@
 package sdk
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"os"
@@ -71,21 +70,8 @@ func ConnectAndAttest(keyReq KeyRequest) (*attest.AttestationDoc, *attest.Attest
 		authProtocolType = "cape.function"
 	}
 
-	c, res, err := websocketDial(endpoint, keyReq.Insecure, authProtocolType, auth.Token)
+	c, err := doDial(endpoint, keyReq.Insecure, authProtocolType, auth.Token)
 	if err != nil {
-		log.Error("error dialing websocket: ", err)
-		// This check is necessary because we don't necessarily return an http response from sentinel.
-		// Http error code and message is returned if network routing fails.
-		if res != nil {
-			fmt.Println("res.Body", res.Body)
-			fmt.Println("res", res)
-			var e ErrorMsg
-			if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-				return nil, nil, err
-			}
-			res.Body.Close()
-			return nil, nil, fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
-		}
 		return nil, nil, err
 	}
 	defer c.Close()
