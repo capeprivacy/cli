@@ -38,7 +38,7 @@ func delete(cmd *cobra.Command, args []string) error {
 
 	functionID := args[0]
 
-	t, err := getAuthToken()
+	t, err := authToken()
 	if err != nil {
 		return err
 	}

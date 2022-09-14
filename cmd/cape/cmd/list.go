@@ -46,7 +46,7 @@ func list(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "list does not take any arguments", Err: fmt.Errorf("invalid number of input arguments")}
 	}
 
-	t, err := getAuthToken()
+	t, err := authToken()
 	if err != nil {
 		return err
 	}
