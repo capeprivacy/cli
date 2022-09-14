@@ -13,6 +13,7 @@ import (
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/cli/entities"
+	"github.com/capeprivacy/cli/pcrs"
 )
 
 type TestRequest struct {
@@ -31,7 +32,7 @@ type ErrorMsg struct {
 // Test simulates the workflow of Deploy and Run, without storing the function.
 // It loads the given function into an enclave, runs it on the given data, and returns the result.
 // Use Test to verify that your function will work before storing it via Deploy.
-func Test(testReq TestRequest, endpoint string) (*entities.RunResults, error) {
+func Test(testReq TestRequest, endpoint string, pcrSlice []string) (*entities.RunResults, error) {
 	conn, err := doDial(endpoint, testReq.Insecure, "cape.runtime", testReq.AuthToken)
 	if err != nil {
 		return nil, err
@@ -68,6 +69,12 @@ func Test(testReq TestRequest, endpoint string) (*entities.RunResults, error) {
 	log.Debug("< Attestation document")
 	doc, _, err := runAttestation(attestDoc, rootCert)
 	if err != nil {
+		return nil, err
+	}
+
+	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(pcrSlice), doc)
+	if err != nil {
+		log.Println("error verifying PCRs")
 		return nil, err
 	}
 
@@ -124,7 +131,6 @@ func websocketDial(urlStr string, insecure bool, authProtocolType string, authTo
 
 	c, r, err := websocket.DefaultDialer.Dial(u, secWebsocketProtocol)
 	if err != nil {
-		log.Error("could not create a new client connection")
 		return nil, r, err
 	}
 
