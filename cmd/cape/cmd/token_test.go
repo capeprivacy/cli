@@ -17,9 +17,17 @@ import (
 // `cape token` uses the token subject from the currently logged in cape user.
 // this helper creates a dummy auth file for that purpose.
 func beforeOnce() error {
+	// We cannot easily validate the JWKS in test as the test access token is self generated.
+	getAccessTokenVerifyAndParse = func() (jwt.Token, error) {
+		tokenResponse, err := getTokenResponse()
+		if err != nil {
+			return nil, err
+		}
+		return jwt.Parse([]byte(tokenResponse.AccessToken), jwt.WithVerify(false))
+	}
+
 	localConfigDir := "./.config/"
 	viper.Set("LOCAL_CONFIG_DIR", localConfigDir)
-	viper.Set("GO_ENV", "test")
 
 	accessToken, err := jwt.NewBuilder().
 		Subject("github|test-user").
