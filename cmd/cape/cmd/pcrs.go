@@ -14,7 +14,7 @@ import (
 // runCmd represents the get-prcs command
 var getPCRsCmd = &cobra.Command{
 	Use:   "get-pcrs",
-	Short: "returns the pcrs of a given sentinel version",
+	Short: "returns the pcrs of a given runtime version",
 	Long:  "",
 	RunE:  getPCRs,
 }
@@ -22,7 +22,7 @@ var getPCRsCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(getPCRsCmd)
 
-	getPCRsCmd.PersistentFlags().String("version", "release-434bd34", "the version of the sentinel EIF to get PCRs for")
+	getPCRsCmd.PersistentFlags().String("version", "release-434bd34", "the version of the runtime EIF to get PCRs for")
 	getPCRsCmd.PersistentFlags().StringP("bucket", "b", "user-eif-release-bucket", "the artifact source bucket in S3")
 }
 

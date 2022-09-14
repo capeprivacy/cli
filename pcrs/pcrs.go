@@ -24,19 +24,19 @@ type EIFInfo struct {
 	Measurements Measurements `json:"measurements"`
 }
 
-func DownloadEIF(bucket string, sentinelVersion string) (string, error) {
+func DownloadEIF(bucket string, runtimeVersion string) (string, error) {
 	sess := session.Must(session.NewSession())
 
 	// Create a downloader with the session and default options
 	downloader := s3manager.NewDownloader(sess)
 
-	f, err := os.CreateTemp("", "sentinel")
+	f, err := os.CreateTemp("", "runtime")
 	if err != nil {
 		return "", err
 	}
 	defer f.Close()
 
-	key := fmt.Sprintf("runtime-%s.eif", sentinelVersion)
+	key := fmt.Sprintf("runtime-%s.eif", runtimeVersion)
 	_, err = downloader.Download(f, &s3.GetObjectInput{Bucket: aws.String(bucket), Key: aws.String(key)})
 	if err != nil {
 		return "", err
