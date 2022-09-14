@@ -13,7 +13,7 @@ const (
   cape list [flags]`
 )
 
-func TestlistArgs(t *testing.T) {
+func TestListArgs(t *testing.T) {
 	cmd, stdout, _ := getCmd()
 	cmd.SetArgs([]string{"list"})
 	if err := cmd.Execute(); err == nil {
