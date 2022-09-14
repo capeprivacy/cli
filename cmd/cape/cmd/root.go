@@ -66,7 +66,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringP("config", "c", "$HOME/.config/cape/presets.json", "config file")
-	rootCmd.PersistentFlags().StringP("url", "u", "wss://enclave.capeprivacy.com", "cape cloud URL")
+	rootCmd.PersistentFlags().StringP("url", "u", "https://app.capeprivacy.com", "cape cloud URL")
 	rootCmd.PersistentFlags().Bool("insecure", false, "!!! For development only !!! Disable TLS certificate verification.")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
 
@@ -143,7 +143,7 @@ func initConfig() {
 		log.Error("failed to bind config variable.")
 		cobra.CheckErr(err)
 	}
-	viper.SetDefault("ENCLAVE_HOST", "wss://enclave.capeprivacy.com")
+	viper.SetDefault("ENCLAVE_HOST", "https://app.capeprivacy.com")
 
 	if err := viper.BindEnv("SUPERVISOR_HOST"); err != nil {
 		log.Error("failed to bind config variable.")
@@ -163,6 +163,12 @@ func initConfig() {
 	}
 	viper.SetDefault("LOCAL_AUTH_FILE_NAME", "auth")
 
+	if err := viper.BindEnv("LOCAL_CAPE_KEY_FILE_NAME"); err != nil {
+		log.Error("failed to bind config variable.")
+		cobra.CheckErr(err)
+	}
+	viper.SetDefault("LOCAL_CAPE_KEY_FILE_NAME", "capekey.pub.der")
+
 	if err := viper.BindEnv("DEV_DISABLE_SSL"); err != nil {
 		log.Error("failed to bind config variable.")
 		cobra.CheckErr(err)
@@ -176,6 +182,7 @@ func initConfig() {
 	C.ClientID = viper.GetString("CLIENT_ID")
 	C.LocalConfigDir = viper.GetString("LOCAL_CONFIG_DIR")
 	C.LocalAuthFileName = viper.GetString("LOCAL_AUTH_FILE_NAME")
+	C.LocalCapeKeyFileName = viper.GetString("LOCAL_CAPE_KEY_FILE_NAME")
 	C.Insecure = viper.GetBool("DEV_DISABLE_SSL")
 
 	if err != nil {

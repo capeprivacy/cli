@@ -8,6 +8,7 @@ type Config struct {
 	Audience          string
 	LocalConfigDir    string
 	LocalAuthFileName string
+	LocalCapeKeyFileName string
 
 	// Dev only
 	Insecure bool
