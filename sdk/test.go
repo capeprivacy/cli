@@ -185,8 +185,13 @@ func doDial(endpoint string, insecure bool, authProtocolType string, authToken s
 		return nil, err
 	}
 
-	conn, _, err = websocketDial(location.String(), insecure, authProtocolType, authToken)
+	conn, res, err = websocketDial(location.String(), insecure, authProtocolType, authToken)
 	if err != nil {
+		if res != nil {
+			customErr := customError(res)
+			res.Body.Close()
+			return nil, customErr
+		}
 		log.Error("could not dial websocket again after 307 redirect")
 		return nil, err
 	}

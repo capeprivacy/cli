@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"path/filepath"
 
@@ -43,12 +45,22 @@ func key(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// TODO: It may be best to display the key in PEM format.
-	// This is the DER format that KMS gives us, and that we use directly.
-	// A user could convert it to PEM with openssl: openssl pkey -pubin -inform der -in ~/.config/cape/capekey.pub.der -out capekey.pub.pem
 	// The pem file could then be used to encrypt with openssl or elsewhere, independent of Cape...
 	//  ...but NOTE that Cape will only support decryption if envelope encryption is used.
-	fmt.Println(capeKey)
+	p, err := x509.ParsePKIXPublicKey(capeKey)
+	if err != nil {
+		return err
+	}
+
+	m, err := x509.MarshalPKIXPublicKey(p)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(pem.EncodeToMemory(&pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: m,
+	})))
 
 	return nil
 }
