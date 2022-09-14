@@ -59,6 +59,9 @@ func doDelete(url string, functionID string, insecure bool, auth entities.Functi
 		return fmt.Errorf("cannot create http request: %s", err)
 	}
 
+	var bearer = "Bearer " + auth.Token
+	req.Header.Add("Authorization", bearer)
+
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("cannot complete http request: %s", err)

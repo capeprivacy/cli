@@ -16,7 +16,7 @@ import (
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all deployed functions",
-	Long:  "List all deployed function for your user.\n",
+	Long:  "List all deployed functions for your user.\n",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := list(cmd, args)
 		if _, ok := err.(UserError); !ok {
@@ -63,6 +63,9 @@ func doList(url string, insecure bool, auth entities.FunctionAuth) error { //nol
 	if err != nil {
 		return err
 	}
+
+	var bearer = "Bearer " + auth.Token
+	req.Header.Add("Authorization", bearer)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
