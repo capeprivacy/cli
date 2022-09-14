@@ -4,42 +4,16 @@ import (
 	"errors"
 	"strings"
 	"testing"
-
-	"github.com/capeprivacy/cli/entities"
-
-	"github.com/capeprivacy/cli/sdk"
 )
 
 const (
-	deleteHelp = `Delete a deployed function, takes function id.
-
-Usage:
-  cape delete function_id [flags]
-
-Flags:
-  -h, --help   help for delete
-
-Global Flags:
-  -c, --config string   config file (default "$HOME/.config/cape/presets.json")
-  -u, --url string      cape cloud URL (default "wss://enclave.capeprivacy.com")
-  -v, --verbose         verbose output
-`
+	deleteHelp = `Delete a deployed function, takes function id.`
 
 	deleteUsage = `Usage:
-  cape delete function_id [flags]
-
-Flags:
-  -h, --help   help for delete
-
-Global Flags:
-  -c, --config string   config file (default "$HOME/.config/cape/presets.json")
-  -u, --url string      cape cloud URL (default "wss://enclave.capeprivacy.com")
-  -v, --verbose         verbose output
-
-`
+  cape delete function_id [flags]`
 )
 
-func TestDeleteoArgs(t *testing.T) {
+func TestDeleteArgs(t *testing.T) {
 	cmd, stdout, _ := getCmd()
 	cmd.SetArgs([]string{"delete"})
 	if err := cmd.Execute(); err == nil {
@@ -65,7 +39,7 @@ func TestDeleteTooManyArgs(t *testing.T) {
 
 func TestDeleteBadFunction(t *testing.T) {
 	cmd, _, stderr := getCmd()
-	cmd.SetArgs([]string{"delete", "invalid"})
+	cmd.SetArgs([]string{"delete", "invalid", "--url", "http://app.capeprivacy.com"})
 	if err := cmd.Execute(); err == nil {
 		t.Fatal(errors.New("received no error when we should have"))
 	}
@@ -80,14 +54,10 @@ func TestDeleteServerError(t *testing.T) {
 	cmd.SetArgs([]string{"delete", "foo"})
 
 	errMsg := "Error: delete failed: server response code"
-	test = func(testReq sdk.TestRequest, endpoint string) (*entities.RunResults, error) {
-		return nil, errors.New(errMsg)
-	}
 	authToken = func() (string, error) {
 		return "so logged in", nil
 	}
 	defer func() {
-		test = sdk.Test
 		authToken = getAuthToken
 	}()
 

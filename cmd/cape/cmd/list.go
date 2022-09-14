@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 
 	"github.com/capeprivacy/cli/entities"
-	"github.com/jedib0t/go-pretty/v6/table"
 )
 
 // listCmd represents the run command
