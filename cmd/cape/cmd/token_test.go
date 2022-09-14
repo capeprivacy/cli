@@ -16,7 +16,7 @@ import (
 
 // `cape token` uses the token subject from the currently logged in cape user.
 // this helper creates a dummy auth file for that purpose.
-func beforeOnce() error {
+func beforeOnce() (string, error) {
 	// We cannot easily validate the JWKS in test as the test access token is self generated.
 	getAccessTokenVerifyAndParse = func() (jwt.Token, error) {
 		tokenResponse, err := getTokenResponse()
@@ -28,7 +28,7 @@ func beforeOnce() error {
 
 	localConfigDir, err := os.MkdirTemp("", "config")
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	viper.Set("LOCAL_CONFIG_DIR", localConfigDir)
@@ -39,44 +39,47 @@ func beforeOnce() error {
 		Expiration(time.Now().Add(time.Hour)).
 		Build()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	accessTokenString, err := jwt.Sign(accessToken, jwt.WithKey(jwa.RS256, key))
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	tokenResponse, err := json.MarshalIndent(&TokenResponse{
 		AccessToken: string(accessTokenString),
 	}, "", "  ")
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	err = os.MkdirAll(localConfigDir, os.ModePerm)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	err = os.WriteFile(localConfigDir+"/auth", tokenResponse, 0644)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return localConfigDir, nil
 }
 
 func TestToken(t *testing.T) {
-	err := beforeOnce()
+	previousLocalConfigDir := viper.Get("LOCAL_CONFIG_DIR")
+	localConfigDir, err := beforeOnce()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer os.RemoveAll(localConfigDir)
+	defer viper.Set("LOCAL_CONFIG_DIR", previousLocalConfigDir)
 
 	cmd, stdout, _ := getCmd()
 
