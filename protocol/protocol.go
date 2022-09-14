@@ -90,8 +90,8 @@ func (p Protocol) ReadFunctionPublicKey() (*entities.FunctionPublicKey, error) {
 	return readMsg[entities.FunctionPublicKey](p.Websocket)
 }
 
-func (p Protocol) WriteFunctionPublicKey(key string) error {
-	return writeMsg(p.Websocket, entities.FunctionPublicKey{FunctionTokenPublicKey: key})
+func (p Protocol) WriteFunctionPublicKey(key string, name string) error {
+	return writeMsg(p.Websocket, entities.FunctionPublicKey{FunctionTokenPublicKey: key, FunctionName: name})
 }
 
 func (p Protocol) ReadAttestationDoc() ([]byte, error) {

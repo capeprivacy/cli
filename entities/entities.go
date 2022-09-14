@@ -29,6 +29,7 @@ type DeployRequest struct {
 
 type FunctionPublicKey struct {
 	FunctionTokenPublicKey string `json:"function_token_pk"`
+	FunctionName           string `json:"function_name"`
 }
 
 type FunctionMetadata struct {
