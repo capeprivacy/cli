@@ -12,6 +12,7 @@ import (
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/cli/entities"
+	"github.com/capeprivacy/cli/pcrs"
 	proto "github.com/capeprivacy/cli/protocol"
 )
 
@@ -84,6 +85,12 @@ func Deploy(req DeployRequest) (string, []byte, error) {
 	doc, _, err := attest.Attest(attestDoc, rootCert)
 	if err != nil {
 		log.Error("error attesting")
+		return "", nil, err
+	}
+
+	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(req.PcrSlice), doc)
+	if err != nil {
+		log.Println("error verifying PCRs")
 		return "", nil, err
 	}
 

@@ -11,6 +11,7 @@ import (
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/cli/entities"
+	"github.com/capeprivacy/cli/pcrs"
 )
 
 type RunRequest struct {
@@ -74,6 +75,12 @@ func Run(req RunRequest) ([]byte, error) {
 	doc, userData, err := attest.Attest(attestDoc, rootCert)
 	if err != nil {
 		log.Println("error attesting")
+		return nil, err
+	}
+
+	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(req.PcrSlice), doc)
+	if err != nil {
+		log.Println("error verifying PCRs")
 		return nil, err
 	}
 
