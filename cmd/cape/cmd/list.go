@@ -39,7 +39,7 @@ func init() {
 }
 
 func list(cmd *cobra.Command, args []string) error {
-	u := C.SupervisorHost
+	u := C.EnclaveHost
 	insecure := C.Insecure
 
 	if len(args) > 0 {
