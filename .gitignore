@@ -20,4 +20,3 @@
 dist/
 .idea/
 cmd/cape/cape
-cmd/cape/cmd/.config

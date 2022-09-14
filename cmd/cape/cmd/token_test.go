@@ -26,7 +26,11 @@ func beforeOnce() error {
 		return jwt.Parse([]byte(tokenResponse.AccessToken), jwt.WithVerify(false))
 	}
 
-	localConfigDir := "./.config/"
+	localConfigDir, err := os.MkdirTemp("", "config")
+	if err != nil {
+		return err
+	}
+
 	viper.Set("LOCAL_CONFIG_DIR", localConfigDir)
 
 	accessToken, err := jwt.NewBuilder().
@@ -60,7 +64,7 @@ func beforeOnce() error {
 		return err
 	}
 
-	err = os.WriteFile(localConfigDir+"auth", tokenResponse, 0644)
+	err = os.WriteFile(localConfigDir+"/auth", tokenResponse, 0644)
 	if err != nil {
 		return err
 	}
