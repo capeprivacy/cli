@@ -10,7 +10,7 @@ import (
 	"github.com/capeprivacy/cli/entities"
 )
 
-// deleteCmd represents the run command
+// deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
 	Use:   "delete function_id",
 	Short: "Delete a deployed function",

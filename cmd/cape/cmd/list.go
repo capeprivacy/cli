@@ -14,7 +14,7 @@ import (
 	"github.com/capeprivacy/cli/entities"
 )
 
-// listCmd represents the run command
+// listCmd represents the list command
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all deployed functions",
