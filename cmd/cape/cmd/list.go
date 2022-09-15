@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/spf13/cobra"
 
 	"github.com/capeprivacy/cli/entities"
@@ -101,7 +102,16 @@ func doList(url string, insecure bool, auth entities.FunctionAuth) error { //nol
 	for i, deployment := range deploymentNames {
 		t.AppendRow([]interface{}{i, deployment.Name, deployment.ID, deployment.CreatedAt})
 	}
-	t.SetStyle(table.StyleLight)
+	t.SetStyle(
+		table.Style{
+			Name:    "StyleCustom",
+			Box:     table.StyleBoxRounded,
+			Color:   table.ColorOptionsDefault,
+			Format:  table.FormatOptionsDefault,
+			HTML:    table.DefaultHTMLOptions,
+			Options: table.OptionsNoBorders,
+			Title:   table.TitleOptions{Align: text.AlignCenter},
+		})
 	t.Render()
 
 	return nil
