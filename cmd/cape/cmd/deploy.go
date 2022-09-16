@@ -82,7 +82,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 	}
 
 	functionInput := args[0]
-	name := functionInput
+	name := filepath.Base(filepath.Dir(functionInput))
 	if n != "" {
 		name = n
 	}
