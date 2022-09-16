@@ -62,13 +62,13 @@ func doDelete(url string, functionID string, insecure bool, auth entities.Functi
 	var bearer = "Bearer " + auth.Token
 	req.Header.Add("Authorization", bearer)
 
-	resp, err := http.DefaultClient.Do(req)
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("cannot complete http request: %s", err)
 	}
 
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("server response code %d", resp.StatusCode)
+	if res.StatusCode != 200 {
+		return fmt.Errorf("expected 200, got server response code %d", res.StatusCode)
 	}
 
 	log.Infof("Success! Function %s deleted.\n", functionID)

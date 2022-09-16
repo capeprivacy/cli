@@ -33,9 +33,9 @@ func TestListTooManyArgs(t *testing.T) {
 
 func TestListServerError(t *testing.T) {
 	cmd, _, stderr := getCmd()
-	cmd.SetArgs([]string{"list"})
+	cmd.SetArgs([]string{"list", "--url", "https://nonsense"})
 
-	errMsg := "Error: error calling list endpoint: list failed"
+	errMsg := "Error: list failed: cannot complete http request:"
 	authToken = func() (string, error) {
 		return "so logged in", nil
 	}

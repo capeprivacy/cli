@@ -52,16 +52,16 @@ func TestDeleteBadFunction(t *testing.T) {
 		t.Fatal(errors.New("received no error when we should have"))
 	}
 
-	if got, want := stderr.String(), "Error: delete failed: server response code 404\n"; got != want {
+	if got, want := stderr.String(), "Error: delete failed: expected 200, got server response code 404\n"; got != want {
 		t.Errorf("didn't get expected stderr, got %s, wanted %s", got, want)
 	}
 }
 
 func TestDeleteServerError(t *testing.T) {
 	cmd, stdout, stderr := getCmd()
-	cmd.SetArgs([]string{"delete", "foo"})
+	cmd.SetArgs([]string{"delete", "valid", "--url", "https://nonsense"})
 
-	errMsg := "Error: delete failed: server response code"
+	errMsg := "Error: delete failed: cannot complete http request"
 	authToken = func() (string, error) {
 		return "so logged in", nil
 	}
