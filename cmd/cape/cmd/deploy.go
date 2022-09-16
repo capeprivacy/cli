@@ -92,7 +92,10 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	log.Infof("Success! Deployed function to Cape\nFunction ID ➜ %s\nChecksum ➜ %x\n", dID, checksum)
+	log.WithFields(log.Fields{
+		"function_id":       dID,
+		"function_checksum": fmt.Sprintf("%x", checksum),
+	}).Info("Success! Deployed function to Cape")
 
 	return nil
 }
