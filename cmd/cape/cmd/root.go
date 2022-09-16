@@ -9,20 +9,12 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-
 	"github.com/spf13/viper"
 )
 
 var C config.Config
 
 var version = "unknown"
-
-type PlainFormatter struct {
-}
-
-func (f *PlainFormatter) Format(entry *log.Entry) ([]byte, error) {
-	return []byte(fmt.Sprintf("%s\n", entry.Message)), nil
-}
 
 type UserError struct {
 	Msg string
@@ -39,7 +31,13 @@ var rootCmd = &cobra.Command{
 	Short: "Cape command",
 	Long:  `Cape commandline tool`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		log.SetFormatter(&PlainFormatter{})
+		o, err := cmd.Flags().GetString("output")
+		if err != nil {
+			return err
+		}
+
+		log.SetFormatter(formatterFromString(o))
+
 		v, err := cmd.Flags().GetBool("verbose")
 		if err != nil {
 			return err
@@ -69,6 +67,7 @@ func init() {
 	rootCmd.PersistentFlags().StringP("url", "u", "https://app.capeprivacy.com", "cape cloud URL")
 	rootCmd.PersistentFlags().Bool("insecure", false, "!!! For development only !!! Disable TLS certificate verification.")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
+	rootCmd.PersistentFlags().StringP("output", "o", "plain", "output format")
 
 	if err := rootCmd.PersistentFlags().MarkHidden("insecure"); err != nil {
 		log.Error("flag not found")
@@ -181,6 +180,24 @@ func initConfig() {
 	if err != nil {
 		log.Error("failed to set config parameters.")
 		cobra.CheckErr(err)
+	}
+}
+
+func formatterFromString(s string) log.Formatter {
+	switch s {
+	case "json":
+		return &log.JSONFormatter{}
+	case "log":
+		return &log.TextFormatter{}
+	case "log_plain":
+		return &log.TextFormatter{
+			DisableColors: true,
+			FullTimestamp: true,
+		}
+	case "plain":
+		fallthrough
+	default:
+		return &PlainFormatter{}
 	}
 }
 
