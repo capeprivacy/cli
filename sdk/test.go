@@ -47,8 +47,7 @@ func Test(testReq TestRequest, endpoint string, pcrSlice []string) (*entities.Ru
 	p := getProtocolFn(conn)
 
 	startReq := entities.StartRequest{
-		AuthToken: testReq.AuthToken,
-		Nonce:     []byte(nonce),
+		Nonce: []byte(nonce),
 	}
 	log.Debug("> Start Request")
 	if err := p.WriteStart(startReq); err != nil {
