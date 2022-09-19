@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -32,7 +34,7 @@ var testCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(testCmd)
 
-	testCmd.PersistentFlags().StringP("file", "f", "", "input data file")
+	testCmd.PersistentFlags().StringP("file", "f", "", "input data file (or '-f -' to accept stdin)")
 	testCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
 }
 
@@ -63,6 +65,13 @@ func Test(cmd *cobra.Command, args []string) error {
 	}
 
 	switch {
+	case strings.TrimSpace(file) == "-":
+		// read input from stdin
+		buf := new(bytes.Buffer)
+		if _, err := io.Copy(buf, cmd.InOrStdin()); err != nil {
+			return UserError{Msg: "unable to read data from stdin", Err: err}
+		}
+		input = buf.Bytes()
 	case file != "":
 		// input file was provided
 		input, err = os.ReadFile(file)
@@ -73,12 +82,7 @@ func Test(cmd *cobra.Command, args []string) error {
 		// read input from  command line string
 		input = []byte(args[1])
 	default:
-		// read input from stdin
-		buf := new(bytes.Buffer)
-		if _, err := io.Copy(buf, cmd.InOrStdin()); err != nil {
-			return UserError{Msg: "unable to read data from stdin", Err: err}
-		}
-		input = buf.Bytes()
+		return UserError{Msg: "invalid input", Err: errors.New("please provide input as a string, input file or stdin")}
 	}
 
 	token, err := authToken()
