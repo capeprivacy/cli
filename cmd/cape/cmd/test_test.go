@@ -30,7 +30,7 @@ Usage:
   cape test directory [input] [flags]
 
 Flags:
-  -f, --file string   input data file
+  -f, --file string   input data file (or '-f -' to accept stdin) 
   -h, --help          help for test
   -p, --pcr strings   pass multiple PCRs to validate against
 
@@ -40,7 +40,7 @@ Flags:
   cape test directory [input] [flags]
 
 Flags:
-  -f, --file string   input data file
+  -f, --file string   input data file (or '-f -' to accept stdin)
   -h, --help          help for test
   -p, --pcr strings   pass multiple PCRs to validate against
 

@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -52,7 +53,7 @@ func init() {
 	rootCmd.AddCommand(runCmd)
 
 	runCmd.PersistentFlags().StringP("token", "t", "", "function token to use")
-	runCmd.PersistentFlags().StringP("file", "f", "", "input data file")
+	runCmd.PersistentFlags().StringP("file", "f", "", "input data file (or '-f -' to accept stdin)")
 	runCmd.PersistentFlags().StringP("function-checksum", "", "", "function checksum to attest")
 	runCmd.PersistentFlags().StringP("function-hash", "", "", "function hash to attest")
 	runCmd.PersistentFlags().StringP("key-policy-hash", "", "", "key policy hash to attest")
@@ -146,6 +147,13 @@ func run(cmd *cobra.Command, args []string) error {
 	functionToken, _ := cmd.Flags().GetString("token")
 
 	switch {
+	case file == "-":
+		// read input from stdin
+		buf := new(bytes.Buffer)
+		if _, err := io.Copy(buf, cmd.InOrStdin()); err != nil {
+			return UserError{Msg: "unable to read data from stdin", Err: err}
+		}
+		input = buf.Bytes()
 	case file != "":
 		// input file was provided
 		input, err = os.ReadFile(file)
@@ -155,14 +163,8 @@ func run(cmd *cobra.Command, args []string) error {
 	case len(args) == 2:
 		// read input from  command line string
 		input = []byte(args[1])
-
 	default:
-		// read input from stdin
-		buf := new(bytes.Buffer)
-		if _, err := io.Copy(buf, cmd.InOrStdin()); err != nil {
-			return UserError{Msg: "unable to read data from stdin", Err: err}
-		}
-		input = buf.Bytes()
+		return UserError{Msg: "invalid input", Err: errors.New("please provide input as a string, input file or stdin")}
 	}
 
 	t, err := getAuthToken()
