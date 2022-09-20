@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -147,7 +148,7 @@ func run(cmd *cobra.Command, args []string) error {
 	functionToken, _ := cmd.Flags().GetString("token")
 
 	switch {
-	case file == "-":
+	case strings.TrimSpace(file) == "-":
 		// read input from stdin
 		buf := new(bytes.Buffer)
 		if _, err := io.Copy(buf, cmd.InOrStdin()); err != nil {

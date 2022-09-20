@@ -30,7 +30,7 @@ Usage:
   cape test directory [input] [flags]
 
 Flags:
-  -f, --file string   input data file (or '-f -' to accept stdin) 
+  -f, --file string   input data file (or '-f -' to accept stdin)
   -h, --help          help for test
   -p, --pcr strings   pass multiple PCRs to validate against
 
@@ -179,7 +179,7 @@ func TestSuccess(t *testing.T) {
 
 func TestSuccessStdin(t *testing.T) {
 	cmd, stdout, stderr := getCmd()
-	cmd.SetArgs([]string{"test", "testdata/my_fn"})
+	cmd.SetArgs([]string{"test", "testdata/my_fn", "-f -"})
 
 	results := "success!"
 	var gotFn []byte

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -64,7 +65,7 @@ func Test(cmd *cobra.Command, args []string) error {
 	}
 
 	switch {
-	case file == "-":
+	case strings.TrimSpace(file) == "-":
 		// read input from stdin
 		buf := new(bytes.Buffer)
 		if _, err := io.Copy(buf, cmd.InOrStdin()); err != nil {
