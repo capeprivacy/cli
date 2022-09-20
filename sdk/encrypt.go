@@ -36,6 +36,27 @@ func Encrypt(keyReq KeyRequest, input []byte) (string, error) {
 	return result, nil
 }
 
+func EncryptBytes(keyReq KeyRequest, input []byte) ([]byte, error) {
+	capeKey, err := Key(keyReq)
+	if err != nil {
+		return nil, err
+	}
+
+	dataCiphertext, key, err := AESEncrypt(input)
+	if err != nil {
+		return nil, err
+	}
+
+	keyCiphertext, err := RSAEncrypt(key, capeKey)
+	if err != nil {
+		return nil, err
+	}
+
+	keyCiphertext = append(keyCiphertext, dataCiphertext...)
+
+	return keyCiphertext, nil
+}
+
 func AESEncrypt(plaintext []byte) ([]byte, []byte, error) {
 	key := make([]byte, 32) // generate a random 32 byte key for AES-256
 	if _, err := rand.Read(key); err != nil {

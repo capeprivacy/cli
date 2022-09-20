@@ -177,6 +177,11 @@ func doDeploy(url string, functionInput string, functionName string, insecure bo
 		return "", nil, err
 	}
 
+	keyReq, err := GetKeyRequest(pcrSlice)
+	if err != nil {
+		return "", nil, err
+	}
+
 	id, checksum, err := sdk.Deploy(sdk.DeployRequest{
 		URL:                    url,
 		Name:                   functionName,
@@ -185,7 +190,7 @@ func doDeploy(url string, functionInput string, functionName string, insecure bo
 		PcrSlice:               pcrSlice,
 		FunctionTokenPublicKey: functionTokenPublicKey,
 		AuthToken:              token,
-	})
+	}, keyReq)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to deploy function: %w", err)
 	}
