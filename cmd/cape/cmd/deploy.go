@@ -61,6 +61,7 @@ func init() {
 
 	deployCmd.PersistentFlags().StringP("name", "n", "", "a name to give this function (default is the directory name)")
 	deployCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
+	deployCmd.PersistentFlags().BoolP("public", "", false, "make the function public (anyone can run it)")
 }
 
 func deploy(cmd *cobra.Command, args []string) error {
@@ -81,13 +82,18 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "error retrieving pcr flags", Err: err}
 	}
 
+	public, err := cmd.Flags().GetBool("public")
+	if err != nil {
+		return UserError{Msg: "error retrieving public flag", Err: err}
+	}
+
 	functionInput := args[0]
 	name := filepath.Base(filepath.Dir(functionInput))
 	if n != "" {
 		name = n
 	}
 
-	dID, checksum, err := doDeploy(u, functionInput, name, insecure, pcrSlice)
+	dID, checksum, err := doDeploy(u, functionInput, name, insecure, pcrSlice, public)
 	if err != nil {
 		return err
 	}
@@ -100,7 +106,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func doDeploy(url string, functionInput string, functionName string, insecure bool, pcrSlice []string) (string, []byte, error) {
+func doDeploy(url string, functionInput string, functionName string, insecure bool, pcrSlice []string, public bool) (string, []byte, error) {
 	file, err := os.Open(functionInput)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to read function directory or file: %w", err)
@@ -172,7 +178,7 @@ func doDeploy(url string, functionInput string, functionName string, insecure bo
 		return "", nil, err
 	}
 
-	functionTokenPublicKey, err := getFunctionTokenPublicKey()
+	functionTokenPublicKey, err := getFunctionTokenPublicKey(public)
 	if err != nil {
 		return "", nil, err
 	}
@@ -289,7 +295,11 @@ func getPublicKeyPEM() (*bytes.Buffer, error) {
 	return buf, nil
 }
 
-func getFunctionTokenPublicKey() (string, error) {
+func getFunctionTokenPublicKey(public bool) (string, error) {
+	if public {
+		return "", nil
+	}
+
 	_, err := getOrGeneratePublicKey()
 	if err != nil {
 		return "", err
