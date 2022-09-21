@@ -178,9 +178,14 @@ func doDeploy(url string, functionInput string, functionName string, insecure bo
 		return "", nil, err
 	}
 
-	functionTokenPublicKey, err := getFunctionTokenPublicKey(public)
-	if err != nil {
-		return "", nil, err
+	// Public functions do not include a public key.
+	//	Public keys are used for function tokens.
+	functionTokenPublicKey := ""
+	if !public {
+		functionTokenPublicKey, err = getFunctionTokenPublicKey()
+		if err != nil {
+			return "", nil, err
+		}
 	}
 
 	keyReq, err := GetKeyRequest(pcrSlice)
@@ -295,11 +300,7 @@ func getPublicKeyPEM() (*bytes.Buffer, error) {
 	return buf, nil
 }
 
-func getFunctionTokenPublicKey(public bool) (string, error) {
-	if public {
-		return "", nil
-	}
-
+func getFunctionTokenPublicKey() (string, error) {
 	_, err := getOrGeneratePublicKey()
 	if err != nil {
 		return "", err
