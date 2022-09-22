@@ -177,13 +177,15 @@ func run(cmd *cobra.Command, args []string) error {
 
 	results, err := sdk.Run(sdk.RunRequest{
 		URL:          u,
-		FunctionID:   functionID,
 		Data:         input,
-		Insecure:     insecure,
-		FuncChecksum: funcChecksum,
-		KeyChecksum:  keyChecksum,
-		PcrSlice:     pcrSlice,
 		FunctionAuth: auth,
+		ConnectRequest: sdk.ConnectRequest{
+			FunctionID:   functionID,
+			Insecure:     insecure,
+			FuncChecksum: funcChecksum,
+			KeyChecksum:  keyChecksum,
+			PcrSlice:     pcrSlice,
+		},
 	})
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)
@@ -203,11 +205,13 @@ func Run(url string, auth entities.FunctionAuth, functionID string, file string,
 	// TODO: Tuner may want to verify function checksum later.
 	res, err := sdk.Run(sdk.RunRequest{
 		URL:          url,
-		FunctionID:   functionID,
-		Data:         input,
-		Insecure:     insecure,
-		PcrSlice:     []string{},
 		FunctionAuth: auth,
+		Data:         input,
+		ConnectRequest: sdk.ConnectRequest{
+			FunctionID: functionID,
+			Insecure:   insecure,
+			PcrSlice:   []string{},
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error processing data: %w", err)
