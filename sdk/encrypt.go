@@ -12,6 +12,8 @@ import (
 	"io"
 )
 
+var capeEncryptPrefix = "cape:"
+
 func Encrypt(keyReq KeyRequest, input []byte) (string, error) {
 	capeKey, err := Key(keyReq)
 	if err != nil {
@@ -30,10 +32,34 @@ func Encrypt(keyReq KeyRequest, input []byte) (string, error) {
 
 	ciphertext := base64.StdEncoding.EncodeToString(append(keyCiphertext, dataCiphertext...))
 
-	capeEncryptPrefix := "cape:"
 	result := capeEncryptPrefix + ciphertext
 
 	return result, nil
+}
+
+func EncryptBytes(keyReq KeyRequest, input []byte) ([]byte, error) {
+	capeKey, err := Key(keyReq)
+	if err != nil {
+		return nil, err
+	}
+
+	dataCiphertext, key, err := AESEncrypt(input)
+	if err != nil {
+		return nil, err
+	}
+
+	keyCiphertext, err := RSAEncrypt(key, capeKey)
+	if err != nil {
+		return nil, err
+	}
+
+	keyCiphertext = append(keyCiphertext, dataCiphertext...)
+
+	// Prefix the ciphertext with "cape:"
+	output := []byte(capeEncryptPrefix)
+	output = append(output, keyCiphertext...)
+
+	return output, nil
 }
 
 func AESEncrypt(plaintext []byte) ([]byte, []byte, error) {
