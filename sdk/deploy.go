@@ -14,6 +14,7 @@ import (
 	"github.com/capeprivacy/cli/entities"
 	"github.com/capeprivacy/cli/pcrs"
 	proto "github.com/capeprivacy/cli/protocol"
+	es "github.com/capeprivacy/enclave-supervisor/entities"
 )
 
 type protocol interface {
@@ -23,6 +24,7 @@ type protocol interface {
 	WriteBinary([]byte) error
 	WriteFunctionInfo(key string, name string) error
 	ReadDeploymentResults() (*entities.SetDeploymentIDRequest, error)
+	ReadDeploymentInfo() (*es.Deployment, error)
 }
 
 func getProtocol(ws *websocket.Conn) protocol {

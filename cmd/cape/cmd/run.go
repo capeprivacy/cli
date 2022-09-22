@@ -18,9 +18,9 @@ import (
 
 // runCmd represents the run command
 var runCmd = &cobra.Command{
-	Use:   "run function_id [input data]",
+	Use:   "run {function_id|function_name} [input data]",
 	Short: "Run a deployed function with data",
-	Long: "Run a deployed function with data, takes function id, path to data, and (optional) checksum.\n" +
+	Long: "Run a deployed function with data, takes function id or function name, path to data, and (optional) checksum.\n" +
 		"Run will also read input data from stdin, example: \"echo '1234' | cape run id\".\n" +
 		"Results are output to stdout so you can easily pipe them elsewhere.",
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -77,14 +77,40 @@ func run(cmd *cobra.Command, args []string) error {
 	insecure := C.Insecure
 
 	if len(args) < 1 {
-		return UserError{Msg: "you must pass a function ID", Err: fmt.Errorf("invalid number of input arguments")}
+		return UserError{Msg: "you must pass a function ID or a function name", Err: fmt.Errorf("invalid number of input arguments")}
 	}
 
 	if len(args) > 2 {
 		return UserError{Msg: "you must pass in only one input data (stdin, string or filename)", Err: fmt.Errorf("invalid number of input arguments")}
 	}
 
-	functionID := args[0]
+	t, err := getAuthToken()
+	if err != nil {
+		return err
+	}
+	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t}
+
+	functionToken, _ := cmd.Flags().GetString("token")
+	if functionToken != "" {
+		auth.Type = entities.AuthenticationTypeFunctionToken
+		auth.Token = functionToken
+	}
+
+	function := args[0]
+	functionID := function
+	if strings.Contains(function, "/") {
+		// It's a function name of format <userName>/<functionName>
+		functionName := function
+		functionID, err = sdk.GetFunctionID(sdk.FunctionIDRequest{
+			URL:          u,
+			FunctionName: functionName,
+			FunctionAuth: auth,
+			Insecure:     insecure,
+		})
+		if err != nil {
+			return fmt.Errorf("error processing data: %w", err)
+		}
+	}
 
 	var input []byte
 	file, err := cmd.Flags().GetString("file")
@@ -145,8 +171,6 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	functionToken, _ := cmd.Flags().GetString("token")
-
 	switch {
 	case strings.TrimSpace(file) == "-":
 		// read input from stdin
@@ -166,16 +190,6 @@ func run(cmd *cobra.Command, args []string) error {
 		input = []byte(args[1])
 	default:
 		return UserError{Msg: "invalid input", Err: errors.New("please provide input as a string, input file or stdin")}
-	}
-
-	t, err := getAuthToken()
-	if err != nil {
-		return err
-	}
-	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t}
-	if functionToken != "" {
-		auth.Type = entities.AuthenticationTypeFunctionToken
-		auth.Token = functionToken
 	}
 
 	results, err := sdk.Run(sdk.RunRequest{

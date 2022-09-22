@@ -11,6 +11,7 @@ import (
 
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/entities"
+	es "github.com/capeprivacy/enclave-supervisor/entities"
 )
 
 type testProtocol struct {
@@ -25,6 +26,10 @@ func (t testProtocol) WriteFunctionInfo(key string, name string) error {
 }
 
 func (t testProtocol) ReadDeploymentResults() (*entities.SetDeploymentIDRequest, error) {
+	return nil, nil
+}
+
+func (t testProtocol) ReadDeploymentInfo() (*es.Deployment, error) {
 	return nil, nil
 }
 
