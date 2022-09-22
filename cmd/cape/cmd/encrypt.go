@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -24,7 +26,7 @@ var encryptCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(encryptCmd)
 
-	encryptCmd.PersistentFlags().StringP("file", "f", "", "input data file")
+	encryptCmd.PersistentFlags().StringP("file", "f", "", "input data file (or '-f -' to accept stdin)")
 	encryptCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against, used while getting key for the first time")
 }
 
@@ -66,6 +68,13 @@ func parseInput(cmd *cobra.Command, args []string) ([]byte, *UserError) {
 	}
 
 	switch {
+	case strings.TrimSpace(file) == "-":
+		// read input from stdin
+		buf := new(bytes.Buffer)
+		if _, err := io.Copy(buf, cmd.InOrStdin()); err != nil {
+			return nil, &UserError{Msg: "unable to read data from stdin", Err: err}
+		}
+		input = buf.Bytes()
 	case file != "":
 		// input file was provided
 		input, err = os.ReadFile(file)
@@ -75,14 +84,8 @@ func parseInput(cmd *cobra.Command, args []string) ([]byte, *UserError) {
 	case len(args) == 1:
 		// read input from  command line string
 		input = []byte(args[0])
-
 	default:
-		// read input from stdin
-		buf := new(bytes.Buffer)
-		if _, err := io.Copy(buf, cmd.InOrStdin()); err != nil {
-			return nil, &UserError{Msg: "unable to read data from stdin", Err: err}
-		}
-		input = buf.Bytes()
+		return nil, &UserError{Msg: "invalid input", Err: errors.New("please provide input as a string, input file or stdin")}
 	}
 
 	return input, nil
