@@ -6,7 +6,6 @@ import (
 	"github.com/gorilla/websocket"
 
 	"github.com/capeprivacy/cli/entities"
-	es "github.com/capeprivacy/enclave-supervisor/entities"
 )
 
 type msg[T any] struct {
@@ -93,10 +92,6 @@ func (p Protocol) ReadFunctionInfo() (*entities.FunctionInfo, error) {
 
 func (p Protocol) WriteFunctionInfo(key string, name string) error {
 	return writeMsg(p.Websocket, entities.FunctionInfo{FunctionTokenPublicKey: key, FunctionName: name})
-}
-
-func (p Protocol) ReadDeploymentInfo() (*es.Deployment, error) {
-	return readMsg[es.Deployment](p.Websocket)
 }
 
 func (p Protocol) ReadAttestationDoc() ([]byte, error) {

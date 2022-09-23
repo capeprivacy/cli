@@ -4,7 +4,6 @@ go 1.18
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
-	github.com/capeprivacy/enclave-supervisor v0.0.0-20220923130247-07a44695f59e
 	github.com/cloudflare/circl v1.2.0
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/google/tink/go v1.6.1
@@ -16,11 +15,11 @@ require (
 )
 
 require (
-	github.com/capeprivacy/go-kit v0.0.0-20220715140906-7842ee7fbc66 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/goccy/go-json v0.9.11 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
@@ -42,6 +41,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
+	golang.org/x/net v0.0.0-20220921203646-d300de134e69 // indirect
 	golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect

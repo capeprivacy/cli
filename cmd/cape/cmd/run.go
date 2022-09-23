@@ -104,8 +104,6 @@ func run(cmd *cobra.Command, args []string) error {
 		functionID, err = sdk.GetFunctionID(sdk.FunctionIDRequest{
 			URL:          u,
 			FunctionName: functionName,
-			FunctionAuth: auth,
-			Insecure:     insecure,
 		})
 		if err != nil {
 			return fmt.Errorf("error processing data: %w", err)

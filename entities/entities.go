@@ -2,6 +2,7 @@ package entities
 
 import (
 	"fmt"
+	"time"
 )
 
 type StartRequest struct {
@@ -82,4 +83,13 @@ const (
 type FunctionAuth struct {
 	Token string
 	Type  AuthenticationType
+}
+
+type Deployment struct {
+	ID                  ID
+	UserID              string
+	Name                string
+	Location            string
+	AttestationDocument []byte
+	CreatedAt           time.Time
 }
