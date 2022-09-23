@@ -5,9 +5,11 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,6 +23,12 @@ import (
 var privateKeyFile = "token.pem"
 var publicKeyFile = "token.pub.pem"
 
+type TokenOutput struct {
+	FunctionID   string `json:"id"`
+	Token        string `json:"token"`
+	FuncChecksum string `json:"cheksum"`
+}
+
 var tokenCmd = &cobra.Command{
 	Use:   "token function_id",
 	Short: "Create a token to execute a cape function",
@@ -29,9 +37,10 @@ var tokenCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(tokenCmd)
-
 	tokenCmd.PersistentFlags().IntP("expires", "e", 3600, "optional time to live (in seconds)")
 	tokenCmd.PersistentFlags().BoolP("owner", "", false, "optional owner token (debug logs)")
+	tokenCmd.PersistentFlags().StringP("function-checksum", "", "", "optional function checksum")
+	tokenCmd.PersistentFlags().StringP("json-output-file", "", "", "optional json output file name")
 }
 
 func token(cmd *cobra.Command, args []string) error {
@@ -50,6 +59,16 @@ func token(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	funcChecksum, err := cmd.Flags().GetString("function-checksum")
+	if err != nil {
+		return err
+	}
+
+	jsonOutputFile, err := cmd.Flags().GetString("json-output-file")
+	if err != nil {
+		return err
+	}
+
 	accessTokenParsed, err := getAccessTokenVerifyAndParse()
 	if err != nil {
 		return err
@@ -62,7 +81,7 @@ func token(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("could not detect your user id, perhaps retry logging in")
 	}
 
-	tokenString, err := Token(issuer, functionID, expires, owner)
+	tokenString, err := Token(issuer, functionID, funcChecksum, expires, owner, jsonOutputFile)
 	if err != nil {
 		return err
 	}
@@ -75,7 +94,7 @@ func token(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func Token(issuer string, functionID string, expires int, owner bool) (string, error) {
+func Token(issuer string, functionID string, funcChecksum string, expires int, owner bool, jsonOutputFile string) (string, error) {
 	privateKey, err := getOrGeneratePrivateKey()
 	if err != nil {
 		return "", err
@@ -100,6 +119,18 @@ func Token(issuer string, functionID string, expires int, owner bool) (string, e
 	tokenString, err := jwt.Sign(token, jwt.WithKey(jwa.RS256, privateKey))
 	if err != nil {
 		return "", err
+	}
+
+	if len(jsonOutputFile) > 0 {
+		tokenOutput := TokenOutput{functionID, string(tokenString), funcChecksum}
+		jsonToken, err := json.Marshal(tokenOutput)
+		if err != nil {
+			return "", err
+		}
+		err = ioutil.WriteFile(jsonOutputFile, jsonToken, 0644)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return string(tokenString), nil
