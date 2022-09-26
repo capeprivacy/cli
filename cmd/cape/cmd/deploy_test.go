@@ -26,6 +26,11 @@ func Test_getName(t *testing.T) {
 			want:          "echo",
 		},
 		{
+			name:          "multi-nested zip",
+			functionInput: "folder/something/functions/echo.zip",
+			want:          "echo",
+		},
+		{
 			name:          "function name from zip in ..",
 			functionInput: "../echo.zip",
 			want:          "echo",
@@ -48,6 +53,11 @@ func Test_getName(t *testing.T) {
 		{
 			name:          "function name from dir in named dir",
 			functionInput: "functions/echo",
+			want:          "echo",
+		},
+		{
+			name:          "multi-nested dir",
+			functionInput: "folder/something/functions/echo",
 			want:          "echo",
 		},
 		{
