@@ -102,7 +102,6 @@ func run(cmd *cobra.Command, args []string) error {
 		// It's a function name of format <userName>/<functionName>
 		functionName := function
 		functionID, err = sdk.GetFunctionID(sdk.FunctionIDRequest{
-			URL:          u,
 			FunctionName: functionName,
 		})
 		if err != nil {

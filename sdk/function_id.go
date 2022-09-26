@@ -12,8 +12,8 @@ import (
 )
 
 type FunctionIDRequest struct {
-	URL          string
 	FunctionName string
+	URL          string `default:"https://app.capeprivacy.com"`
 }
 
 func GetFunctionID(functionReq FunctionIDRequest) (string, error) {
