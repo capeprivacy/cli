@@ -105,7 +105,7 @@ func run(cmd *cobra.Command, args []string) error {
 			FunctionName: functionName,
 		})
 		if err != nil {
-			return fmt.Errorf("error processing data: %w", err)
+			return fmt.Errorf("error retrieving function: %w", err)
 		}
 	}
 
