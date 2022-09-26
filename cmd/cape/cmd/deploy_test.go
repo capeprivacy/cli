@@ -78,12 +78,12 @@ func Test_getName(t *testing.T) {
 		{
 			name:          "known edge case: ..",
 			functionInput: "..",
-			want:          "..",
+			want:          "",
 		},
 		{
 			name:          "known edge case: .",
 			functionInput: ".",
-			want:          ".",
+			want:          "",
 		},
 		{
 			name:          "known edge case: /",
