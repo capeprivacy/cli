@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -88,10 +89,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 	}
 
 	functionInput := args[0]
-	name := filepath.Base(filepath.Dir(functionInput))
-	if n != "" {
-		name = n
-	}
+	name := getName(functionInput, n)
 
 	dID, checksum, err := doDeploy(u, functionInput, name, insecure, pcrSlice, public)
 	if err != nil {
@@ -104,6 +102,13 @@ func deploy(cmd *cobra.Command, args []string) error {
 	}).Info("Success! Deployed function to Cape")
 
 	return nil
+}
+
+func getName(functionInput string, nameFlag string) string {
+	if nameFlag != "" {
+		return nameFlag
+	}
+	return strings.Split(filepath.Base(functionInput), ".")[0]
 }
 
 func doDeploy(url string, functionInput string, functionName string, insecure bool, pcrSlice []string, public bool) (string, []byte, error) {
