@@ -198,7 +198,7 @@ func defaultGetAccessTokenVerifyAndParse() (jwt.Token, error) {
 	}
 	set, err := jwk.Fetch(context.Background(), fmt.Sprintf("%s/.well-known/jwks.json", C.AuthHost))
 	if err != nil {
-		return nil, errors.New("failed to parse JWKS")
+		return nil, fmt.Errorf("failed to parse JWKS %w", err)
 	}
 	return jwt.Parse([]byte(tokenResponse.AccessToken), jwt.WithKeySet(set))
 }

@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -61,6 +62,7 @@ func init() {
 
 	deployCmd.PersistentFlags().StringP("name", "n", "", "a name to give this function (default is the directory name)")
 	deployCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
+	deployCmd.PersistentFlags().BoolP("public", "", false, "make the function public (anyone can run it)")
 }
 
 func deploy(cmd *cobra.Command, args []string) error {
@@ -81,13 +83,15 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "error retrieving pcr flags", Err: err}
 	}
 
-	functionInput := args[0]
-	name := filepath.Base(filepath.Dir(functionInput))
-	if n != "" {
-		name = n
+	public, err := cmd.Flags().GetBool("public")
+	if err != nil {
+		return UserError{Msg: "error retrieving public flag", Err: err}
 	}
 
-	dID, checksum, err := doDeploy(u, functionInput, name, insecure, pcrSlice)
+	functionInput := args[0]
+	name := getName(functionInput, n)
+
+	dID, checksum, err := doDeploy(u, functionInput, name, insecure, pcrSlice, public)
 	if err != nil {
 		return err
 	}
@@ -100,7 +104,14 @@ func deploy(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func doDeploy(url string, functionInput string, functionName string, insecure bool, pcrSlice []string) (string, []byte, error) {
+func getName(functionInput string, nameFlag string) string {
+	if nameFlag != "" {
+		return nameFlag
+	}
+	return strings.Split(filepath.Base(functionInput), ".")[0]
+}
+
+func doDeploy(url string, functionInput string, functionName string, insecure bool, pcrSlice []string, public bool) (string, []byte, error) {
 	file, err := os.Open(functionInput)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to read function directory or file: %w", err)
@@ -172,7 +183,17 @@ func doDeploy(url string, functionInput string, functionName string, insecure bo
 		return "", nil, err
 	}
 
-	functionTokenPublicKey, err := getFunctionTokenPublicKey()
+	// Public functions do not include a public key.
+	//	Public keys are used for function tokens.
+	functionTokenPublicKey := ""
+	if !public {
+		functionTokenPublicKey, err = getFunctionTokenPublicKey()
+		if err != nil {
+			return "", nil, err
+		}
+	}
+
+	keyReq, err := GetKeyRequest(pcrSlice)
 	if err != nil {
 		return "", nil, err
 	}
@@ -185,7 +206,7 @@ func doDeploy(url string, functionInput string, functionName string, insecure bo
 		PcrSlice:               pcrSlice,
 		FunctionTokenPublicKey: functionTokenPublicKey,
 		AuthToken:              token,
-	})
+	}, keyReq)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to deploy function: %w", err)
 	}
