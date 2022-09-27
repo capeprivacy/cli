@@ -99,7 +99,6 @@ func token(cmd *cobra.Command, args []string) error {
 	}
 
 	return render.Ctx(cmd.Context()).Render(cmd.OutOrStdout(), output)
-
 }
 
 func Token(issuer string, functionID string, expires int, owner bool) (string, error) {
