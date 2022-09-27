@@ -86,10 +86,10 @@ type FunctionAuth struct {
 }
 
 type Deployment struct {
-	ID                  ID
-	UserID              string
-	Name                string
-	Location            string
-	AttestationDocument []byte
-	CreatedAt           time.Time
+	ID                  ID        `json:"id"`
+	UserID              string    `json:"user_id,omitempty"`
+	Name                string    `json:"name"`
+	Location            string    `json:"location,omitempty"`
+	AttestationDocument []byte    `json:"attestation_document,omitempty"`
+	CreatedAt           time.Time `json:"created_at"`
 }

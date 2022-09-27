@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/capeprivacy/cli/entities"
 )
@@ -16,9 +17,11 @@ func testServer(t *testing.T, statusCode int) *httptest.Server {
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(statusCode)
 		deployment := entities.Deployment{
-			ID:     "abc123",
-			UserID: "github123",
-			Name:   "isprime",
+			ID:        "abc123",
+			UserID:    "github123",
+			Name:      "isprime",
+			Location:  "anywhere",
+			CreatedAt: time.Now(),
 		}
 		if err := json.NewEncoder(w).Encode(deployment); err != nil {
 			t.Fatal(err)

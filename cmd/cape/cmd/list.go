@@ -28,12 +28,6 @@ var listCmd = &cobra.Command{
 	},
 }
 
-type DeploymentName struct {
-	ID        string
-	Name      string
-	CreatedAt string
-}
-
 func init() {
 	rootCmd.AddCommand(listCmd)
 }
