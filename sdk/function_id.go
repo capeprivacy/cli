@@ -11,14 +11,32 @@ import (
 	"github.com/capeprivacy/cli/entities"
 )
 
+const capeURL = "https://app.capeprivacy.com"
+
 type FunctionIDRequest struct {
+	UserName     string
 	FunctionName string
-	URL          string `default:"https://app.capeprivacy.com"`
+	URL          string
+}
+
+type errorMsg struct {
+	Message string `json:"message"`
 }
 
 func GetFunctionID(functionReq FunctionIDRequest) (string, error) {
-	endpoint := fmt.Sprintf("%s/v1/function?name=%s", functionReq.URL, functionReq.FunctionName)
+	if functionReq.URL == "" {
+		functionReq.URL = capeURL
+	}
 
+	if functionReq.UserName == "" {
+		return "", fmt.Errorf("please provide a username")
+	}
+
+	if functionReq.FunctionName == "" {
+		return "", fmt.Errorf("please provide a function name")
+	}
+
+	endpoint := fmt.Sprintf("%s/v1/%s/function/%s", functionReq.URL, functionReq.UserName, functionReq.FunctionName)
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return "", err
@@ -29,13 +47,19 @@ func GetFunctionID(functionReq FunctionIDRequest) (string, error) {
 		return "", fmt.Errorf("failed to receive functionID %w", err)
 	}
 
-	if res.StatusCode != 200 {
-		return "", fmt.Errorf("expected 200, got server response code %d", res.StatusCode)
-	}
-
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return "", errors.New("could not read response body")
+	}
+
+	if res.StatusCode != http.StatusOK {
+		// return the error message from supervisor
+		var e errorMsg
+		err = json.Unmarshal(body, &e)
+		if err != nil {
+			return "", fmt.Errorf("couldn't unmarshal json")
+		}
+		return "", fmt.Errorf("HTTP Error: %d %s", res.StatusCode, e.Message)
 	}
 
 	// read the function id

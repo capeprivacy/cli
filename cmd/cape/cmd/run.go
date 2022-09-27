@@ -97,16 +97,9 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	function := args[0]
-	functionID := function
-	if strings.Contains(function, "/") {
-		// It's a function name of format <userName>/<functionName>
-		functionName := function
-		functionID, err = sdk.GetFunctionID(sdk.FunctionIDRequest{
-			FunctionName: functionName,
-		})
-		if err != nil {
-			return fmt.Errorf("error processing data: %w", err)
-		}
+	functionID, err := getFunctionID(function)
+	if err != nil {
+		return UserError{Msg: "invalid input", Err: err}
 	}
 
 	var input []byte
@@ -228,4 +221,33 @@ func Run(url string, auth entities.FunctionAuth, functionID string, file string,
 	}
 
 	return res, nil
+}
+
+func getFunctionID(function string) (string, error) {
+	functionID := function
+	if strings.Contains(function, "/") {
+		// It's a function name of format <userName>/<functionName>
+		parts := strings.SplitN(function, "/", 2)
+		userName, functionName := parts[0], parts[1]
+
+		if userName == "" {
+			return "", errors.New("empty username")
+		}
+		if functionName == "" {
+			return "", errors.New("empty function name")
+		}
+
+		r := sdk.FunctionIDRequest{
+			UserName:     userName,
+			FunctionName: functionName,
+		}
+
+		functionID, err := sdk.GetFunctionID(r)
+		if err != nil {
+			return "", fmt.Errorf("error retrieving function: %w", err)
+		}
+		return functionID, nil
+	}
+	// else we assume a functionID was passed
+	return functionID, nil
 }
