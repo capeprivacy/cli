@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/capeprivacy/cli/render"
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/spf13/cobra"
@@ -32,6 +33,8 @@ func init() {
 
 	tokenCmd.PersistentFlags().IntP("expires", "e", 3600, "optional time to live (in seconds)")
 	tokenCmd.PersistentFlags().BoolP("owner", "", false, "optional owner token (debug logs)")
+
+	registerTemplate(tokenCmd.Name(), tokenTmpl)
 }
 
 func token(cmd *cobra.Command, args []string) error {
@@ -67,12 +70,16 @@ func token(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	_, err = cmd.OutOrStdout().Write([]byte(tokenString + "\n"))
-	if err != nil {
-		return err
+	output := struct {
+		ID    string `json:"function_id"`
+		Token string `json:"token"`
+	}{
+		ID:    functionID,
+		Token: fmt.Sprintf("%x", tokenString),
 	}
 
-	return nil
+	return render.Ctx(cmd.Context()).Render(cmd.OutOrStdout(), output)
+
 }
 
 func Token(issuer string, functionID string, expires int, owner bool) (string, error) {
@@ -206,3 +213,8 @@ func generateKeyPair() error {
 
 	return nil
 }
+
+var tokenTmpl = `Success! Function token generated.
+Function ID ➜  {{ .ID }}
+Function token ➜ {{ .Token }} 
+`
