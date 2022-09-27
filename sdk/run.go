@@ -15,14 +15,9 @@ import (
 )
 
 type RunRequest struct {
-	ConnectRequest
-
 	URL          string
 	Data         []byte
 	FunctionAuth entities.FunctionAuth
-}
-
-type ConnectRequest struct {
 	FunctionID   string
 	FuncChecksum []byte
 	KeyChecksum  []byte
@@ -34,35 +29,31 @@ type ConnectRequest struct {
 
 // Run loads the given function into a secure enclave and invokes it on the given data, then returns the result.
 func Run(req RunRequest) ([]byte, error) {
-	cape := Cape{
-		URL:          req.URL,
-		FunctionAuth: req.FunctionAuth,
-	}
-	err := connect(cape, req.ConnectRequest)
+	conn, doc, err := connect(req.URL, req.FunctionID, req.FunctionAuth, req.FuncChecksum, req.KeyChecksum, req.PcrSlice, req.Insecure)
 	if err != nil {
 		return nil, err
 	}
-	defer cape.Disconnect()
-	return invoke(cape, req.Data)
+	defer conn.Close()
+	return invoke(doc, conn, req.Data)
 }
 
-func connect(cape Cape, req ConnectRequest) error {
-	endpoint := fmt.Sprintf("%s/v1/run/%s", cape.URL, req.FunctionID)
+func connect(url string, functionID string, functionAuth entities.FunctionAuth, funcChecksum []byte, keyChecksum []byte, pcrSlice []string, insecure bool) (*websocket.Conn, *attest.AttestationDoc, error) {
+	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
 
 	authProtocolType := "cape.runtime"
-	auth := cape.FunctionAuth
+	auth := functionAuth
 	if auth.Type == entities.AuthenticationTypeFunctionToken {
 		authProtocolType = "cape.function"
 	}
 
-	conn, err := doDial(endpoint, req.Insecure, authProtocolType, auth.Token)
+	conn, err := doDial(endpoint, insecure, authProtocolType, auth.Token)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	nonce, err := crypto.GetNonce()
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	p := getProtocol(conn)
@@ -71,7 +62,7 @@ func connect(cape Cape, req ConnectRequest) error {
 	log.Debug("\n> Sending Nonce and Auth Token")
 	err = p.WriteStart(r)
 	if err != nil {
-		return errors.Wrap(err, "error writing run request")
+		return nil, nil, errors.Wrap(err, "error writing run request")
 	}
 
 	log.Debug("* Waiting for attestation document...")
@@ -79,76 +70,73 @@ func connect(cape Cape, req ConnectRequest) error {
 	attestDoc, err := p.ReadAttestationDoc()
 	if err != nil {
 		log.Println("error reading attestation doc")
-		return err
+		return nil, nil, err
 	}
 
 	log.Debug("< Downloading AWS Root Certificate")
 	rootCert, err := attest.GetRootAWSCert()
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	log.Debug("< Auth Completed. Received Attestation Document")
 	doc, userData, err := attest.Attest(attestDoc, rootCert)
 	if err != nil {
 		log.Println("error attesting")
-		return err
+		return nil, nil, err
 	}
 
-	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(req.PcrSlice), doc)
+	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(pcrSlice), doc)
 	if err != nil {
 		log.Println("error verifying PCRs")
-		return err
+		return nil, nil, err
 	}
 
-	if userData.FuncChecksum == nil && len(req.FuncChecksum) > 0 {
-		return fmt.Errorf("did not receive checksum from enclave")
+	if userData.FuncChecksum == nil && len(funcChecksum) > 0 {
+		return nil, nil, fmt.Errorf("did not receive checksum from enclave")
 	}
 
 	// If checksum as an optional parameter has not been specified by the user, then we don't check the value.
-	if len(req.FuncChecksum) > 0 && !reflect.DeepEqual(req.FuncChecksum, userData.FuncChecksum) {
-		return fmt.Errorf("returned checksum did not match provided, got: %x, want %x", userData.FuncChecksum, req.FuncChecksum)
+	if len(funcChecksum) > 0 && !reflect.DeepEqual(funcChecksum, userData.FuncChecksum) {
+		return nil, nil, fmt.Errorf("returned checksum did not match provided, got: %x, want %x", userData.FuncChecksum, funcChecksum)
 	}
 
-	if userData.KeyChecksum == nil && len(req.KeyChecksum) > 0 {
-		return fmt.Errorf("did not receive key policy checksum from enclave")
+	if userData.KeyChecksum == nil && len(keyChecksum) > 0 {
+		return nil, nil, fmt.Errorf("did not receive key policy checksum from enclave")
 	}
 
-	if len(req.KeyChecksum) > 0 && !reflect.DeepEqual(req.KeyChecksum, userData.KeyChecksum) {
-		return fmt.Errorf("returned key policy checksum did not match provided, got: %x, want %x", userData.KeyChecksum, req.KeyChecksum)
+	if len(keyChecksum) > 0 && !reflect.DeepEqual(keyChecksum, userData.KeyChecksum) {
+		return nil, nil, fmt.Errorf("returned key policy checksum did not match provided, got: %x, want %x", userData.KeyChecksum, keyChecksum)
 	}
 
-	cape.conn = conn
-	cape.doc = doc
-
-	return nil
+	return conn, doc, nil
 }
 
-func invoke(cape Cape, data []byte) ([]byte, error) {
-	if cape.doc == nil {
+func invoke(doc *attest.AttestationDoc, conn *websocket.Conn, data []byte) ([]byte, error) {
+	if doc == nil {
 		log.Error("missing attestation document, you may need to run cape.Connect()")
 		return nil, errors.New("missing attestation document")
 	}
-	if cape.conn == nil {
+	if conn == nil {
 		log.Error("missing wesocket connection, you may need to run cape.Connect()")
 		return nil, errors.New("no active connection")
 	}
 
-	encryptedData, err := crypto.LocalEncrypt(*cape.doc, data)
+	encryptedData, err := crypto.LocalEncrypt(*doc, data)
 	if err != nil {
 		log.Println("error encrypting")
 		return nil, err
 	}
 
 	log.Debug("\n> Sending Encrypted Inputs")
-	err = writeData(cape.conn, encryptedData)
+	err = writeData(conn, encryptedData)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Debug("* Waiting for function results...")
 
-	resData, err := getProtocol(cape.conn).ReadRunResults()
+	resData, err := getProtocol(conn).ReadRunResults()
 	if err != nil {
 		return nil, err
 	}

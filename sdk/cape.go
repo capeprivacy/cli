@@ -17,18 +17,13 @@ type Cape struct {
 	doc  *attest.AttestationDoc
 }
 
-func (c Cape) Run(connReq ConnectRequest, data []byte) ([]byte, error) {
-
-	err := c.Connect(connReq)
+func (c Cape) Connect(functionID string, funcChecksum []byte, keyChecksum []byte, pcrSlice []string, insecure bool) error {
+	conn, doc, err := connect(c.URL, functionID, c.FunctionAuth, funcChecksum, keyChecksum, pcrSlice, insecure)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	defer c.Disconnect()
-	return invoke(c, data)
-}
-
-func (c Cape) Connect(req ConnectRequest) error {
-	return connect(c, req)
+	c.conn, c.doc = conn, doc
+	return nil
 }
 
 func (c Cape) Disconnect() error {
@@ -45,5 +40,5 @@ func (c Cape) Disconnect() error {
 }
 
 func (c Cape) Invoke(data []byte) ([]byte, error) {
-	return invoke(c, data)
+	return invoke(c.doc, c.conn, data)
 }
