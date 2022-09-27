@@ -33,6 +33,7 @@ func init() {
 
 	tokenCmd.PersistentFlags().IntP("expires", "e", 3600, "optional time to live (in seconds)")
 	tokenCmd.PersistentFlags().BoolP("owner", "", false, "optional owner token (debug logs)")
+	tokenCmd.PersistentFlags().StringP("function_checksum", "", "", "optional function checksum")
 
 	registerTemplate(tokenCmd.Name(), tokenTmpl)
 }
@@ -58,6 +59,11 @@ func token(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	functionCheksum, err := cmd.Flags().GetString("function_checksum")
+	if err != nil {
+		return err
+	}
+
 	// Use the AccessToken sub (user id) as the issuer for the function token.
 	// The issuer is used to determine which KMS key to use inside the enclave.
 	issuer := accessTokenParsed.Subject()
@@ -71,11 +77,13 @@ func token(cmd *cobra.Command, args []string) error {
 	}
 
 	output := struct {
-		ID    string `json:"function_id"`
-		Token string `json:"token"`
+		ID       string `json:"function_id"`
+		Token    string `json:"function_token"`
+		Checksum string `json:"function_checksum"`
 	}{
-		ID:    functionID,
-		Token: fmt.Sprintf("%x", tokenString),
+		ID:       functionID,
+		Token:    fmt.Sprintf("%x", tokenString),
+		Checksum: functionCheksum,
 	}
 
 	return render.Ctx(cmd.Context()).Render(cmd.OutOrStdout(), output)
@@ -214,7 +222,6 @@ func generateKeyPair() error {
 	return nil
 }
 
-var tokenTmpl = `Success! Function token generated.
-Function ID ➜  {{ .ID }}
+var tokenTmpl = `Success! Function token generated for function ID {{ .ID }}.
 Function token ➜ {{ .Token }} 
 `
