@@ -33,7 +33,7 @@ func init() {
 
 	tokenCmd.PersistentFlags().IntP("expires", "e", 3600, "optional time to live (in seconds)")
 	tokenCmd.PersistentFlags().BoolP("owner", "", false, "optional owner token (debug logs)")
-	tokenCmd.PersistentFlags().StringP("function_checksum", "", "", "optional function checksum")
+	tokenCmd.PersistentFlags().StringP("function-checksum", "", "", "optional function checksum")
 
 	registerTemplate(tokenCmd.Name(), tokenTmpl)
 }
@@ -59,7 +59,12 @@ func token(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	functionCheksum, err := cmd.Flags().GetString("function_checksum")
+	functionCheksum, err := cmd.Flags().GetString("function-checksum")
+	if err != nil {
+		return err
+	}
+
+	o, err := cmd.Flags().GetString("output")
 	if err != nil {
 		return err
 	}
@@ -74,6 +79,13 @@ func token(cmd *cobra.Command, args []string) error {
 	tokenString, err := Token(issuer, functionID, expires, owner)
 	if err != nil {
 		return err
+	}
+
+	if o != "json" {
+		_, err = cmd.OutOrStdout().Write([]byte(tokenString + "\n"))
+		if err != nil {
+			return err
+		}
 	}
 
 	output := struct {
@@ -222,6 +234,4 @@ func generateKeyPair() error {
 	return nil
 }
 
-var tokenTmpl = `Success! Function token generated for function ID {{ .ID }}.
-Function token ➜ {{ .Token }} 
-`
+var tokenTmpl = ``
