@@ -2,12 +2,10 @@ package cmd
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -78,10 +76,6 @@ func init() {
 func run(cmd *cobra.Command, args []string) error {
 	u := C.EnclaveHost
 	insecure := C.Insecure
-
-	if insecure {
-		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	}
 
 	if len(args) < 1 {
 		return UserError{Msg: "you must pass a function ID or a function name", Err: fmt.Errorf("invalid number of input arguments")}
@@ -249,7 +243,14 @@ func getFunctionID(function string, URL string) (string, error) {
 			return "", err
 		}
 
-		u.Scheme = "https"
+		// If the user called w/ `cape run my/fn --url wss://.... we will want to change the scheme to HTTP(s) for this call
+		if u.Scheme == "ws" {
+			u.Scheme = "http"
+		}
+
+		if u.Scheme == "wss" {
+			u.Scheme = "https"
+		}
 
 		authToken, err := getAuthToken()
 		if err != nil {
