@@ -95,7 +95,7 @@ func token(cmd *cobra.Command, args []string) error {
 	}{
 		ID:       functionID,
 		Token:    fmt.Sprintf("%x", tokenString),
-		Checksum: functionCheksum,
+		Checksum: functionChecksum,
 	}
 
 	return render.Ctx(cmd.Context()).Render(cmd.OutOrStdout(), output)
