@@ -74,6 +74,7 @@ func TestFunctionValidation(t *testing.T) {
 				"",
 				"awesomefunc",
 				"https:whatev.com",
+				"logged in",
 			},
 
 			"please provide a username",
@@ -84,6 +85,7 @@ func TestFunctionValidation(t *testing.T) {
 				"bob",
 				"",
 				"https:whatev.com",
+				"logged in",
 			},
 
 			"please provide a function name",

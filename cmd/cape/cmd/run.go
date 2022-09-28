@@ -224,7 +224,7 @@ func Run(url string, auth entities.FunctionAuth, functionID string, file string,
 	return res, nil
 }
 
-func getFunctionID(function string, URL string) (string, error) {
+func getFunctionID(function string, capeURL string) (string, error) {
 	functionID := function
 	if strings.Contains(function, "/") {
 		// It's a function name of format <userName>/<functionName>
@@ -238,7 +238,7 @@ func getFunctionID(function string, URL string) (string, error) {
 			return "", errors.New("empty function name")
 		}
 
-		u, err := url.Parse(URL)
+		u, err := url.Parse(capeURL)
 		if err != nil {
 			return "", err
 		}
