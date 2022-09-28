@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -76,6 +78,10 @@ func init() {
 func run(cmd *cobra.Command, args []string) error {
 	u := C.EnclaveHost
 	insecure := C.Insecure
+
+	if insecure {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 
 	if len(args) < 1 {
 		return UserError{Msg: "you must pass a function ID or a function name", Err: fmt.Errorf("invalid number of input arguments")}
