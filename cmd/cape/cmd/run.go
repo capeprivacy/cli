@@ -100,7 +100,7 @@ func run(cmd *cobra.Command, args []string) error {
 	function := args[0]
 	functionID, err := getFunctionID(function, u)
 	if err != nil {
-		return UserError{Msg: "invalid input", Err: err}
+		return UserError{Msg: "error retrieving function id", Err: err}
 	}
 
 	var input []byte
