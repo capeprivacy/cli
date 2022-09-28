@@ -59,7 +59,7 @@ func token(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	functionCheksum, err := cmd.Flags().GetString("function-checksum")
+	functionChecksum, err := cmd.Flags().GetString("function-checksum")
 	if err != nil {
 		return err
 	}
