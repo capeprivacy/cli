@@ -17,6 +17,7 @@ type FunctionIDRequest struct {
 	UserName     string
 	FunctionName string
 	URL          string
+	AuthToken    string
 }
 
 type errorMsg struct {
@@ -38,6 +39,7 @@ func GetFunctionID(functionReq FunctionIDRequest) (string, error) {
 
 	endpoint := fmt.Sprintf("%s/v1/%s/function/%s", functionReq.URL, functionReq.UserName, functionReq.FunctionName)
 	req, err := http.NewRequest("GET", endpoint, nil)
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", functionReq.AuthToken))
 	if err != nil {
 		return "", err
 	}

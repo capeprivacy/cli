@@ -251,10 +251,16 @@ func getFunctionID(function string, URL string) (string, error) {
 
 		u.Scheme = "https"
 
+		authToken, err := getAuthToken()
+		if err != nil {
+			return "", err
+		}
+
 		r := sdk.FunctionIDRequest{
 			UserName:     userName,
 			FunctionName: functionName,
 			URL:          u.String(),
+			AuthToken:    authToken,
 		}
 
 		functionID, err := sdk.GetFunctionID(r)
