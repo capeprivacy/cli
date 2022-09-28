@@ -94,7 +94,7 @@ func token(cmd *cobra.Command, args []string) error {
 		Checksum string `json:"function_checksum"`
 	}{
 		ID:       functionID,
-		Token:    fmt.Sprintf("%x", tokenString),
+		Token:   tokenString,
 		Checksum: functionChecksum,
 	}
 
