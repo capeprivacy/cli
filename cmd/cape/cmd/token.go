@@ -222,4 +222,4 @@ func generateKeyPair() error {
 	return nil
 }
 
-var tokenTmpl = `{{ .Token }}\n`
+var tokenTmpl = "{{ .Token }}\n"
