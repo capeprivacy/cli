@@ -65,11 +65,6 @@ func token(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	o, err := cmd.Flags().GetString("output")
-	if err != nil {
-		return err
-	}
-
 	// Use the AccessToken sub (user id) as the issuer for the function token.
 	// The issuer is used to determine which KMS key to use inside the enclave.
 	issuer := accessTokenParsed.Subject()
@@ -80,13 +75,6 @@ func token(cmd *cobra.Command, args []string) error {
 	tokenString, err := Token(issuer, functionID, expires, owner)
 	if err != nil {
 		return err
-	}
-
-	if o != "json" {
-		_, err = cmd.OutOrStdout().Write([]byte(tokenString + "\n"))
-		if err != nil {
-			return err
-		}
 	}
 
 	output := struct {
@@ -234,4 +222,4 @@ func generateKeyPair() error {
 	return nil
 }
 
-var tokenTmpl = ``
+var tokenTmpl = `{{ .Token }}\n`
