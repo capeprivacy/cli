@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"strings"
 
@@ -97,7 +98,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	function := args[0]
-	functionID, err := getFunctionID(function)
+	functionID, err := getFunctionID(function, u)
 	if err != nil {
 		return UserError{Msg: "invalid input", Err: err}
 	}
@@ -223,7 +224,7 @@ func Run(url string, auth entities.FunctionAuth, functionID string, file string,
 	return res, nil
 }
 
-func getFunctionID(function string) (string, error) {
+func getFunctionID(function string, URL string) (string, error) {
 	functionID := function
 	if strings.Contains(function, "/") {
 		// It's a function name of format <userName>/<functionName>
@@ -237,9 +238,30 @@ func getFunctionID(function string) (string, error) {
 			return "", errors.New("empty function name")
 		}
 
+		u, err := url.Parse(URL)
+		if err != nil {
+			return "", err
+		}
+
+		// If the user called w/ `cape run my/fn --url wss://.... we will want to change the scheme to HTTP(s) for this call
+		if u.Scheme == "ws" {
+			u.Scheme = "http"
+		}
+
+		if u.Scheme == "wss" {
+			u.Scheme = "https"
+		}
+
+		authToken, err := getAuthToken()
+		if err != nil {
+			return "", err
+		}
+
 		r := sdk.FunctionIDRequest{
 			UserName:     userName,
 			FunctionName: functionName,
+			URL:          u.String(),
+			AuthToken:    authToken,
 		}
 
 		functionID, err := sdk.GetFunctionID(r)

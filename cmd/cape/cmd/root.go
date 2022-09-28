@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 
@@ -45,6 +47,15 @@ var rootCmd = &cobra.Command{
 
 		if v {
 			log.SetLevel(log.DebugLevel)
+		}
+
+		insecure, err := cmd.Flags().GetBool("insecure")
+		if err != nil {
+			return err
+		}
+
+		if insecure {
+			http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		}
 
 		return nil
