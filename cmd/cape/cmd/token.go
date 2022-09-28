@@ -13,10 +13,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/capeprivacy/cli/render"
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/spf13/cobra"
+
+	"github.com/capeprivacy/cli/render"
 )
 
 var privateKeyFile = "token.pem"
@@ -94,7 +95,7 @@ func token(cmd *cobra.Command, args []string) error {
 		Checksum string `json:"function_checksum"`
 	}{
 		ID:       functionID,
-		Token:   tokenString,
+		Token:    tokenString,
 		Checksum: functionChecksum,
 	}
 
