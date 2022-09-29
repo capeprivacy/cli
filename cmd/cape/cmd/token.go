@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/spf13/cobra"
@@ -32,7 +34,7 @@ var tokenCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(tokenCmd)
 
-	tokenCmd.PersistentFlags().IntP("expires", "e", 3600, "optional time to live (in seconds)")
+	tokenCmd.PersistentFlags().IntP("expiry", "e", 3600, "optional time to live (in seconds)")
 	tokenCmd.PersistentFlags().BoolP("owner", "", false, "optional owner token (debug logs)")
 	tokenCmd.PersistentFlags().StringP("function-checksum", "", "", "optional function checksum")
 
@@ -45,7 +47,7 @@ func token(cmd *cobra.Command, args []string) error {
 	}
 
 	functionID := args[0]
-	expires, err := cmd.Flags().GetInt("expires")
+	expiry, err := cmd.Flags().GetInt("expiry")
 	if err != nil {
 		return err
 	}
@@ -72,10 +74,12 @@ func token(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("could not detect your user id, perhaps retry logging in")
 	}
 
-	tokenString, err := Token(issuer, functionID, expires, owner)
+	tokenString, err := Token(issuer, functionID, expiry, owner)
 	if err != nil {
 		return err
 	}
+
+	log.Infof("This token will expire in %s\n", time.Second*time.Duration(expiry))
 
 	output := struct {
 		ID       string `json:"function_id"`
