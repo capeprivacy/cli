@@ -47,7 +47,7 @@ func TestGetFunctionID4xx(t *testing.T) {
 	s := testServer(t, expectedCode)
 	_, err := GetFunctionID(FunctionIDRequest{URL: s.URL, UserName: "github123", FunctionName: "no_such_func"})
 	if got, want := err.Error(), fmt.Sprintf("HTTP Error: %d ", expectedCode); got != want {
-		t.Errorf("got %s, want %s", got, want)
+		t.Errorf("didn't get expected error \ngot\n\t%s\nwant\n\t%s", got, want)
 	}
 }
 
