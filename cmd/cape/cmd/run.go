@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -22,6 +23,7 @@ var runCmd = &cobra.Command{
 	Use:   "run {function_id|function_name} [input data]",
 	Short: "Run a deployed function with data",
 	Long: "Run a deployed function with data, takes function id or function name, path to data, and (optional) checksum.\n" +
+		"If using function names, it must be in format <github_id>/<function_name>, example: \"cape run capedocs/echo 'Hello World'\".\n" +
 		"Run will also read input data from stdin, example: \"echo '1234' | cape run id\".\n" +
 		"Results are output to stdout so you can easily pipe them elsewhere.",
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -225,8 +227,8 @@ func Run(url string, auth entities.FunctionAuth, functionID string, file string,
 }
 
 func getFunctionID(function string, capeURL string) (string, error) {
-	functionID := function
-	if strings.Contains(function, "/") {
+	switch {
+	case strings.Contains(function, "/"):
 		// It's a function name of format <userName>/<functionName>
 		parts := strings.SplitN(function, "/", 2)
 		userName, functionName := parts[0], parts[1]
@@ -269,7 +271,10 @@ func getFunctionID(function string, capeURL string) (string, error) {
 			return "", fmt.Errorf("error retrieving function: %w", err)
 		}
 		return functionID, nil
+	case regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString(function):
+		// else we consider it a functionID if it's an alphanumeric string
+		return function, nil
+	default:
+		return "", errors.New("invalid functionID, functionID must be an alphanumeric string")
 	}
-	// else we assume a functionID was passed
-	return functionID, nil
 }
