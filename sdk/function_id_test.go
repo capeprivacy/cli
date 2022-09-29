@@ -16,11 +16,9 @@ func testServer(t *testing.T, statusCode int) *httptest.Server {
 	// a server that returns deployment info
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(statusCode)
-		deployment := entities.Deployment{
+		deployment := entities.DeploymentName{
 			ID:        "abc123",
-			UserID:    "github123",
 			Name:      "isprime",
-			Location:  "anywhere",
 			CreatedAt: time.Now(),
 		}
 		if err := json.NewEncoder(w).Encode(deployment); err != nil {

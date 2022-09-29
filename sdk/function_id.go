@@ -65,7 +65,7 @@ func GetFunctionID(functionReq FunctionIDRequest) (string, error) {
 	}
 
 	// read the function id
-	var deployment entities.Deployment
+	var deployment entities.DeploymentName
 	err = json.Unmarshal(body, &deployment)
 	if err != nil {
 		return "", errors.New("malformed body in response")
