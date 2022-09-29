@@ -16,6 +16,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	"github.com/capeprivacy/cli/render"
 	"github.com/capeprivacy/cli/sdk"
 	czip "github.com/capeprivacy/cli/zip"
 )
@@ -63,6 +64,8 @@ func init() {
 	deployCmd.PersistentFlags().StringP("name", "n", "", "a name to give this function (default is the directory name)")
 	deployCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
 	deployCmd.PersistentFlags().BoolP("public", "", false, "make the function public (anyone can run it)")
+
+	registerTemplate(deployCmd.Name(), deployTmpl)
 }
 
 func deploy(cmd *cobra.Command, args []string) error {
@@ -96,12 +99,15 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	log.WithFields(log.Fields{
-		"function_id":       dID,
-		"function_checksum": fmt.Sprintf("%x", checksum),
-	}).Info("Success! Deployed function to Cape")
+	output := struct {
+		ID       string `json:"function_id"`
+		Checksum string `json:"function_checksum"`
+	}{
+		ID:       dID,
+		Checksum: fmt.Sprintf("%x", checksum),
+	}
 
-	return nil
+	return render.Ctx(cmd.Context()).Render(cmd.OutOrStdout(), output)
 }
 
 func getName(functionInput string, nameFlag string) string {
@@ -319,3 +325,8 @@ func getFunctionTokenPublicKey() (string, error) {
 
 	return pem.String(), nil
 }
+
+var deployTmpl = `Success! Deployed function to Cape.
+Function ID ➜  {{ .ID }}
+Function Checksum ➜  {{ .Checksum }}
+`
