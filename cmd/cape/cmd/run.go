@@ -182,13 +182,11 @@ func run(cmd *cobra.Command, args []string) error {
 		URL:          u,
 		Data:         input,
 		FunctionAuth: auth,
-		ConnectRequest: sdk.ConnectRequest{
-			FunctionID:   functionID,
-			Insecure:     insecure,
-			FuncChecksum: funcChecksum,
-			KeyChecksum:  keyChecksum,
-			PcrSlice:     pcrSlice,
-		},
+		FunctionID:   functionID,
+		Insecure:     insecure,
+		FuncChecksum: funcChecksum,
+		KeyChecksum:  keyChecksum,
+		PcrSlice:     pcrSlice,
 	})
 	if err != nil {
 		return fmt.Errorf("error processing data: %w", err)
@@ -210,11 +208,9 @@ func Run(url string, auth entities.FunctionAuth, functionID string, file string,
 		URL:          url,
 		FunctionAuth: auth,
 		Data:         input,
-		ConnectRequest: sdk.ConnectRequest{
-			FunctionID: functionID,
-			Insecure:   insecure,
-			PcrSlice:   []string{},
-		},
+		FunctionID:   functionID,
+		Insecure:     insecure,
+		PcrSlice:     []string{},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error processing data: %w", err)
