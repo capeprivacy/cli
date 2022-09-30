@@ -227,24 +227,19 @@ func Run(url string, auth entities.FunctionAuth, functionID string, file string,
 }
 
 func getFunctionID(function string, capeURL string) (string, error) {
-	switch {
-	case strings.Contains(function, "/"):
-		// It's a function name of format <userName>/<functionName>
-		parts := strings.SplitN(function, "/", 2)
-		userName, functionName := parts[0], parts[1]
+	if isValidFunctionID(function) {
+		return function, nil
+	}
 
-		if userName == "" {
-			return "", errors.New("empty username")
+	if strings.Contains(function, "/") {
+		userName, functionName, err := splitFunctionName(function)
+		if err != nil {
+			return "", fmt.Errorf("%s, please provide a function name of format <githubUser>/<functionName>", err)
 		}
-		if functionName == "" {
-			return "", errors.New("empty function name")
-		}
-
 		u, err := url.Parse(capeURL)
 		if err != nil {
 			return "", err
 		}
-
 		// If the user called w/ `cape run my/fn --url wss://.... we will want to change the scheme to HTTP(s) for this call
 		if u.Scheme == "ws" {
 			u.Scheme = "http"
@@ -271,10 +266,24 @@ func getFunctionID(function string, capeURL string) (string, error) {
 			return "", fmt.Errorf("error retrieving function: %w", err)
 		}
 		return functionID, nil
-	case regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString(function):
-		// else we consider it a functionID if it's an alphanumeric string
-		return function, nil
-	default:
-		return "", errors.New("invalid functionID, functionID must be an alphanumeric string")
 	}
+	return "", fmt.Errorf("please provide a functionID or a function name of format <githubUser>/<functionName>")
+}
+
+func isValidFunctionID(functionID string) bool {
+	// an alphanumeric string of length 22 is considered a syntactically correct functionID
+	return regexp.MustCompile(`^[a-zA-Z0-9]{22}$`).MatchString(functionID)
+}
+
+func splitFunctionName(function string) (string, string, error) {
+	parts := strings.SplitN(function, "/", 2)
+	userName, functionName := parts[0], parts[1]
+
+	if userName == "" {
+		return "", functionName, errors.New("empty username")
+	}
+	if functionName == "" {
+		return userName, "", errors.New("empty function name")
+	}
+	return userName, functionName, nil
 }
