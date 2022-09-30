@@ -231,43 +231,44 @@ func getFunctionID(function string, capeURL string) (string, error) {
 		return function, nil
 	}
 
-	if strings.Contains(function, "/") {
-		userName, functionName, err := splitFunctionName(function)
-		if err != nil {
-			return "", fmt.Errorf("%s, please provide a function name of format <githubUser>/<functionName>", err)
-		}
-		u, err := url.Parse(capeURL)
-		if err != nil {
-			return "", err
-		}
-		// If the user called w/ `cape run my/fn --url wss://.... we will want to change the scheme to HTTP(s) for this call
-		if u.Scheme == "ws" {
-			u.Scheme = "http"
-		}
-
-		if u.Scheme == "wss" {
-			u.Scheme = "https"
-		}
-
-		authToken, err := getAuthToken()
-		if err != nil {
-			return "", err
-		}
-
-		r := sdk.FunctionIDRequest{
-			UserName:     userName,
-			FunctionName: functionName,
-			URL:          u.String(),
-			AuthToken:    authToken,
-		}
-
-		functionID, err := sdk.GetFunctionID(r)
-		if err != nil {
-			return "", fmt.Errorf("error retrieving function: %w", err)
-		}
-		return functionID, nil
+	if !strings.Contains(function, "/") {
+		return "", fmt.Errorf("please provide a functionID or a function name of format <githubUser>/<functionName>")
 	}
-	return "", fmt.Errorf("please provide a functionID or a function name of format <githubUser>/<functionName>")
+
+	userName, functionName, err := splitFunctionName(function)
+	if err != nil {
+		return "", fmt.Errorf("%s, please provide a function name of format <githubUser>/<functionName>", err)
+	}
+	u, err := url.Parse(capeURL)
+	if err != nil {
+		return "", err
+	}
+	// If the user called w/ `cape run my/fn --url wss://.... we will want to change the scheme to HTTP(s) for this call
+	if u.Scheme == "ws" {
+		u.Scheme = "http"
+	}
+
+	if u.Scheme == "wss" {
+		u.Scheme = "https"
+	}
+
+	authToken, err := getAuthToken()
+	if err != nil {
+		return "", err
+	}
+
+	r := sdk.FunctionIDRequest{
+		UserName:     userName,
+		FunctionName: functionName,
+		URL:          u.String(),
+		AuthToken:    authToken,
+	}
+
+	functionID, err := sdk.GetFunctionID(r)
+	if err != nil {
+		return "", fmt.Errorf("error retrieving function: %w", err)
+	}
+	return functionID, nil
 }
 
 func isValidFunctionID(functionID string) bool {
@@ -276,12 +277,16 @@ func isValidFunctionID(functionID string) bool {
 }
 
 func splitFunctionName(function string) (string, string, error) {
-	parts := strings.SplitN(function, "/", 2)
-	userName, functionName := parts[0], parts[1]
+	userName, functionName, found := strings.Cut(function, "/")
+
+	if !found {
+		return "", "", errors.New("no '/' in function name")
+	}
 
 	if userName == "" {
 		return "", functionName, errors.New("empty username")
 	}
+
 	if functionName == "" {
 		return userName, "", errors.New("empty function name")
 	}

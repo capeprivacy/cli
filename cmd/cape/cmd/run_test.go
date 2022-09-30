@@ -19,8 +19,13 @@ func Test_isValidFunctionID(t *testing.T) {
 			false,
 		},
 		{
-			"invalid functionID length",
-			"hivhkjYPQCWhyP4YaNc",
+			"functionID too short",
+			"hivhkjYPQCWhyP4",
+			false,
+		},
+		{
+			"functionID too long",
+			"hivhkjYPQCWhyP4YaNcrnMhivhkjYPQCWhyP4",
 			false,
 		},
 		{
@@ -67,6 +72,13 @@ func Test_splitFunctionName(t *testing.T) {
 			"coolfunction",
 			true,
 		},
+		{
+			"/ missing",
+			"waitwhat",
+			"",
+			"",
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -76,10 +88,10 @@ func Test_splitFunctionName(t *testing.T) {
 				return
 			}
 			if userName != tt.wantUserName {
-				t.Errorf("splitFunctionName() got = %v, want %v", userName, tt.wantUserName)
+				t.Errorf("expected userName %v, got = %v", tt.wantUserName, userName)
 			}
 			if functionName != tt.wantFunctionName {
-				t.Errorf("splitFunctionName() got1 = %v, want %v", functionName, tt.wantFunctionName)
+				t.Errorf("expected fnctionName %v, got1 = %v", tt.wantFunctionName, functionName)
 			}
 		})
 	}
