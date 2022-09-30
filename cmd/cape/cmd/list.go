@@ -28,12 +28,6 @@ var listCmd = &cobra.Command{
 	},
 }
 
-type DeploymentName struct {
-	ID        string
-	Name      string
-	CreatedAt string
-}
-
 func init() {
 	rootCmd.AddCommand(listCmd)
 }
@@ -84,7 +78,7 @@ func doList(url string, insecure bool, auth entities.FunctionAuth) error { //nol
 		return errors.New("could not read response body")
 	}
 
-	var deploymentNames []DeploymentName
+	var deploymentNames []entities.DeploymentName
 	err = json.Unmarshal(body, &deploymentNames)
 	if err != nil {
 		return errors.New("malformed body in response")

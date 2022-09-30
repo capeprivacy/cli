@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"strings"
 
@@ -18,9 +19,9 @@ import (
 
 // runCmd represents the run command
 var runCmd = &cobra.Command{
-	Use:   "run function_id [input data]",
+	Use:   "run {function_id|function_name} [input data]",
 	Short: "Run a deployed function with data",
-	Long: "Run a deployed function with data, takes function id, path to data, and (optional) checksum.\n" +
+	Long: "Run a deployed function with data, takes function id or function name, path to data, and (optional) checksum.\n" +
 		"Run will also read input data from stdin, example: \"echo '1234' | cape run id\".\n" +
 		"Results are output to stdout so you can easily pipe them elsewhere.",
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -77,14 +78,30 @@ func run(cmd *cobra.Command, args []string) error {
 	insecure := C.Insecure
 
 	if len(args) < 1 {
-		return UserError{Msg: "you must pass a function ID", Err: fmt.Errorf("invalid number of input arguments")}
+		return UserError{Msg: "you must pass a function ID or a function name", Err: fmt.Errorf("invalid number of input arguments")}
 	}
 
 	if len(args) > 2 {
 		return UserError{Msg: "you must pass in only one input data (stdin, string or filename)", Err: fmt.Errorf("invalid number of input arguments")}
 	}
 
-	functionID := args[0]
+	t, err := getAuthToken()
+	if err != nil {
+		return err
+	}
+	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t}
+
+	functionToken, _ := cmd.Flags().GetString("token")
+	if functionToken != "" {
+		auth.Type = entities.AuthenticationTypeFunctionToken
+		auth.Token = functionToken
+	}
+
+	function := args[0]
+	functionID, err := getFunctionID(function, u)
+	if err != nil {
+		return UserError{Msg: "error retrieving function id", Err: err}
+	}
 
 	var input []byte
 	file, err := cmd.Flags().GetString("file")
@@ -145,8 +162,6 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	functionToken, _ := cmd.Flags().GetString("token")
-
 	switch {
 	case strings.TrimSpace(file) == "-":
 		// read input from stdin
@@ -166,16 +181,6 @@ func run(cmd *cobra.Command, args []string) error {
 		input = []byte(args[1])
 	default:
 		return UserError{Msg: "invalid input", Err: errors.New("please provide input as a string, input file or stdin")}
-	}
-
-	t, err := getAuthToken()
-	if err != nil {
-		return err
-	}
-	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t}
-	if functionToken != "" {
-		auth.Type = entities.AuthenticationTypeFunctionToken
-		auth.Token = functionToken
 	}
 
 	results, err := sdk.Run(sdk.RunRequest{
@@ -217,4 +222,54 @@ func Run(url string, auth entities.FunctionAuth, functionID string, file string,
 	}
 
 	return res, nil
+}
+
+func getFunctionID(function string, capeURL string) (string, error) {
+	functionID := function
+	if strings.Contains(function, "/") {
+		// It's a function name of format <userName>/<functionName>
+		parts := strings.SplitN(function, "/", 2)
+		userName, functionName := parts[0], parts[1]
+
+		if userName == "" {
+			return "", errors.New("empty username")
+		}
+		if functionName == "" {
+			return "", errors.New("empty function name")
+		}
+
+		u, err := url.Parse(capeURL)
+		if err != nil {
+			return "", err
+		}
+
+		// If the user called w/ `cape run my/fn --url wss://.... we will want to change the scheme to HTTP(s) for this call
+		if u.Scheme == "ws" {
+			u.Scheme = "http"
+		}
+
+		if u.Scheme == "wss" {
+			u.Scheme = "https"
+		}
+
+		authToken, err := getAuthToken()
+		if err != nil {
+			return "", err
+		}
+
+		r := sdk.FunctionIDRequest{
+			UserName:     userName,
+			FunctionName: functionName,
+			URL:          u.String(),
+			AuthToken:    authToken,
+		}
+
+		functionID, err := sdk.GetFunctionID(r)
+		if err != nil {
+			return "", fmt.Errorf("error retrieving function: %w", err)
+		}
+		return functionID, nil
+	}
+	// else we assume a functionID was passed
+	return functionID, nil
 }

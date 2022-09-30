@@ -1,15 +1,18 @@
 package cmd
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
-
-	"github.com/capeprivacy/cli/config"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/capeprivacy/cli/config"
+	"github.com/capeprivacy/cli/render"
 )
 
 var C config.Config
@@ -36,7 +39,9 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
-		log.SetFormatter(formatterFromString(o))
+		setRenderer(cmd, o)
+
+		log.SetFormatter(&PlainFormatter{})
 
 		v, err := cmd.Flags().GetBool("verbose")
 		if err != nil {
@@ -45,6 +50,15 @@ var rootCmd = &cobra.Command{
 
 		if v {
 			log.SetLevel(log.DebugLevel)
+		}
+
+		insecure, err := cmd.Flags().GetBool("insecure")
+		if err != nil {
+			return err
+		}
+
+		if insecure {
+			http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		}
 
 		return nil
@@ -183,22 +197,29 @@ func initConfig() {
 	}
 }
 
-func formatterFromString(s string) log.Formatter {
+func setRenderer(cmd *cobra.Command, s string) {
+	ctx := cmd.Context()
+
+	var r render.Renderer
+	r = render.Print{}
 	switch s {
 	case "json":
-		return &log.JSONFormatter{}
-	case "log":
-		return &log.TextFormatter{}
-	case "log_plain":
-		return &log.TextFormatter{
-			DisableColors: true,
-			FullTimestamp: true,
-		}
-	case "plain":
+		r = &render.JSON{}
+	case "human":
 		fallthrough
 	default:
-		return &PlainFormatter{}
+		if t, ok := tmpl[cmd.Name()]; ok {
+			r = render.NewTemplate(t)
+		}
 	}
+
+	cmd.SetContext(render.WithCtx(ctx, r))
+}
+
+var tmpl = make(map[string]string)
+
+func registerTemplate(name, template string) {
+	tmpl[name] = template
 }
 
 var readConfFile = viper.ReadInConfig
