@@ -91,7 +91,7 @@ func Test_splitFunctionName(t *testing.T) {
 				t.Errorf("expected userName %v, got = %v", tt.wantUserName, userName)
 			}
 			if functionName != tt.wantFunctionName {
-				t.Errorf("expected fnctionName %v, got1 = %v", tt.wantFunctionName, functionName)
+				t.Errorf("expected functionName %v, got1 = %v", tt.wantFunctionName, functionName)
 			}
 		})
 	}
