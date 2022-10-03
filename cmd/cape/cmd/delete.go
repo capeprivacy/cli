@@ -68,6 +68,9 @@ func doDelete(url string, functionID string, insecure bool, auth entities.Functi
 	}
 
 	if res.StatusCode != 200 {
+		if res.StatusCode == 404 {
+			return fmt.Errorf("function ID not found")
+		}
 		return fmt.Errorf("expected 200, got server response code %d", res.StatusCode)
 	}
 
