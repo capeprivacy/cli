@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -22,6 +23,7 @@ var runCmd = &cobra.Command{
 	Use:   "run {function_id|function_name} [input data]",
 	Short: "Run a deployed function with data",
 	Long: "Run a deployed function with data, takes function id or function name, path to data, and (optional) checksum.\n" +
+		"If using function names, it must be in format <github_id>/<function_name>, example: \"cape run capedocs/echo 'Hello World'\".\n" +
 		"Run will also read input data from stdin, example: \"echo '1234' | cape run id\".\n" +
 		"Results are output to stdout so you can easily pipe them elsewhere.",
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -225,51 +227,68 @@ func Run(url string, auth entities.FunctionAuth, functionID string, file string,
 }
 
 func getFunctionID(function string, capeURL string) (string, error) {
-	functionID := function
-	if strings.Contains(function, "/") {
-		// It's a function name of format <userName>/<functionName>
-		parts := strings.SplitN(function, "/", 2)
-		userName, functionName := parts[0], parts[1]
-
-		if userName == "" {
-			return "", errors.New("empty username")
-		}
-		if functionName == "" {
-			return "", errors.New("empty function name")
-		}
-
-		u, err := url.Parse(capeURL)
-		if err != nil {
-			return "", err
-		}
-
-		// If the user called w/ `cape run my/fn --url wss://.... we will want to change the scheme to HTTP(s) for this call
-		if u.Scheme == "ws" {
-			u.Scheme = "http"
-		}
-
-		if u.Scheme == "wss" {
-			u.Scheme = "https"
-		}
-
-		authToken, err := getAuthToken()
-		if err != nil {
-			return "", err
-		}
-
-		r := sdk.FunctionIDRequest{
-			UserName:     userName,
-			FunctionName: functionName,
-			URL:          u.String(),
-			AuthToken:    authToken,
-		}
-
-		functionID, err := sdk.GetFunctionID(r)
-		if err != nil {
-			return "", fmt.Errorf("error retrieving function: %w", err)
-		}
-		return functionID, nil
+	if isValidFunctionID(function) {
+		return function, nil
 	}
-	// else we assume a functionID was passed
+
+	if !strings.Contains(function, "/") {
+		return "", fmt.Errorf("please provide a functionID or a function name of format <githubUser>/<functionName>")
+	}
+
+	userName, functionName, err := splitFunctionName(function)
+	if err != nil {
+		return "", fmt.Errorf("%s, please provide a function name of format <githubUser>/<functionName>", err)
+	}
+	u, err := url.Parse(capeURL)
+	if err != nil {
+		return "", err
+	}
+	// If the user called w/ `cape run my/fn --url wss://.... we will want to change the scheme to HTTP(s) for this call
+	if u.Scheme == "ws" {
+		u.Scheme = "http"
+	}
+
+	if u.Scheme == "wss" {
+		u.Scheme = "https"
+	}
+
+	authToken, err := getAuthToken()
+	if err != nil {
+		return "", err
+	}
+
+	r := sdk.FunctionIDRequest{
+		UserName:     userName,
+		FunctionName: functionName,
+		URL:          u.String(),
+		AuthToken:    authToken,
+	}
+
+	functionID, err := sdk.GetFunctionID(r)
+	if err != nil {
+		return "", fmt.Errorf("error retrieving function: %w", err)
+	}
 	return functionID, nil
+}
+
+func isValidFunctionID(functionID string) bool {
+	// an alphanumeric string of length 22 is considered a syntactically correct functionID
+	return regexp.MustCompile(`^[a-zA-Z0-9]{22}$`).MatchString(functionID)
+}
+
+func splitFunctionName(function string) (string, string, error) {
+	userName, functionName, found := strings.Cut(function, "/")
+
+	if !found {
+		return "", "", errors.New("no '/' in function name")
+	}
+
+	if userName == "" {
+		return "", functionName, errors.New("empty username")
+	}
+
+	if functionName == "" {
+		return userName, "", errors.New("empty function name")
+	}
+	return userName, functionName, nil
 }
