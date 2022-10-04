@@ -130,7 +130,7 @@ func Deploy(req DeployRequest, keyReq KeyRequest) (string, []byte, error) {
 	if err != nil {
 		return "", nil, err
 	}
-	log.Debugf("< Received Deploy Response %v", resData)
+	log.Debugf("< Received Deploy Response: ID: %s", resData.ID)
 
 	return resData.ID, hash, nil
 }
