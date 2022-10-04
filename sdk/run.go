@@ -16,12 +16,12 @@ import (
 
 type RunRequest struct {
 	URL          string
-	Data         []byte
-	FunctionAuth entities.FunctionAuth
 	FunctionID   string
+	Data         []byte
 	FuncChecksum []byte
 	KeyChecksum  []byte
 	PcrSlice     []string
+	FunctionAuth entities.FunctionAuth
 
 	// For development use only: skips validating TLS certificate from the URL
 	Insecure bool
