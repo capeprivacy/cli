@@ -42,7 +42,7 @@ func (e OversizeFunctionError) Error() string {
 
 // deployCmd represents the request command
 var deployCmd = &cobra.Command{
-	Use:   "deploy directory | zip_file",
+	Use:   "deploy { <directory> | <zip_file> }",
 	Short: "Deploy a function",
 	Long: `Deploy a function to Cape.
 

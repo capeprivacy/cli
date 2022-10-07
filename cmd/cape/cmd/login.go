@@ -41,7 +41,12 @@ type TokenResponse struct {
 
 var loginCmd = &cobra.Command{
 	Use:   "login",
-	Short: "Login to Cape",
+	Short: "Authenticate to Cape",
+	Long: `Authenticate to Cape.
+
+Authentication is a web-based browser flow. After completion,
+an authentication token will be stored internally.
+`,
 	RunE:  login,
 }
 

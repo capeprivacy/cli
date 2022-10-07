@@ -17,11 +17,18 @@ import (
 )
 
 var testCmd = &cobra.Command{
-	Use:   "test directory [input]",
+	Use:   "test <directory> [input]",
 	Short: "Test your function with Cape",
-	Long: "Test your function with Cape\n" +
-		"Test will also read input data from stdin, example: \"echo '1234' | cape test dir\".\n" +
-		"Results are output to stdout so you can easily pipe them elsewhere",
+	Long: `Test your function with Cape
+
+Results are output to stdout so you can easily pipe them elsewhere`,
+	Example: `
+	# Test code in a dir named "func/" with "1234" as input
+	$ echo '1234' | cape test func/ -f -
+
+	# Test code in "func/" and filter output through jq
+	$ echo '1234' | cape test func/ -f - | jq .
+`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := Test(cmd, args)
 		if _, ok := err.(UserError); !ok {
