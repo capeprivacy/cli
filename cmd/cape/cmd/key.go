@@ -70,24 +70,17 @@ func key(cmd *cobra.Command, args []string) error {
 }
 
 func GetKeyRequest(pcrSlice []string) (sdk.KeyRequest, error) {
-	url := C.EnclaveHost
-	insecure := C.Insecure
-
 	t, err := getAuthToken()
 	if err != nil {
 		return sdk.KeyRequest{}, err
 	}
-	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t}
-
-	configDir := C.LocalConfigDir
-	capeKeyFile := filepath.Join(C.LocalConfigDir, C.LocalCapeKeyFileName)
 
 	return sdk.KeyRequest{
-		URL:          url,
-		Insecure:     insecure,
-		FunctionAuth: auth,
-		ConfigDir:    configDir,
-		CapeKeyFile:  capeKeyFile,
+		URL:          C.EnclaveHost,
+		Insecure:     C.Insecure,
+		FunctionAuth: entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t},
+		ConfigDir:    C.LocalConfigDir,
+		CapeKeyFile:  filepath.Join(C.LocalConfigDir, C.LocalCapeKeyFileName),
 		PcrSlice:     pcrSlice,
 	}, nil
 }
