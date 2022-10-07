@@ -47,7 +47,7 @@ var loginCmd = &cobra.Command{
 Authentication is a web-based browser flow. After completion,
 an authentication token will be stored internally.
 `,
-	RunE:  login,
+	RunE: login,
 }
 
 func init() {
