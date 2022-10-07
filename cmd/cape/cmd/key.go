@@ -15,7 +15,7 @@ import (
 var keyCmd = &cobra.Command{
 	Use:   "key",
 	Short: "Displays the Cape Key (Public Key) which is unqiue to your account. ",
-	Long: `Displays the Cape Key (Public Key) which is unqiue to your account.
+	Long: `Displays the Cape Key (Public Key) which is unique to your account.
 
 The key is used by "cape encrypt" to encrypt data. "cape
 encrypt" calls "cape key" automatically. The first call to
