@@ -13,11 +13,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/capeprivacy/cli/render"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/capeprivacy/cli/render"
 	"github.com/capeprivacy/cli/sdk"
 	czip "github.com/capeprivacy/cli/zip"
 )
@@ -38,6 +40,56 @@ type OversizeFunctionError struct {
 
 func (e OversizeFunctionError) Error() string {
 	return fmt.Sprintf("deployment (%d bytes) exceeds size limit of %d bytes", e.bytes, storedFunctionMaxBytes)
+}
+
+type deployState string
+
+const (
+	deployStateInit      deployState = "init"
+	deployStateAttesting deployState = "attesting"
+	deployStateZipping   deployState = "zip"
+	deployStateUploading deployState = "uploading"
+	deployStateDone      deployState = "done"
+)
+
+type model struct {
+	state  deployState
+	name   string
+	public bool
+}
+
+func (m model) Init() tea.Cmd {
+	return nil
+}
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		}
+	}
+
+	return m, nil
+}
+
+func (m model) View() string {
+	switch m.state {
+	case deployStateInit:
+		style := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#F67AC7"))
+		return fmt.Sprintf("deploying function %s ...", style.Render(m.name))
+	default:
+		return "idk what is going on!!"
+	}
+}
+
+func initialModel(name string, public bool) model {
+	return model{
+		state:  deployStateInit,
+		name:   name,
+		public: public,
+	}
 }
 
 // deployCmd represents the request command
@@ -70,6 +122,7 @@ func init() {
 }
 
 func deploy(cmd *cobra.Command, args []string) error {
+
 	if len(args) != 1 {
 		return UserError{Msg: "you must specify a directory to upload", Err: fmt.Errorf("invalid number of input arguments")}
 	}
@@ -82,6 +135,9 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "name not specified correctly", Err: err}
 	}
 
+	functionInput := args[0]
+	name := getName(functionInput, n)
+
 	pcrSlice, err := cmd.Flags().GetStringSlice("pcr")
 	if err != nil {
 		return UserError{Msg: "error retrieving pcr flags", Err: err}
@@ -92,8 +148,11 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "error retrieving public flag", Err: err}
 	}
 
-	functionInput := args[0]
-	name := getName(functionInput, n)
+	//p := tea.NewProgram(initialModel(name, public))
+	//if err := p.Start(); err != nil {
+	//	fmt.Println("idk man", err)
+	//	os.Exit(1)
+	//}
 
 	dID, checksum, err := doDeploy(u, functionInput, name, insecure, pcrSlice, public)
 	if err != nil {
@@ -129,6 +188,15 @@ func getName(functionInput string, nameFlag string) string {
 		return nameFlag
 	}
 	return strings.Split(filepath.Base(functionInput), ".")[0]
+}
+
+func zipFunction(input string) tea.Msg {
+	buf, err := czip.Create(input)
+	if err != nil {
+		return err
+	}
+
+	return buf
 }
 
 func doDeploy(url string, functionInput string, functionName string, insecure bool, pcrSlice []string, public bool) (string, []byte, error) {

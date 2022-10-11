@@ -8,6 +8,7 @@ type Config struct {
 	LocalConfigDir       string
 	LocalAuthFileName    string
 	LocalCapeKeyFileName string
+	AuthToken            string
 
 	// Dev only
 	Insecure bool
