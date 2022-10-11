@@ -12,11 +12,11 @@ import (
 )
 
 var configCmd = &cobra.Command{
-	Use:   "config key value",
+	Use:   "config <key> <value>",
 	Short: "Configure and save persistent parameters for Cape",
-	Long: "Configure and save persistent parameters for Cape\n" +
-		"Use the configure option to set global parameters and save to a json file for later use.\n" +
-		"Default is $HOME/.config/cape/presets.json",
+	Long: `Configure and save persistent parameters for Cape.
+
+Use the configure option to set global parameters and save to a json file for later use.`,
 	RunE: Config,
 }
 

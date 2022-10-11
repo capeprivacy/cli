@@ -83,6 +83,11 @@ func init() {
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
 	rootCmd.PersistentFlags().StringP("output", "o", "plain", "output format")
 
+	if err := rootCmd.PersistentFlags().MarkHidden("url"); err != nil {
+		log.Error("flag not found")
+		cobra.CheckErr(err)
+	}
+
 	if err := rootCmd.PersistentFlags().MarkHidden("insecure"); err != nil {
 		log.Error("flag not found")
 		cobra.CheckErr(err)

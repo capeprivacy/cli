@@ -42,7 +42,7 @@ func (e OversizeFunctionError) Error() string {
 
 // deployCmd represents the request command
 var deployCmd = &cobra.Command{
-	Use:   "deploy directory | zip_file",
+	Use:   "deploy { <directory> | <zip_file> }",
 	Short: "Deploy a function",
 	Long: `Deploy a function to Cape.
 
@@ -278,14 +278,13 @@ func getAuthToken() (string, error) {
 		return "", fmt.Errorf("failed to get auth token (did you run 'cape login'?): %v", err)
 	}
 
-	t := tokenResponse.AccessToken
-	if t == "" {
-		return "", fmt.Errorf("empty access token (did you run 'cape login'?): %v", err)
+	if tokenResponse.AccessToken == "" {
+		return "", fmt.Errorf("empty access token (did you run 'cape login'?)")
 	}
 
 	log.Debug("* Retrieved Auth Token")
 
-	return t, nil
+	return tokenResponse.AccessToken, nil
 }
 
 func getOrGeneratePublicKey() (*rsa.PublicKey, error) {
