@@ -106,6 +106,7 @@ func Test(testReq TestRequest, endpoint string, pcrSlice []string) (*entities.Ru
 	return res, nil
 }
 
+// TODO: move ws-related functions to their own file?
 func websocketDial(urlStr string, insecure bool, authProtocolType string, authToken string) (*websocket.Conn, *http.Response, error) {
 	u, err := transformURL(urlStr)
 	if err != nil {

@@ -12,13 +12,18 @@ type Cape struct {
 	URL          string
 	FunctionAuth entities.FunctionAuth
 
+	// For development use only: skips validating TLS certificate from the URL
+	Insecure bool
+
 	// Internal state used to persist the connection
 	conn *websocket.Conn
 	doc  *attest.AttestationDoc
 }
 
-func (c Cape) Connect(functionID string, funcChecksum []byte, keyChecksum []byte, pcrSlice []string, insecure bool) error {
-	conn, doc, err := connect(c.URL, functionID, c.FunctionAuth, funcChecksum, keyChecksum, pcrSlice, insecure)
+// TODO: support for function name
+// TODO: should Connect create and return the client instead of requiring user to create client?
+func (c Cape) Connect(functionID string, funcChecksum []byte, keyChecksum []byte, pcrSlice []string) error {
+	conn, doc, err := connect(c.URL, functionID, c.FunctionAuth, funcChecksum, keyChecksum, pcrSlice, c.Insecure)
 	if err != nil {
 		return err
 	}
