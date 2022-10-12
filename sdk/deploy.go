@@ -82,7 +82,7 @@ func Deploy(req DeployRequest, keyReq KeyRequest) (string, []byte, error) {
 	}
 
 	log.Debug("< Attestation document")
-	doc, _, err := attest.Attest(attestDoc, rootCert)
+	doc, _, err := runAttestation(attestDoc, rootCert)
 	if err != nil {
 		log.Error("error attesting")
 		return "", nil, err

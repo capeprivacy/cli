@@ -107,7 +107,7 @@ func ConnectAndAttest(keyReq KeyRequest) (*attest.AttestationDoc, *attest.Attest
 	}
 
 	log.Debug("< Auth Completed. Received Attestation Document")
-	doc, userData, err := attest.Attest(attestDoc, rootCert)
+	doc, userData, err := runAttestation(attestDoc, rootCert)
 	if err != nil {
 		log.Println("error attesting")
 		return nil, nil, err

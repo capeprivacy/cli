@@ -1,37 +1,110 @@
 package sdk2
 
 import (
-	"errors"
 	"fmt"
+	"github.com/capeprivacy/cli/attest"
+	"github.com/capeprivacy/cli/crypto"
+	"github.com/capeprivacy/cli/entities"
+	"github.com/capeprivacy/cli/pcrs"
+	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
+	"reflect"
 )
 
 type Client struct {
-	PCRs []string
+	URL          string
+	FunctionAuth entities.FunctionAuth
+	PCRs         []string
+
+	// For development use only: skips validating TLS certificate from the URL
+	Insecure bool
 }
 
 type FuncConnection struct {
+	Attestation *attest.AttestationDoc
+	Conn        *websocket.Conn
+	UserData    *attest.AttestationUserData
 }
 
-// put sdk code here and maybe some other files idk
-
-func (c Client) Connect(function, checkSum string) (FuncConnection, error) {
-	check, err := verifyChecksum(function, checkSum)
+func (c Client) Connect(function, checksum string) (FuncConnection, error) {
+	f, err := c.ConnectWithoutVerification(function)
 	if err != nil {
-		return FuncConnection{}, fmt.Errorf("error validation function checksum: %v", err)
-	}
-	if !check {
-		return FuncConnection{}, errors.New("function checksum did not match")
+		return FuncConnection{}, err
 	}
 
-	return FuncConnection{}, nil
+	// TODO: is it a smell if UserData is stored just for this? do we need a private helper for the two Connects?
+	if len(checksum) > 0 {
+		if f.UserData.FuncChecksum == nil {
+			return FuncConnection{}, fmt.Errorf("did not receive checksum from enclave")
+		}
+		if !reflect.DeepEqual(checksum, f.UserData.FuncChecksum) {
+			return FuncConnection{}, fmt.Errorf("returned checksum did not match provided, got: %x, want %x", f.UserData.FuncChecksum, checksum)
+		}
+	}
+
+	err = pcrs.VerifyPCRs(pcrs.SliceToMapStringSlice(c.PCRs), f.Attestation)
+	if err != nil {
+		log.Println("error verifying PCRs")
+		return FuncConnection{}, err
+	}
+
+	return f, nil
 }
 
-func verifyChecksum(function, checksum string) (bool, error) {
-	return true, nil
-}
+func (c Client) ConnectWithoutVerification(function string) (FuncConnection, error) {
+	functionID, err := GetFunctionID(function, c.URL, c.FunctionAuth.Token)
+	if err != nil {
+		return FuncConnection{}, err
+	}
 
-func (c Client) ConnectWithoutValidation(function string) (FuncConnection, error) {
-	return FuncConnection{}, nil
+	endpoint := fmt.Sprintf("%s/v1/run/%s", c.URL, functionID)
+
+	authProtocolType := "cape.runtime"
+	if c.FunctionAuth.Type == entities.AuthenticationTypeFunctionToken {
+		authProtocolType = "cape.function"
+	}
+
+	conn, err := doDial(endpoint, c.Insecure, authProtocolType, c.FunctionAuth.Token)
+	if err != nil {
+		return FuncConnection{}, err
+	}
+
+	nonce, err := crypto.GetNonce()
+	if err != nil {
+		return FuncConnection{}, err
+	}
+
+	p := getProtocolFn(conn)
+
+	r := entities.StartRequest{Nonce: []byte(nonce)}
+	log.Debug("\n> Sending Nonce and Auth Token")
+	err = p.WriteStart(r)
+	if err != nil {
+		return FuncConnection{}, fmt.Errorf("error writing run request: %v", err)
+	}
+
+	log.Debug("* Waiting for attestation document...")
+
+	attestDoc, err := p.ReadAttestationDoc()
+	if err != nil {
+		log.Println("error reading attestation doc")
+		return FuncConnection{}, err
+	}
+
+	log.Debug("< Downloading AWS Root Certificate")
+	rootCert, err := attest.GetRootAWSCert()
+	if err != nil {
+		return FuncConnection{}, err
+	}
+
+	log.Debug("< Auth Completed. Received Attestation Document")
+	doc, userData, err := runAttestation(attestDoc, rootCert)
+	if err != nil {
+		log.Println("error attesting")
+		return FuncConnection{}, err
+	}
+
+	return FuncConnection{Attestation: doc, Conn: conn, UserData: userData}, nil
 }
 
 func (f FuncConnection) Invoke(data []byte) ([]byte, error) {
@@ -53,7 +126,7 @@ func (c Client) Run(function, checkSum string, data []byte) ([]byte, error) {
 }
 
 func (c Client) RunWithoutValidation(function string, data []byte) ([]byte, error) {
-	f, err := c.ConnectWithoutValidation(function)
+	f, err := c.ConnectWithoutVerification(function)
 	if err != nil {
 		return nil, err
 	}

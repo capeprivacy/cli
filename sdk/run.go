@@ -80,7 +80,7 @@ func connect(url string, functionID string, functionAuth entities.FunctionAuth, 
 	}
 
 	log.Debug("< Auth Completed. Received Attestation Document")
-	doc, userData, err := attest.Attest(attestDoc, rootCert)
+	doc, userData, err := runAttestation(attestDoc, rootCert)
 	if err != nil {
 		log.Println("error attesting")
 		return nil, nil, err
@@ -122,7 +122,7 @@ func invoke(doc *attest.AttestationDoc, conn *websocket.Conn, data []byte) ([]by
 		return nil, errors.New("no active connection")
 	}
 
-	encryptedData, err := crypto.LocalEncrypt(*doc, data)
+	encryptedData, err := localEncrypt(*doc, data)
 	if err != nil {
 		log.Println("error encrypting")
 		return nil, err
