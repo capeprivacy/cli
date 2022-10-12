@@ -11,7 +11,9 @@ import (
 	cape "github.com/capeprivacy/cli/sdk2"
 )
 
-func main() {
+func connectInvokeExample() {
+	fmt.Println("connect/invoke workflow example")
+
 	c := &cape.Client{
 		PCRs: []string{
 			"000000000",

@@ -52,7 +52,7 @@ func (c Client) Run(function, checkSum string, data []byte) ([]byte, error) {
 	return f.Invoke(data)
 }
 
-func (c Cape) RunWithoutValidation(function string, data []byte) ([]byte, error) {
+func (c Client) RunWithoutValidation(function string, data []byte) ([]byte, error) {
 	f, err := c.ConnectWithoutValidation(function)
 	if err != nil {
 		return nil, err
