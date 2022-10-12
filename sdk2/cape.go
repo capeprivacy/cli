@@ -51,3 +51,12 @@ func (c Cape) Run(function, checkSum string, data []byte) ([]byte, error) {
 	return f.Invoke(data)
 }
 
+func (c Cape) RunWithoutValidation(function string, data []byte) ([]byte, error) {
+	f, err := c.ConnectWithoutValidation(function)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	return f.Invoke(data)
+}
