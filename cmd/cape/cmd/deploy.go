@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/lestrrat-go/jwx/v2/jwt"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -41,7 +42,7 @@ func (e OversizeFunctionError) Error() string {
 
 // deployCmd represents the request command
 var deployCmd = &cobra.Command{
-	Use:   "deploy directory | zip_file",
+	Use:   "deploy { <directory> | <zip_file> }",
 	Short: "Deploy a function",
 	Long: `Deploy a function to Cape.
 
@@ -99,12 +100,25 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	username, err := getUsername()
+	if err != nil {
+		return err
+	}
+
+	// older tokens might not have a username, in that case, we just won't tell them the function alias
+	functionName := ""
+	if username != "" {
+		functionName = fmt.Sprintf("%s/%s", username, name)
+	}
+
 	output := struct {
-		ID       string `json:"function_id"`
-		Checksum string `json:"function_checksum"`
+		ID           string `json:"function_id"`
+		Checksum     string `json:"function_checksum"`
+		FunctionName string `json:"function_name,omitempty"`
 	}{
-		ID:       dID,
-		Checksum: fmt.Sprintf("%x", checksum),
+		ID:           dID,
+		Checksum:     fmt.Sprintf("%x", checksum),
+		FunctionName: functionName,
 	}
 
 	return render.Ctx(cmd.Context()).Render(cmd.OutOrStdout(), output)
@@ -244,20 +258,33 @@ func zipSize(path string) (uint64, error) {
 	return size, nil
 }
 
+func getUsername() (string, error) {
+	t, err := getAuthToken()
+	if err != nil {
+		return "", err
+	}
+
+	token, err := jwt.Parse([]byte(t), jwt.WithVerify(false))
+	if err != nil {
+		return "", err
+	}
+
+	return token.PrivateClaims()["https://capeprivacy.com/username"].(string), nil
+}
+
 func getAuthToken() (string, error) {
 	tokenResponse, err := getTokenResponse()
 	if err != nil {
 		return "", fmt.Errorf("failed to get auth token (did you run 'cape login'?): %v", err)
 	}
 
-	t := tokenResponse.AccessToken
-	if t == "" {
-		return "", fmt.Errorf("empty access token (did you run 'cape login'?): %v", err)
+	if tokenResponse.AccessToken == "" {
+		return "", fmt.Errorf("empty access token (did you run 'cape login'?)")
 	}
 
 	log.Debug("* Retrieved Auth Token")
 
-	return t, nil
+	return tokenResponse.AccessToken, nil
 }
 
 func getOrGeneratePublicKey() (*rsa.PublicKey, error) {
@@ -326,7 +353,7 @@ func getFunctionTokenPublicKey() (string, error) {
 	return pem.String(), nil
 }
 
-var deployTmpl = `Success! Deployed function to Cape.
-Function ID ➜  {{ .ID }}
+var deployTmpl = `Function ID       ➜  {{ .ID }}
 Function Checksum ➜  {{ .Checksum }}
+Function Name     ➜  {{ .FunctionName }} 
 `
