@@ -5,9 +5,12 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,6 +22,7 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/spf13/cobra"
 
+	"github.com/capeprivacy/cli/entities"
 	"github.com/capeprivacy/cli/render"
 )
 
@@ -42,6 +46,8 @@ func init() {
 }
 
 func token(cmd *cobra.Command, args []string) error {
+	url := C.EnclaveHost
+	insecure := C.Insecure
 	if len(args) < 1 {
 		return fmt.Errorf("you must pass a function ID")
 	}
@@ -57,6 +63,7 @@ func token(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// This gets the token from login.
 	accessTokenParsed, err := getAccessTokenVerifyAndParse()
 	if err != nil {
 		return err
@@ -74,8 +81,24 @@ func token(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("could not detect your user id, perhaps retry logging in")
 	}
 
+	// Get the un-parsed access token.
+	// (TODO) Optimize token retrieval so we only get auth token once.
+	t, err := authToken()
+	if err != nil {
+		return err
+	}
+	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t}
+	// Check that the signed in user has ownership access to the function before creating
+	// the token for it.
+
+	err = doGet(functionID, url, insecure, auth)
+	if err != nil {
+		return err
+	}
+
 	tokenString, err := Token(issuer, functionID, expiry, owner)
 	if err != nil {
+		log.Errorf("failed to create token for: %s, make sure you are the owner of the function.", functionID)
 		return err
 	}
 
@@ -221,6 +244,40 @@ func generateKeyPair() error {
 	err = pem.Encode(publicPem, publicKeyBlock)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func doGet(functionID string, url string, insecure bool, auth entities.FunctionAuth) error {
+	endpoint := fmt.Sprintf("%s/v1/functions/%s", url, functionID)
+
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return err
+	}
+
+	var bearer = "Bearer " + auth.Token
+	req.Header.Add("Authorization", bearer)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("cannot complete http request: %s", err)
+	}
+
+	if res.StatusCode != 200 {
+		return fmt.Errorf("expected 200, got server response code %d", res.StatusCode)
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return errors.New("could not read response body")
+	}
+
+	var deploymentNames entities.DeploymentName
+	err = json.Unmarshal(body, &deploymentNames)
+	if err != nil {
+		return errors.New("malformed body in response")
 	}
 
 	return nil

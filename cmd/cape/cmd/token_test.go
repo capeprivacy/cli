@@ -4,11 +4,15 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/capeprivacy/cli/entities"
+	"github.com/capeprivacy/go-kit/id"
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/spf13/viper"
@@ -107,6 +111,41 @@ func TestToken(t *testing.T) {
 	}
 
 	if _, err := os.Open(filepath.Join(C.LocalConfigDir, privateKeyFile)); err != nil {
+		t.Fatal(err)
+	}
+}
+
+type testDeployment struct {
+	ID                  id.ID     `json:"id"`
+	UserID              string    `json:"user_id"`
+	Name                string    `json:"name"`
+	Location            string    `json:"location"`
+	AttestationDocument []byte    `json:"attestation_document,omitempty"`
+	CreatedAt           time.Time `json:"created_at"`
+}
+
+func TestDoGet(t *testing.T) {
+	myID := id.NewID()
+	myName := "octopusprime"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+
+		response := testDeployment{
+			ID:   myID,
+			Name: myName,
+		}
+
+		enc := json.NewEncoder(w)
+
+		err := enc.Encode(response)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}))
+	defer srv.Close()
+	myToken := "oneringtorulethemall"
+	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: myToken}
+	err := doGet(myID, srv.URL, true, auth)
+	if err != nil {
 		t.Fatal(err)
 	}
 }
