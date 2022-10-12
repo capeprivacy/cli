@@ -15,21 +15,34 @@ import (
 )
 
 type RunRequest struct {
+	// Configure on Cape struct??
 	URL          string
-	FunctionID   string
-	Data         []byte
+	FunctionAuth entities.FunctionAuth
+
+	// Required for Run
+	Function string
+	Data     []byte
+
+	// Optional validation
+	// TODO: is it user-friendly to keep these up to date?
 	FuncChecksum []byte
 	KeyChecksum  []byte
 	PcrSlice     []string
-	FunctionAuth entities.FunctionAuth
 
 	// For development use only: skips validating TLS certificate from the URL
 	Insecure bool
 }
 
+// TODO: defaults!!! make most of the RR members optional
+// TODO: make CLI version call through to a default Cape client
 // Run loads the given function into a secure enclave and invokes it on the given data, then returns the result.
 func Run(req RunRequest) ([]byte, error) {
-	conn, doc, err := connect(req.URL, req.FunctionID, req.FunctionAuth, req.FuncChecksum, req.KeyChecksum, req.PcrSlice, req.Insecure)
+	functionID, err := GetFunctionID(req.Function, req.URL, req.FunctionAuth.Token)
+	if err != nil {
+		return nil, err
+	}
+
+	conn, doc, err := connect(req.URL, functionID, req.FunctionAuth, req.FuncChecksum, req.KeyChecksum, req.PcrSlice, req.Insecure)
 	if err != nil {
 		return nil, err
 	}
@@ -37,11 +50,10 @@ func Run(req RunRequest) ([]byte, error) {
 	return invoke(doc, conn, req.Data)
 }
 
-func connect(url string, functionID string, functionAuth entities.FunctionAuth, funcChecksum []byte, keyChecksum []byte, pcrSlice []string, insecure bool) (*websocket.Conn, *attest.AttestationDoc, error) {
+func connect(url string, functionID string, auth entities.FunctionAuth, funcChecksum []byte, keyChecksum []byte, pcrSlice []string, insecure bool) (*websocket.Conn, *attest.AttestationDoc, error) {
 	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
 
 	authProtocolType := "cape.runtime"
-	auth := functionAuth
 	if auth.Type == entities.AuthenticationTypeFunctionToken {
 		authProtocolType = "cape.function"
 	}
@@ -92,21 +104,22 @@ func connect(url string, functionID string, functionAuth entities.FunctionAuth, 
 		return nil, nil, err
 	}
 
-	if userData.FuncChecksum == nil && len(funcChecksum) > 0 {
-		return nil, nil, fmt.Errorf("did not receive checksum from enclave")
+	// Check optional checksums only if provided
+	if len(funcChecksum) > 0 {
+		if userData.FuncChecksum == nil {
+			return nil, nil, fmt.Errorf("did not receive checksum from enclave")
+		}
+		if !reflect.DeepEqual(funcChecksum, userData.FuncChecksum) {
+			return nil, nil, fmt.Errorf("returned checksum did not match provided, got: %x, want %x", userData.FuncChecksum, funcChecksum)
+		}
 	}
-
-	// If checksum as an optional parameter has not been specified by the user, then we don't check the value.
-	if len(funcChecksum) > 0 && !reflect.DeepEqual(funcChecksum, userData.FuncChecksum) {
-		return nil, nil, fmt.Errorf("returned checksum did not match provided, got: %x, want %x", userData.FuncChecksum, funcChecksum)
-	}
-
-	if userData.KeyChecksum == nil && len(keyChecksum) > 0 {
-		return nil, nil, fmt.Errorf("did not receive key policy checksum from enclave")
-	}
-
-	if len(keyChecksum) > 0 && !reflect.DeepEqual(keyChecksum, userData.KeyChecksum) {
-		return nil, nil, fmt.Errorf("returned key policy checksum did not match provided, got: %x, want %x", userData.KeyChecksum, keyChecksum)
+	if len(keyChecksum) > 0 {
+		if userData.KeyChecksum == nil {
+			return nil, nil, fmt.Errorf("did not receive key policy checksum from enclave")
+		}
+		if !reflect.DeepEqual(keyChecksum, userData.KeyChecksum) {
+			return nil, nil, fmt.Errorf("returned key policy checksum did not match provided, got: %x, want %x", userData.KeyChecksum, keyChecksum)
+		}
 	}
 
 	return conn, doc, nil
