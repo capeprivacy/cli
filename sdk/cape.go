@@ -20,9 +20,11 @@ type Cape struct {
 	doc  *attest.AttestationDoc
 }
 
-// TODO: support for function name
+// TODO: TEST support for function name
 // TODO: should Connect create and return the client instead of requiring user to create client?
-func (c Cape) Connect(functionID string, funcChecksum []byte, keyChecksum []byte, pcrSlice []string) error {
+func (c Cape) Connect(function string, funcChecksum []byte, keyChecksum []byte, pcrSlice []string) error {
+	functionID, err := GetFunctionID(function, c.URL, c.FunctionAuth.Token)
+
 	conn, doc, err := connect(c.URL, functionID, c.FunctionAuth, funcChecksum, keyChecksum, pcrSlice, c.Insecure)
 	if err != nil {
 		return err

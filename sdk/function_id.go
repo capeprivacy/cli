@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"regexp"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -24,7 +27,69 @@ type errorMsg struct {
 	Message string `json:"message"`
 }
 
-func GetFunctionID(functionReq FunctionIDRequest) (string, error) {
+func GetFunctionID(function string, capeURL string, authToken string) (string, error) {
+	if isValidFunctionID(function) {
+		return function, nil
+	}
+
+	if !strings.Contains(function, "/") {
+		return "", fmt.Errorf("please provide a functionID or a function name of format <githubUser>/<functionName>")
+	}
+
+	userName, functionName, err := splitFunctionName(function)
+	if err != nil {
+		return "", fmt.Errorf("%s, please provide a function name of format <githubUser>/<functionName>", err)
+	}
+	u, err := url.Parse(capeURL)
+	if err != nil {
+		return "", err
+	}
+	// If the user called w/ `cape run my/fn --url wss://.... we will want to change the scheme to HTTP(s) for this call
+	if u.Scheme == "ws" {
+		u.Scheme = "http"
+	}
+
+	if u.Scheme == "wss" {
+		u.Scheme = "https"
+	}
+
+	r := FunctionIDRequest{
+		UserName:     userName,
+		FunctionName: functionName,
+		URL:          u.String(),
+		AuthToken:    authToken,
+	}
+
+	functionID, err := getFunctionID(r)
+	if err != nil {
+		return "", fmt.Errorf("error retrieving function: %w", err)
+	}
+	return functionID, nil
+}
+
+func isValidFunctionID(functionID string) bool {
+	// an alphanumeric string of length 22 is considered a syntactically correct functionID
+	return regexp.MustCompile(`^[a-zA-Z0-9]{22}$`).MatchString(functionID)
+}
+
+func splitFunctionName(function string) (string, string, error) {
+	userName, functionName, found := strings.Cut(function, "/")
+
+	if !found {
+		return "", "", errors.New("no '/' in function name")
+	}
+
+	if userName == "" {
+		return "", functionName, errors.New("empty username")
+	}
+
+	if functionName == "" {
+		return userName, "", errors.New("empty function name")
+	}
+	return userName, functionName, nil
+}
+
+func getFunctionID(functionReq FunctionIDRequest) (string, error) {
 	if functionReq.URL == "" {
 		functionReq.URL = capeURL
 	}

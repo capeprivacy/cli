@@ -32,7 +32,7 @@ func testServer(t *testing.T, statusCode int) *httptest.Server {
 
 func TestGetFunctionID(t *testing.T) {
 	s := testServer(t, http.StatusOK) // get a "supervisor"
-	id, err := GetFunctionID(FunctionIDRequest{URL: s.URL, UserName: "github123", FunctionName: "isprime"})
+	id, err := getFunctionID(FunctionIDRequest{URL: s.URL, UserName: "github123", FunctionName: "isprime"})
 	if err != nil {
 		t.Error(err)
 	}
@@ -45,7 +45,7 @@ func TestGetFunctionID(t *testing.T) {
 func TestGetFunctionID4xx(t *testing.T) {
 	expectedCode := http.StatusBadRequest
 	s := testServer(t, expectedCode)
-	_, err := GetFunctionID(FunctionIDRequest{URL: s.URL, UserName: "github123", FunctionName: "no_such_func"})
+	_, err := getFunctionID(FunctionIDRequest{URL: s.URL, UserName: "github123", FunctionName: "no_such_func"})
 	if got, want := err.Error(), fmt.Sprintf("HTTP Error: %d ", expectedCode); got != want {
 		t.Errorf("didn't get expected error \ngot\n\t%s\nwant\n\t%s", got, want)
 	}
@@ -54,7 +54,7 @@ func TestGetFunctionID4xx(t *testing.T) {
 func TestGetFunctionID5xx(t *testing.T) {
 	expectedCode := http.StatusInternalServerError
 	s := testServer(t, expectedCode)
-	_, err := GetFunctionID(FunctionIDRequest{URL: s.URL, UserName: "no such user", FunctionName: "anyuser/func"})
+	_, err := getFunctionID(FunctionIDRequest{URL: s.URL, UserName: "no such user", FunctionName: "anyuser/func"})
 	if got, want := err.Error(), fmt.Sprintf("HTTP Error: %d ", expectedCode); got != want {
 		t.Errorf("didn't get expected error \ngot\n\t%s\nwant\n\t%s", got, want)
 	}
@@ -90,7 +90,7 @@ func TestFunctionValidation(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := GetFunctionID(tt.functionReq)
+			_, err := getFunctionID(tt.functionReq)
 
 			if got, want := err.Error(), tt.want; got != want {
 				t.Errorf("didn't get expected output\ngot\n\t%s\nwanted\n\t%s", got, want)
