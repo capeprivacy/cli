@@ -5,7 +5,8 @@ import (
 	"fmt"
 )
 
-type Cape struct {
+type Client struct {
+	PCRs []string
 }
 
 type FuncConnection struct {
@@ -13,7 +14,7 @@ type FuncConnection struct {
 
 // put sdk code here and maybe some other files idk
 
-func (c Cape) Connect(function, checkSum string) (FuncConnection, error) {
+func (c Client) Connect(function, checkSum string) (FuncConnection, error) {
 	check, err := verifyChecksum(function, checkSum)
 	if err != nil {
 		return FuncConnection{}, fmt.Errorf("error validation function checksum: %v", err)
@@ -29,7 +30,7 @@ func verifyChecksum(function, checksum string) (bool, error) {
 	return true, nil
 }
 
-func (c Cape) ConnectWithoutValidation(function string) (FuncConnection, error) {
+func (c Client) ConnectWithoutValidation(function string) (FuncConnection, error) {
 	return FuncConnection{}, nil
 }
 
@@ -41,7 +42,7 @@ func (f FuncConnection) Close() error {
 	return nil
 }
 
-func (c Cape) Run(function, checkSum string, data []byte) ([]byte, error) {
+func (c Client) Run(function, checkSum string, data []byte) ([]byte, error) {
 	f, err := c.Connect(function, checkSum)
 	if err != nil {
 		return nil, err
