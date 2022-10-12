@@ -41,7 +41,6 @@ func key(cmd *cobra.Command, args []string) error {
 	}
 
 	capeKey, err := sdk.Key(keyReq)
-	fmt.Printf("what is my byte array cape key? %s", capeKey)
 	if err != nil {
 		return err
 	}

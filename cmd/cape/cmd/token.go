@@ -9,7 +9,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -265,17 +264,20 @@ func doGet(functionID string, url string, insecure bool, auth entities.FunctionA
 		return fmt.Errorf("cannot complete http request: %s", err)
 	}
 
-	if res.StatusCode != 200 {
+	switch res.StatusCode {
+	case http.StatusNotFound:
+		return fmt.Errorf("function not found")
+	case http.StatusUnauthorized:
+		return fmt.Errorf("unauthorized to create a function token for function")
+	case http.StatusOK:
+
+	default:
 		return fmt.Errorf("expected 200, got server response code %d", res.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return errors.New("could not read response body")
-	}
+	var deployment entities.DeploymentName
 
-	var deploymentNames entities.DeploymentName
-	err = json.Unmarshal(body, &deploymentNames)
+	err = json.NewDecoder(res.Body).Decode(&deployment)
 	if err != nil {
 		return errors.New("malformed body in response")
 	}

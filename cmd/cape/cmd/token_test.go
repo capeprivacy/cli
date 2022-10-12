@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/capeprivacy/cli/entities"
-	"github.com/capeprivacy/go-kit/id"
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/spf13/viper"
@@ -116,7 +115,7 @@ func TestToken(t *testing.T) {
 }
 
 type testDeployment struct {
-	ID                  id.ID     `json:"id"`
+	ID                  string    `json:"id"`
 	UserID              string    `json:"user_id"`
 	Name                string    `json:"name"`
 	Location            string    `json:"location"`
@@ -125,7 +124,7 @@ type testDeployment struct {
 }
 
 func TestDoGet(t *testing.T) {
-	myID := id.NewID()
+	myID := "megatron"
 	myName := "octopusprime"
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 
@@ -146,6 +145,21 @@ func TestDoGet(t *testing.T) {
 	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: myToken}
 	err := doGet(myID, srv.URL, true, auth)
 	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestDoGetFailed(t *testing.T) {
+	myID := "megatron"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
+	myToken := "oneringtorulethemall"
+	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: myToken}
+	err := doGet(myID, srv.URL, true, auth)
+	if err == nil {
 		t.Fatal(err)
 	}
 }
