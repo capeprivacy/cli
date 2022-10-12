@@ -34,7 +34,7 @@ func (c Cape) ConnectWithoutValidation(function string) (FuncConnection, error) 
 }
 
 func (f FuncConnection) Invoke(data []byte) ([]byte, error) {
-	return nil, nil
+	return []byte("sample output"), nil
 }
 
 func (f FuncConnection) Close() error {
