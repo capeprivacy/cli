@@ -55,6 +55,10 @@ func GetFunctionID(functionReq FunctionIDRequest) (string, error) {
 	}
 
 	if res.StatusCode != http.StatusOK {
+		if res.StatusCode == http.StatusBadGateway {
+			return "", fmt.Errorf("could not lookup function, received %d from server", res.StatusCode)
+		}
+
 		// return the error message from supervisor
 		var e errorMsg
 		err = json.Unmarshal(body, &e)
