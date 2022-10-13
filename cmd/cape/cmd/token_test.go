@@ -4,17 +4,20 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
-	"github.com/capeprivacy/cli/entities"
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/spf13/viper"
+
+	"github.com/capeprivacy/cli/entities"
 )
 
 // `cape token` uses the token subject from the currently logged in cape user.
@@ -143,42 +146,75 @@ type testDeployment struct {
 }
 
 func TestDoGet(t *testing.T) {
-	myID := "megatron"
-	myName := "octopusprime"
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	for _, tt := range []struct {
+		name         string
+		id           string
+		functionName string
+		wantStatus   int
+		response     any
+		wantErr      error
+	}{
+		{
+			"success",
+			"WCn2bmNtnRoz6hkdnGuRW2",
+			"bob",
+			http.StatusOK,
+			entities.Deployment{
+				ID:                  "megatron",
+				UserID:              "bob",
+				Name:                "octopusprime",
+				Location:            "",
+				AttestationDocument: nil,
+			},
+			nil,
+		},
+		{
+			"unauthorized",
+			"WCn2bmNtnRoz6hkdnGuRW3",
+			"alice",
+			http.StatusUnauthorized,
+			entities.Deployment{
+				ID:                  "abc123",
+				UserID:              "bob",
+				Name:                "coolfn",
+				Location:            "",
+				AttestationDocument: nil,
+			},
+			errors.New("unauthorized to create a function token for function"),
+		},
+		{
+			"function not found",
+			"WCn2bmNtnRoz6hkdnGuRW3",
+			"alice",
+			http.StatusNotFound,
+			entities.Deployment{
+				ID:                  "abc123",
+				UserID:              "bob",
+				Name:                "coolfn",
+				Location:            "",
+				AttestationDocument: nil,
+			},
+			errors.New("function not found"),
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				w.WriteHeader(tt.wantStatus)
+				enc := json.NewEncoder(w)
 
-		response := testDeployment{
-			ID:   myID,
-			Name: myName,
-		}
+				err := enc.Encode(tt.response)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}))
+			defer srv.Close()
+			myToken := "oneringtorulethemall"
+			auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: myToken}
+			err := doGet(tt.id, srv.URL, true, auth)
 
-		enc := json.NewEncoder(w)
-
-		err := enc.Encode(response)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}))
-	defer srv.Close()
-	myToken := "oneringtorulethemall"
-	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: myToken}
-	err := doGet(myID, srv.URL, true, auth)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestDoGetFailed(t *testing.T) {
-	myID := "megatron"
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-
-		w.WriteHeader(http.StatusNotFound)
-	}))
-	defer srv.Close()
-	myToken := "oneringtorulethemall"
-	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: myToken}
-	err := doGet(myID, srv.URL, true, auth)
-	if err == nil {
-		t.Fatal(err)
+			if got, want := err, tt.wantErr; !reflect.DeepEqual(got, want) {
+				t.Fatalf("didn't get expected error\ngot\n\t%v\nwanted\n\t%v", got, want)
+			}
+		})
 	}
 }

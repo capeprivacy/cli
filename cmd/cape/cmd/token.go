@@ -266,9 +266,9 @@ func doGet(functionID string, url string, insecure bool, auth entities.FunctionA
 
 	switch res.StatusCode {
 	case http.StatusNotFound:
-		return fmt.Errorf("function not found")
+		return errors.New("function not found")
 	case http.StatusUnauthorized:
-		return fmt.Errorf("unauthorized to create a function token for function")
+		return errors.New("unauthorized to create a function token for function")
 	case http.StatusOK:
 
 	default:
