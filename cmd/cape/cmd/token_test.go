@@ -110,7 +110,7 @@ func TestToken(t *testing.T) {
 	viper.Set("ENCLAVE_HOST", srv.URL)
 	functionID := "5gWto31CNOTI"
 	cmd.SetArgs([]string{"token", functionID})
-	cmd.Flags().Set("url", srv.URL)
+
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func TestDoGet(t *testing.T) {
 			"WCn2bmNtnRoz6hkdnGuRW2",
 			"bob",
 			http.StatusOK,
-			entities.Deployment{
+			testDeployment{
 				ID:                  "megatron",
 				UserID:              "bob",
 				Name:                "octopusprime",
@@ -173,7 +173,7 @@ func TestDoGet(t *testing.T) {
 			"WCn2bmNtnRoz6hkdnGuRW3",
 			"alice",
 			http.StatusUnauthorized,
-			entities.Deployment{
+			testDeployment{
 				ID:                  "abc123",
 				UserID:              "bob",
 				Name:                "coolfn",
@@ -187,7 +187,7 @@ func TestDoGet(t *testing.T) {
 			"WCn2bmNtnRoz6hkdnGuRW3",
 			"alice",
 			http.StatusNotFound,
-			entities.Deployment{
+			testDeployment{
 				ID:                  "abc123",
 				UserID:              "bob",
 				Name:                "coolfn",
