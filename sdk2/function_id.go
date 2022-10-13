@@ -105,7 +105,7 @@ func getFunctionID(functionReq FunctionIDRequest) (string, error) {
 	req, err := http.NewRequest("GET", endpoint, nil)
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", functionReq.AuthToken))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to create http request: %w", err)
 	}
 
 	res, err := http.DefaultClient.Do(req)

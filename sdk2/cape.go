@@ -66,12 +66,12 @@ func (c Client) ConnectWithoutVerification(function string) (FuncConnection, err
 
 	conn, err := doDial(endpoint, c.Insecure, authProtocolType, c.FunctionAuth.Token)
 	if err != nil {
-		return FuncConnection{}, err
+		return FuncConnection{}, fmt.Errorf("connection failed: %w", err)
 	}
 
 	nonce, err := crypto.GetNonce()
 	if err != nil {
-		return FuncConnection{}, err
+		return FuncConnection{}, fmt.Errorf("failed to retrieve nonce: %w", err)
 	}
 
 	p := getProtocolFn(conn)

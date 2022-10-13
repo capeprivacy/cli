@@ -8,13 +8,21 @@ import (
 	"os"
 	"sync"
 
+	"github.com/capeprivacy/cli/entities"
 	cape "github.com/capeprivacy/cli/sdk2"
 )
 
 func connectInvokeExample() {
 	fmt.Println("connect/invoke workflow example")
 
+	//fname := "kitschysynq/tag_foo"
+
 	c := &cape.Client{
+		URL: "https://app.capeprivacy.com",
+		FunctionAuth: entities.FunctionAuth{
+			Token: os.Getenv("CAPE_FN_TOKEN_KITSCHYSYNQ_TAG_FOO"),
+			Type:  entities.AuthenticationTypeAuth0,
+		},
 		PCRs: []string{
 			"000000000",
 			"000000000",
