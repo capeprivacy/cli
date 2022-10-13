@@ -14,7 +14,7 @@ var functionCmd = &cobra.Command{
 }
 
 var functionCreateCmd = &cobra.Command{
-	Use:   "create [name]",
+	Use:   "create <name>",
 	Short: "Creates the boilerplate code for a function",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := create(cmd, args)
@@ -30,7 +30,7 @@ func init() {
 
 	functionCmd.AddCommand(functionCreateCmd)
 
-	functionCreateCmd.PersistentFlags().StringP("location", "l", "", "location to create the function, defaults to current directory")
+	functionCreateCmd.PersistentFlags().StringP("location", "l", ".", "location to create the function")
 }
 
 var appContents = `def cape_handler(n):

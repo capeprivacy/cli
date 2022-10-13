@@ -20,12 +20,21 @@ import (
 
 // runCmd represents the run command
 var runCmd = &cobra.Command{
-	Use:   "run {function_id|function_name} [input data]",
+	Use:   "run { <function_id> | <user_name>/<function_name> } [input data]",
 	Short: "Run a deployed function with data",
-	Long: "Run a deployed function with data, takes function id or function name, path to data, and (optional) checksum.\n" +
-		"If using function names, it must be in format <github_id>/<function_name>, example: \"cape run capedocs/echo 'Hello World'\".\n" +
-		"Run will also read input data from stdin, example: \"echo '1234' | cape run id\".\n" +
-		"Results are output to stdout so you can easily pipe them elsewhere.",
+	Long: `Run a deployed function with data.
+
+Results are output to stdout so you can easily pipe them elsewhere.`,
+	Example: `
+	# Run a function named 'echo' created by user 'capedocs'
+	$ cape run capedocs/echo 'Hello World'
+
+	# Run a function with input data provided on stdin
+	$ echo '1234' | cape run capedocs/echo -f -
+
+	# Filter a function's output through sed
+	$ cape run capedocs/echo 'Hello World' | sed 's/Hello/Hola/'
+`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := run(cmd, args)
 		if _, ok := err.(UserError); !ok {

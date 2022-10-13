@@ -15,11 +15,15 @@ import (
 var keyCmd = &cobra.Command{
 	Use:   "key",
 	Short: "Displays the Cape Key (Public Key) which is unqiue to your account. ",
-	Long: "Displays the Cape Key (Public Key) which is unqiue to your account.\n" +
-		"The key is used by \"cape encrypt\" to encrypt data. \"cape encrypt\" calls \"cape key\" automatically. " +
-		"The first call to \"cape key\" will download the public key from the enclave and save it. Subsequent calls will display the key from a local file. " +
-		"The downloaded key is signed by the enclave, and the signature is verified before the key is saved. " +
-		"Example: \"cape key\".\n",
+	Long: `Displays the Cape Key (Public Key) which is unique to your account.
+
+The key is used by "cape encrypt" to encrypt data. "cape
+encrypt" calls "cape key" automatically. The first call to
+"cape key" will download the public key from the enclave and
+save it. Subsequent calls will display the key from a local
+file. The downloaded key is signed by the enclave, and the
+signature is verified before the key is saved.
+`,
 	RunE: key,
 }
 
@@ -66,24 +70,17 @@ func key(cmd *cobra.Command, args []string) error {
 }
 
 func GetKeyRequest(pcrSlice []string) (sdk.KeyRequest, error) {
-	url := C.EnclaveHost
-	insecure := C.Insecure
-
 	t, err := getAuthToken()
 	if err != nil {
 		return sdk.KeyRequest{}, err
 	}
-	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t}
-
-	configDir := C.LocalConfigDir
-	capeKeyFile := filepath.Join(C.LocalConfigDir, C.LocalCapeKeyFileName)
 
 	return sdk.KeyRequest{
-		URL:          url,
-		Insecure:     insecure,
-		FunctionAuth: auth,
-		ConfigDir:    configDir,
-		CapeKeyFile:  capeKeyFile,
+		URL:          C.EnclaveHost,
+		Insecure:     C.Insecure,
+		FunctionAuth: entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t},
+		ConfigDir:    C.LocalConfigDir,
+		CapeKeyFile:  filepath.Join(C.LocalConfigDir, C.LocalCapeKeyFileName),
 		PcrSlice:     pcrSlice,
 	}, nil
 }
