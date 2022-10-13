@@ -2,16 +2,26 @@ package main
 
 import (
 	"fmt"
+	"log"
+
+	"github.com/capeprivacy/cli/entities"
 	cape "github.com/capeprivacy/cli/sdk2"
 )
 
 func runExample() {
 	fmt.Println("run workflow example")
-	c := cape.Client{}
-	res, err := c.RunWithoutValidation("jenny/example", []byte("hello!"))
+	//fname := "jenny/example"
+	fname := "kitschysynq/tag_foo"
+	c := cape.Client{
+		URL: "https://app.capeprivacy.com",
+		FunctionAuth: entities.FunctionAuth{
+			Token: tokens[fname],
+			Type:  entities.AuthenticationTypeAuth0,
+		},
+	}
+	res, err := c.RunWithoutValidation(fname, []byte("hello!"))
 	if err != nil {
-		print(err)
-		return
+		log.Fatalf("error running workflow: %s\n", err.Error())
 	}
 	fmt.Println(string(res))
 }
