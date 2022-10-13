@@ -14,9 +14,14 @@ import (
 // runCmd represents the get-prcs command
 var getPCRsCmd = &cobra.Command{
 	Use:   "get-pcrs",
-	Short: "returns the pcrs of a given runtime version",
-	Long:  "",
-	RunE:  getPCRs,
+	Short: "Retrieve the PCRs of a given runtime version",
+	Long: `Retrieve the PCRs of a given runtime version.
+
+The PCRs are measurements of the executable version of the cape
+runtime that processes requests. These PCRs can be supplied to
+other commands to validate that Cape is running a version of the
+code that you've verified.`,
+	RunE: getPCRs,
 }
 
 func init() {

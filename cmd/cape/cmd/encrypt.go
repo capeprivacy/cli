@@ -14,12 +14,24 @@ import (
 )
 
 var encryptCmd = &cobra.Command{
-	Use:   "encrypt",
-	Short: "Encrypt data.",
-	Long: "Encrypt input data, takes data as the first and only argument.\n" +
-		"Encrypt can also read input data from stdin, example: \"echo '1234' | cape encrypt\".\n" +
-		"Encrypt can also read a file, example: \"echo 'Hello!' > example.txt; cape encrypt -f ./example.txt\".\n" +
-		"Results are output to stdout so you can easily pipe them elsewhere.",
+	Use:   "encrypt (<input data> | -f <input file>)",
+	Short: "Encrypt local data",
+	Long: `Encrypt local data for use with cape functions.
+
+Retrieves a user-specific public key and encrypts local data so that it may be
+safely shared and used as input to cape functions. Results are output to stdout
+so you can easily pipe them elsewhere.
+`,
+	Example: `
+	# Encrypt a string
+	cape encrypt "foo"
+	
+	# Encrypt input data read from stdin
+	echo '1234' | cape encrypt
+	
+	# Encrypt data read from a file named "example.txt"
+	cape encrypt -f example.txt
+`,
 	RunE: encrypt,
 }
 
