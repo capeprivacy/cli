@@ -33,7 +33,8 @@ var tokenCmd = &cobra.Command{
 	Short: "Create a token to execute a cape function",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := token(cmd, args)
-		if _, ok := err.(UserError); ok {
+		// If it is not a user error, don't show usage help
+		if _, ok := err.(UserError); !ok {
 			cmd.SilenceUsage = true
 		}
 		return err
@@ -98,7 +99,7 @@ func token(cmd *cobra.Command, args []string) error {
 
 	err = doGet(functionID, url, insecure, auth)
 	if err != nil {
-		return UserError{Msg: "failed to fetch function information", Err: err}
+		return err
 	}
 
 	tokenString, err := Token(issuer, functionID, expiry, owner)
@@ -271,21 +272,22 @@ func doGet(functionID string, url string, insecure bool, auth entities.FunctionA
 	}
 
 	switch res.StatusCode {
-	case http.StatusNotFound:
-		return UserError{Msg: "function not found"}
-	case http.StatusUnauthorized:
-		return UserError{Msg: "unauthorized to create a function token for function"}
 	case http.StatusOK:
 
+	case http.StatusNotFound:
+		return UserError{Msg: "function not found", Err: errors.New(functionID)}
+	case http.StatusUnauthorized:
+		return UserError{Msg: "unauthorized to create a function token for function", Err: errors.New(functionID)}
+
 	default:
-		return UserError{Msg: fmt.Sprintf("expected 200, got server response code %d", res.StatusCode)}
+		return fmt.Errorf("expected 200, got server response code %d", res.StatusCode)
 	}
 
 	var deployment entities.DeploymentName
 
 	err = json.NewDecoder(res.Body).Decode(&deployment)
 	if err != nil {
-		return UserError{Msg: "malformed body in response"}
+		return errors.New("malformed body in response")
 	}
 
 	return nil
