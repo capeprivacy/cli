@@ -102,7 +102,11 @@ func run(cmd *cobra.Command, args []string) error {
 	function := args[0]
 	functionID, err := getFunctionID(function, u)
 	if err != nil {
-		return UserError{Msg: "error retrieving function id", Err: err}
+		if errors.Is(err, ErrInvalidFunctionAlias) {
+			return UserError{Msg: "error retrieving function id", Err: err}
+		}
+
+		return err
 	}
 
 	var input []byte
@@ -226,18 +230,20 @@ func Run(url string, auth entities.FunctionAuth, functionID string, file string,
 	return res, nil
 }
 
+var ErrInvalidFunctionAlias = fmt.Errorf("please provide a functionID or a function name of format <githubUser>/<functionName>")
+
 func getFunctionID(function string, capeURL string) (string, error) {
 	if isValidFunctionID(function) {
 		return function, nil
 	}
 
 	if !strings.Contains(function, "/") {
-		return "", fmt.Errorf("please provide a functionID or a function name of format <githubUser>/<functionName>")
+		return "", ErrInvalidFunctionAlias
 	}
 
 	userName, functionName, err := splitFunctionName(function)
 	if err != nil {
-		return "", fmt.Errorf("%s, please provide a function name of format <githubUser>/<functionName>", err)
+		return "", ErrInvalidFunctionAlias
 	}
 	u, err := url.Parse(capeURL)
 	if err != nil {
@@ -266,7 +272,7 @@ func getFunctionID(function string, capeURL string) (string, error) {
 
 	functionID, err := sdk.GetFunctionID(r)
 	if err != nil {
-		return "", fmt.Errorf("error retrieving function: %w", err)
+		return "", err
 	}
 	return functionID, nil
 }
