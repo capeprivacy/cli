@@ -1,15 +1,18 @@
 package sdk2
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"reflect"
+
+	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/cli/entities"
 	"github.com/capeprivacy/cli/pcrs"
-	"github.com/gorilla/websocket"
-	log "github.com/sirupsen/logrus"
-	"reflect"
 )
 
 type Client struct {
@@ -38,7 +41,11 @@ func (c Client) Connect(function, checksum string) (FuncConnection, error) {
 		if f.UserData.FuncChecksum == nil {
 			return FuncConnection{}, fmt.Errorf("did not receive checksum from enclave")
 		}
-		if !reflect.DeepEqual(checksum, f.UserData.FuncChecksum) {
+		checksumBytes, err := hex.DecodeString(checksum)
+		if err != nil {
+			return FuncConnection{}, fmt.Errorf("invalid checksum provided")
+		}
+		if !reflect.DeepEqual(checksumBytes, f.UserData.FuncChecksum) {
 			return FuncConnection{}, fmt.Errorf("returned checksum did not match provided, got: %x, want %x", f.UserData.FuncChecksum, checksum)
 		}
 	}

@@ -4,14 +4,16 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/url"
+
+	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/cli/entities"
 	proto "github.com/capeprivacy/cli/protocol"
-	"github.com/gorilla/websocket"
-	log "github.com/sirupsen/logrus"
-	"net/http"
-	"net/url"
 )
 
 type ErrorMsg struct {

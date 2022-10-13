@@ -20,14 +20,15 @@ func connectInvokeExample() {
 	c := &cape.Client{
 		URL: "https://app.capeprivacy.com",
 		FunctionAuth: entities.FunctionAuth{
-			Token: os.Getenv("CAPE_FN_TOKEN_KITSCHYSYNQ_TAG_FOO"),
+			//			Token: os.Getenv("CAPE_FN_TOKEN_KITSCHYSYNQ_TAG_FOO"),
+			Token: os.Getenv("CAPE_TOKEN"),
 			Type:  entities.AuthenticationTypeAuth0,
 		},
-		PCRs: []string{
-			"000000000",
-			"000000000",
-			"000000000",
-		},
+//		PCRs: []string{
+//			"000000000",
+//			"000000000",
+//			"000000000",
+//		},
 	}
 
 	log.Printf("c: %#v\n", c)
@@ -40,7 +41,7 @@ func connectInvokeExample() {
 	go startInputPump(os.Stdin, in1, in2)
 
 	for item := range merge(out1, out2) {
-		fmt.Println(item)
+		fmt.Println(string(item))
 	}
 
 	log.Println("all done")

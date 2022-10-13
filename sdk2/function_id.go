@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/capeprivacy/cli/entities"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/capeprivacy/cli/entities"
 )
 
 // TODO: where does this belong, file-wise?
