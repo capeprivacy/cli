@@ -18,7 +18,7 @@ var functionCreateCmd = &cobra.Command{
 	Short: "Creates the boilerplate code for a function",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := create(cmd, args)
-		if _, ok := err.(UserError); !ok {
+		if _, ok := err.(UserError); ok {
 			cmd.SilenceUsage = true
 		}
 		return err

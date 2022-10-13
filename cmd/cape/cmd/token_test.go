@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -180,7 +180,7 @@ func TestDoGet(t *testing.T) {
 				Location:            "",
 				AttestationDocument: nil,
 			},
-			errors.New("unauthorized to create a function token for function"),
+			UserError{Msg: "unauthorized to create a function token for function"},
 		},
 		{
 			"function not found",
@@ -194,7 +194,21 @@ func TestDoGet(t *testing.T) {
 				Location:            "",
 				AttestationDocument: nil,
 			},
-			errors.New("function not found"),
+			UserError{Msg: "function not found"},
+		},
+		{
+			"Any other errors",
+			"WCn2bmNtnRoz6hkdnGuRW3",
+			"alice",
+			http.StatusConflict,
+			testDeployment{
+				ID:                  "abc123",
+				UserID:              "bob",
+				Name:                "coolfn",
+				Location:            "",
+				AttestationDocument: nil,
+			},
+			UserError{Msg: fmt.Sprintf("expected 200, got server response code %d", http.StatusConflict)},
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
