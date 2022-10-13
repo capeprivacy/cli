@@ -1,6 +1,7 @@
 package sdk2
 
 import (
+	"errors"
 	"fmt"
 	"github.com/capeprivacy/cli/attest"
 	"github.com/capeprivacy/cli/crypto"
@@ -108,7 +109,53 @@ func (c Client) ConnectWithoutVerification(function string) (FuncConnection, err
 }
 
 func (f FuncConnection) Invoke(data []byte) ([]byte, error) {
-	return []byte("sample output"), nil
+	//return []byte("sample output"), nil
+	// TODO update these error messages, maybe panic instead?
+	if f.Attestation == nil {
+		log.Error("missing attestation document, you may need to run cape.Connect()")
+		return nil, errors.New("missing attestation document")
+	}
+	if f.Conn == nil {
+		log.Error("missing websocket connection, you may need to run cape.Connect()")
+		return nil, errors.New("no active connection")
+	}
+
+	encryptedData, err := localEncrypt(*f.Attestation, data)
+	if err != nil {
+		log.Println("error encrypting")
+		return nil, err
+	}
+
+	log.Debug("\n> Sending Encrypted Inputs")
+	err = writeData(f.Conn, encryptedData)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("* Waiting for function results...")
+
+	resData, err := getProtocolFn(f.Conn).ReadRunResults()
+	if err != nil {
+		return nil, err
+	}
+	log.Debugf("< Received Function Results.")
+
+	return resData.Message, nil
+}
+
+func writeData(conn *websocket.Conn, data []byte) error {
+	w, err := conn.NextWriter(websocket.BinaryMessage)
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+
+	_, err = w.Write(data)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (f FuncConnection) Close() error {
