@@ -76,6 +76,23 @@ func beforeOnce() (string, error) {
 }
 
 func TestToken(t *testing.T) {
+	myID := "5gWto31CNOTI"
+	myName := "test-user"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		response := testDeployment{
+			ID:   myID,
+			Name: myName,
+		}
+
+		enc := json.NewEncoder(w)
+
+		err := enc.Encode(response)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}))
+	defer srv.Close()
+
 	previousLocalConfigDir := viper.Get("LOCAL_CONFIG_DIR")
 	localConfigDir, err := beforeOnce()
 	if err != nil {
@@ -85,13 +102,15 @@ func TestToken(t *testing.T) {
 	defer viper.Set("LOCAL_CONFIG_DIR", previousLocalConfigDir)
 
 	cmd, stdout, _ := getCmd()
-
+	// Have to set the url explicitly, will break other tests if it relies on
+	// URL.
+	viper.Set("ENCLAVE_HOST", srv.URL)
 	functionID := "5gWto31CNOTI"
 	cmd.SetArgs([]string{"token", functionID})
+	cmd.Flags().Set("url", srv.URL)
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
-
 	tokenOutput, err := jwt.Parse(stdout.Bytes(), jwt.WithVerify(false))
 	if err != nil {
 		t.Fatal(err)
