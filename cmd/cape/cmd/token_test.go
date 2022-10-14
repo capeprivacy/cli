@@ -4,14 +4,21 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/spf13/viper"
+
+	"github.com/capeprivacy/cli/entities"
 )
 
 // `cape token` uses the token subject from the currently logged in cape user.
@@ -73,6 +80,23 @@ func beforeOnce() (string, error) {
 }
 
 func TestToken(t *testing.T) {
+	myID := "5gWto31CNOTI"
+	myName := "test-user"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		response := testDeployment{
+			ID:   myID,
+			Name: myName,
+		}
+
+		enc := json.NewEncoder(w)
+
+		err := enc.Encode(response)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}))
+	defer srv.Close()
+
 	previousLocalConfigDir := viper.Get("LOCAL_CONFIG_DIR")
 	localConfigDir, err := beforeOnce()
 	if err != nil {
@@ -82,13 +106,15 @@ func TestToken(t *testing.T) {
 	defer viper.Set("LOCAL_CONFIG_DIR", previousLocalConfigDir)
 
 	cmd, stdout, _ := getCmd()
-
+	// Have to set the url explicitly, will break other tests if it relies on
+	// URL.
+	viper.Set("ENCLAVE_HOST", srv.URL)
 	functionID := "5gWto31CNOTI"
 	cmd.SetArgs([]string{"token", functionID})
+
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
-
 	tokenOutput, err := jwt.Parse(stdout.Bytes(), jwt.WithVerify(false))
 	if err != nil {
 		t.Fatal(err)
@@ -108,5 +134,102 @@ func TestToken(t *testing.T) {
 
 	if _, err := os.Open(filepath.Join(C.LocalConfigDir, privateKeyFile)); err != nil {
 		t.Fatal(err)
+	}
+}
+
+type testDeployment struct {
+	ID                  string    `json:"id"`
+	UserID              string    `json:"user_id"`
+	Name                string    `json:"name"`
+	Location            string    `json:"location"`
+	AttestationDocument []byte    `json:"attestation_document,omitempty"`
+	CreatedAt           time.Time `json:"created_at"`
+}
+
+func TestDoGet(t *testing.T) {
+	for _, tt := range []struct {
+		name         string
+		id           string
+		functionName string
+		wantStatus   int
+		response     any
+		wantErr      error
+	}{
+		{
+			"success",
+			"WCn2bmNtnRoz6hkdnGuRW2",
+			"bob",
+			http.StatusOK,
+			testDeployment{
+				ID:                  "megatron",
+				UserID:              "bob",
+				Name:                "octopusprime",
+				Location:            "",
+				AttestationDocument: nil,
+			},
+			nil,
+		},
+		{
+			"unauthorized",
+			"WCn2bmNtnRoz6hkdnGuRW3",
+			"alice",
+			http.StatusUnauthorized,
+			testDeployment{
+				ID:                  "abc123",
+				UserID:              "bob",
+				Name:                "coolfn",
+				Location:            "",
+				AttestationDocument: nil,
+			},
+			UserError{Msg: "unauthorized to create a function token for function", Err: errors.New("WCn2bmNtnRoz6hkdnGuRW3")},
+		},
+		{
+			"function not found",
+			"WCn2bmNtnRoz6hkdnGuRW3",
+			"alice",
+			http.StatusNotFound,
+			testDeployment{
+				ID:                  "abc123",
+				UserID:              "bob",
+				Name:                "coolfn",
+				Location:            "",
+				AttestationDocument: nil,
+			},
+			UserError{Msg: "function not found", Err: errors.New("WCn2bmNtnRoz6hkdnGuRW3")},
+		},
+		{
+			"Any other errors",
+			"WCn2bmNtnRoz6hkdnGuRW3",
+			"alice",
+			http.StatusConflict,
+			testDeployment{
+				ID:                  "abc123",
+				UserID:              "bob",
+				Name:                "coolfn",
+				Location:            "",
+				AttestationDocument: nil,
+			},
+			fmt.Errorf("expected 200, got server response code %d", http.StatusConflict),
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				w.WriteHeader(tt.wantStatus)
+				enc := json.NewEncoder(w)
+
+				err := enc.Encode(tt.response)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}))
+			defer srv.Close()
+			myToken := "oneringtorulethemall"
+			auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: myToken}
+			err := doGet(tt.id, srv.URL, true, auth)
+
+			if got, want := err, tt.wantErr; !reflect.DeepEqual(got, want) {
+				t.Fatalf("didn't get expected error\ngot\n\t%v\nwanted\n\t%v", got, want)
+			}
+		})
 	}
 }
