@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 
@@ -73,7 +73,7 @@ func doList(url string, insecure bool, auth entities.FunctionAuth) error { //nol
 		return fmt.Errorf("expected 200, got server response code %d", res.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return errors.New("could not read response body")
 	}
