@@ -51,7 +51,10 @@ func Deploy(req DeployRequest, keyReq KeyRequest) (string, []byte, error) {
 	if err != nil {
 		return "", nil, err
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+		conn.Close()
+	}()
 
 	p := getProtocol(conn)
 
