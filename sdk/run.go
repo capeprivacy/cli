@@ -69,7 +69,6 @@ func connect(url string, functionID string, functionAuth entities.FunctionAuth, 
 
 	attestDoc, err := p.ReadAttestationDoc()
 	if err != nil {
-		log.Println("error reading attestation doc")
 		return nil, nil, err
 	}
 
