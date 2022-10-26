@@ -33,7 +33,10 @@ func Run(req RunRequest) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+		conn.Close()
+	}()
 	return invoke(doc, conn, req.Data)
 }
 
