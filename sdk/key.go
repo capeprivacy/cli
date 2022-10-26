@@ -5,6 +5,7 @@ import (
 
 	"os"
 
+	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
@@ -72,18 +73,21 @@ func ConnectAndAttest(keyReq KeyRequest) (*attest.AttestationDoc, *attest.Attest
 		authProtocolType = "cape.function"
 	}
 
-	c, err := doDial(endpoint, keyReq.Insecure, authProtocolType, auth.Token)
+	conn, err := doDial(endpoint, keyReq.Insecure, authProtocolType, auth.Token)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer c.Close()
+	defer func() {
+		_ = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+		conn.Close()
+	}()
 
 	nonce, err := crypto.GetNonce()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	p := getProtocol(c)
+	p := getProtocol(conn)
 
 	req := entities.StartRequest{Nonce: []byte(nonce)}
 	log.Debug("\n> Sending Nonce and Auth Token")

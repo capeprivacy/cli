@@ -37,7 +37,10 @@ func Test(testReq TestRequest, endpoint string, pcrSlice []string) (*entities.Ru
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+		conn.Close()
+	}()
 
 	nonce, err := crypto.GetNonce()
 	if err != nil {

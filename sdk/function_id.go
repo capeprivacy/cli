@@ -3,7 +3,7 @@ package sdk
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -49,7 +49,7 @@ func GetFunctionID(functionReq FunctionIDRequest) (string, error) {
 		return "", fmt.Errorf("failed to receive functionID %w", err)
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", errors.New("could not read response body")
 	}
