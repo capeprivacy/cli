@@ -74,7 +74,6 @@ func Deploy(req DeployRequest, keyReq KeyRequest) (string, []byte, error) {
 
 	attestDoc, err := p.ReadAttestationDoc()
 	if err != nil {
-		log.Error("error reading attestation doc")
 		return "", nil, err
 	}
 

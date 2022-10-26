@@ -209,7 +209,7 @@ func run(cmd *cobra.Command, args []string) error {
 		FunctionAuth: auth,
 	})
 	if err != nil {
-		return fmt.Errorf("error processing data: %w", err)
+		return fmt.Errorf("run request failed: %w", err)
 	}
 
 	fmt.Println(string(results))
@@ -233,7 +233,7 @@ func Run(url string, auth entities.FunctionAuth, functionID string, file string,
 		FunctionAuth: auth,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error processing data: %w", err)
+		return nil, fmt.Errorf("run request failed: %w", err)
 	}
 
 	return res, nil

@@ -100,7 +100,6 @@ func ConnectAndAttest(keyReq KeyRequest) (*attest.AttestationDoc, *attest.Attest
 
 	attestDoc, err := p.ReadAttestationDoc()
 	if err != nil {
-		log.Println("error reading attestation doc")
 		return nil, nil, err
 	}
 
