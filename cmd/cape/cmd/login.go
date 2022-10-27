@@ -16,6 +16,8 @@ import (
 
 	"github.com/lestrrat-go/jwx/v2/jwk"
 
+	"github.com/capeprivacy/cli/sdk"
+
 	"github.com/avast/retry-go"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 
@@ -76,6 +78,16 @@ func login(cmd *cobra.Command, args []string) error {
 	}
 
 	err = persistTokenResponse(tokenResponse)
+	if err != nil {
+		return err
+	}
+
+	keyReq, err := GetKeyRequest([]string{})
+	if err != nil {
+		return err
+	}
+
+	_, err = sdk.Key(keyReq)
 	if err != nil {
 		return err
 	}
