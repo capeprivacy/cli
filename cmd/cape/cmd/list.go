@@ -57,7 +57,7 @@ func list(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t}
-	err = doList(u, insecure, auth, offset, limit)
+	err = doList(u, insecure, auth, limit, offset)
 	if err != nil {
 		return fmt.Errorf("list failed: %w", err)
 	}
