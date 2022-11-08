@@ -14,6 +14,19 @@ import (
 	"github.com/capeprivacy/cli/entities"
 )
 
+type ErrorMsg struct {
+	Error string `json:"error"`
+}
+
+type ErrServerForList struct {
+	statusCode int
+	message    string
+}
+
+func (e ErrServerForList) Error() string {
+	return fmt.Sprintf("expected 200, got server response code when listing functions %d: %s", e.statusCode, e.message)
+}
+
 // listCmd represents the list command
 var listCmd = &cobra.Command{
 	Use:   "list",
@@ -30,11 +43,23 @@ var listCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(listCmd)
+	listCmd.PersistentFlags().IntP("limit", "", 50, "Limit the number of functions returned.")
+	listCmd.PersistentFlags().IntP("offset", "", 0, "Number of functions to skip before listing.")
 }
 
 func list(cmd *cobra.Command, args []string) error {
 	u := C.EnclaveHost
 	insecure := C.Insecure
+
+	limit, err := cmd.Flags().GetInt("limit")
+	if err != nil {
+		return err
+	}
+
+	offset, err := cmd.Flags().GetInt("offset")
+	if err != nil {
+		return err
+	}
 
 	if len(args) > 0 {
 		return UserError{Msg: "list does not take any arguments", Err: fmt.Errorf("invalid number of input arguments")}
@@ -45,7 +70,7 @@ func list(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t}
-	err = doList(u, insecure, auth)
+	err = doList(u, insecure, auth, limit, offset)
 	if err != nil {
 		return fmt.Errorf("list failed: %w", err)
 	}
@@ -53,8 +78,8 @@ func list(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func doList(url string, insecure bool, auth entities.FunctionAuth) error { //nolint:gocognit
-	endpoint := fmt.Sprintf("%s/v1/functions", url)
+func doList(url string, insecure bool, auth entities.FunctionAuth, limit int, offset int) error { //nolint:gocognit
+	endpoint := fmt.Sprintf("%s/v1/functions?limit=%d&offset=%d", url, limit, offset)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
@@ -70,7 +95,13 @@ func doList(url string, insecure bool, auth entities.FunctionAuth) error { //nol
 	}
 
 	if res.StatusCode != 200 {
-		return fmt.Errorf("expected 200, got server response code %d", res.StatusCode)
+		var e ErrorMsg
+		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
+			return err
+		}
+		res.Body.Close()
+
+		return ErrServerForList{res.StatusCode, e.Error}
 	}
 
 	body, err := io.ReadAll(res.Body)
