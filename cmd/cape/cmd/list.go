@@ -14,6 +14,19 @@ import (
 	"github.com/capeprivacy/cli/entities"
 )
 
+type ErrorMsg struct {
+	Error string `json:"error"`
+}
+
+type ErrServerForList struct {
+	statusCode int
+	message    string
+}
+
+func (e ErrServerForList) Error() string {
+	return fmt.Sprintf("expected 200, got server response code when listing functions %d: %s", e.statusCode, e.message)
+}
+
 // listCmd represents the list command
 var listCmd = &cobra.Command{
 	Use:   "list",
@@ -82,7 +95,13 @@ func doList(url string, insecure bool, auth entities.FunctionAuth, limit int, of
 	}
 
 	if res.StatusCode != 200 {
-		return fmt.Errorf("expected 200, got server response code %d", res.StatusCode)
+		var e ErrorMsg
+		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
+			return err
+		}
+		res.Body.Close()
+
+		return ErrServerForList{res.StatusCode, e.Error}
 	}
 
 	body, err := io.ReadAll(res.Body)
