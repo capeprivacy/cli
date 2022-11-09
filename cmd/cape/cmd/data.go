@@ -4,11 +4,12 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 	"math/rand"
 	"os"
 	"strconv"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 // generate sample data to use for testing cape
@@ -139,11 +140,10 @@ func fixedRandomText() string {
 
 func writeText(fileName string, data []byte) error {
 	f, err := os.Create(fileName)
-	defer f.Close()
-
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	_, err = f.Write(data)
 	if err != nil {
@@ -162,11 +162,10 @@ func writeText(fileName string, data []byte) error {
 
 func writeCSV(fileName string, data [][]string) error {
 	f, err := os.Create(fileName)
-	defer f.Close()
-
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	w := csv.NewWriter(f)
 
