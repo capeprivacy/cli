@@ -52,9 +52,9 @@ with cape run (see cape run -h for details).
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := deploy(cmd, args)
-		if _, ok := err.(UserError); !ok {
-			cmd.SilenceUsage = true
-		}
+		_, ok := err.(UserError)
+		// Print usage on UserError, suppress for success and internal errors
+		cmd.SilenceUsage = !ok
 		return err
 	},
 }

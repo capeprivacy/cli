@@ -34,9 +34,9 @@ var listCmd = &cobra.Command{
 	Long:  "List all deployed functions for your user.\n",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := list(cmd, args)
-		if _, ok := err.(UserError); !ok {
-			cmd.SilenceUsage = true
-		}
+		_, ok := err.(UserError)
+		// Print usage on UserError, suppress for success and internal errors
+		cmd.SilenceUsage = !ok
 		return err
 	},
 }

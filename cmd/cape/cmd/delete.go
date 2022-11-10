@@ -17,9 +17,9 @@ var deleteCmd = &cobra.Command{
 	Long:  "Delete a deployed function, takes function id.\n",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := delete(cmd, args)
-		if _, ok := err.(UserError); !ok {
-			cmd.SilenceUsage = true
-		}
+		_, ok := err.(UserError)
+		// Print usage on UserError, suppress for success and internal errors
+		cmd.SilenceUsage = !ok
 		return err
 	},
 }

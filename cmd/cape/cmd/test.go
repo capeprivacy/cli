@@ -31,9 +31,9 @@ Results are output to stdout so you can easily pipe them elsewhere`,
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := Test(cmd, args)
-		if _, ok := err.(UserError); !ok {
-			cmd.SilenceUsage = true
-		}
+		_, ok := err.(UserError)
+		// Print usage on UserError, suppress for success and internal errors
+		cmd.SilenceUsage = !ok
 		return err
 	},
 }

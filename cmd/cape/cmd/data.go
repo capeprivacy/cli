@@ -24,18 +24,10 @@ $ cape sample text 128 testdata.txt
 $ cape sample csv 128000 testdata.csv -t decimal -l 3
 	`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) == 0 {
-			err := cmd.Usage()
-			if err != nil {
-				return err
-			}
-			return nil
-		}
-
 		err := sample(cmd, args)
-		if _, ok := err.(UserError); !ok {
-			cmd.SilenceUsage = true
-		}
+		_, ok := err.(UserError)
+		// Print usage on UserError, suppress for success and internal errors
+		cmd.SilenceUsage = !ok
 		return err
 	},
 }
@@ -49,12 +41,12 @@ func init() {
 
 func sample(cmd *cobra.Command, args []string) error {
 	if len(args) != 3 {
-		return errors.New("please provide output format, data size, and file name")
+		return UserError{Msg: "wrong number of arguments", Err: errors.New("please provide output format, data size, and file name")}
 	}
 	format := args[0]
 	bytes, err := strconv.Atoi(args[1])
 	if err != nil {
-		return fmt.Errorf("error parsing input: %w", err)
+		return UserError{Msg: "error parsing input", Err: err}
 	}
 	fileName := args[2]
 
@@ -69,6 +61,10 @@ func sample(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return UserError{Msg: "error retrieving columns flag", Err: err}
 		}
+		if cols < 1 {
+			return UserError{Msg: "invalid argument", Err: errors.New("number of columns must be positive")}
+		}
+
 		t, err := cmd.Flags().GetString("type")
 		if err != nil {
 			return UserError{Msg: "error retrieving type flag", Err: err}
@@ -87,7 +83,7 @@ func sample(cmd *cobra.Command, args []string) error {
 				return strconv.FormatFloat(rand.Float64(), 'f', -1, 32)
 			}
 		default:
-			return UserError{Msg: "CSV value type must be one of: string, int, decimal"}
+			return UserError{Msg: "invalid argument", Err: errors.New("CSV value type must be one of: string, int, decimal")}
 		}
 
 		rows := randomCSV(cols, bytes, valueFunc)
@@ -96,7 +92,7 @@ func sample(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	default:
-		return UserError{Msg: "file format must be one of: text, csv"}
+		return UserError{Msg: "invalid argument", Err: errors.New("file format must be one of: text, csv")}
 	}
 
 	return nil

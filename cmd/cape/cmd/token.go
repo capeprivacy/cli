@@ -33,10 +33,9 @@ var tokenCmd = &cobra.Command{
 	Short: "Create a token to execute a cape function",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := token(cmd, args)
-		// If it is not a user error, don't show usage help
-		if _, ok := err.(UserError); !ok {
-			cmd.SilenceUsage = true
-		}
+		_, ok := err.(UserError)
+		// Print usage on UserError, suppress for success and internal errors
+		cmd.SilenceUsage = !ok
 		return err
 	},
 }
