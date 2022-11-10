@@ -175,30 +175,33 @@ func doDial(endpoint string, insecure bool, authProtocolType string, authToken s
 		return nil, err
 	}
 
-	if res.StatusCode != 307 {
+	switch res.StatusCode {
+	case 307:
+		log.Debug("* Received 307 redirect")
+
+		location, err := res.Location()
+		if err != nil {
+			log.Error("could not get location off header")
+			return nil, err
+		}
+
+		conn, res, err = websocketDial(location.String(), insecure, authProtocolType, authToken)
+		if err != nil {
+			if res != nil {
+				customErr := customError(res)
+				res.Body.Close()
+				return nil, customErr
+			}
+			log.Error("could not dial websocket again after 307 redirect")
+			return nil, err
+		}
+
+		return conn, nil
+	case 404:
+		return nil, fmt.Errorf("code: %d, reason: could not establish connection to provided url", res.StatusCode)
+	default:
 		return nil, customError(res)
 	}
-
-	log.Debug("* Received 307 redirect")
-
-	location, err := res.Location()
-	if err != nil {
-		log.Error("could not get location off header")
-		return nil, err
-	}
-
-	conn, res, err = websocketDial(location.String(), insecure, authProtocolType, authToken)
-	if err != nil {
-		if res != nil {
-			customErr := customError(res)
-			res.Body.Close()
-			return nil, customErr
-		}
-		log.Error("could not dial websocket again after 307 redirect")
-		return nil, err
-	}
-
-	return conn, nil
 }
 
 var getProtocolFn = getProtocol
