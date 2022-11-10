@@ -7,6 +7,7 @@ import (
 	"testing"
 )
 
+// nolint:gocognit
 func TestSample(t *testing.T) {
 	for _, tt := range []struct {
 		name        string
