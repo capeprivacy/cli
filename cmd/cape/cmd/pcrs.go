@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"path"
 	"strings"
 
@@ -27,7 +29,7 @@ code that you've verified.`,
 func init() {
 	rootCmd.AddCommand(getPCRsCmd)
 
-	getPCRsCmd.PersistentFlags().String("version", "release-434bd34", "the version of the runtime EIF to get PCRs for")
+	getPCRsCmd.PersistentFlags().String("version", "", "the version of the runtime EIF to get PCRs for")
 	getPCRsCmd.PersistentFlags().StringP("bucket", "b", "user-eif-release-bucket", "the artifact source bucket in S3")
 }
 
@@ -37,11 +39,25 @@ func getPCRs(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error retrieving version flag %s", err)
 	}
 
+	// Get the latest stable version
+	if version == "" {
+		resp, err := http.Get("https://user-eif-release-bucket.s3.amazonaws.com/stable.txt")
+		if err != nil {
+			return fmt.Errorf("error retrieving latest version %s", err)
+		}
+		defer resp.Body.Close()
+
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+		version = string(body[:len(body)-1])
+	}
+
 	bucket, err := cmd.Flags().GetString("bucket")
 	if err != nil {
 		return fmt.Errorf("error retrieving bucket flag %s", err)
 	}
-
 	p, err := pcrs.DownloadEIF(bucket, version)
 	if err != nil {
 		return err
