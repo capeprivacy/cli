@@ -158,10 +158,10 @@ func transformURL(urlStr string) (string, error) {
 func customError(res *http.Response) error {
 	var e ErrorMsg
 	if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-		return err
+		return fmt.Errorf("error, reason: %s", res.Body)
 	}
 	res.Body.Close()
-	return fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
+	return fmt.Errorf("error, reason: %s", e.Error)
 }
 
 func doDial(endpoint string, insecure bool, authProtocolType string, authToken string) (*websocket.Conn, error) {
@@ -198,7 +198,7 @@ func doDial(endpoint string, insecure bool, authProtocolType string, authToken s
 
 		return conn, nil
 	case 404:
-		return nil, fmt.Errorf("code: %d, reason: could not establish connection to provided url", res.StatusCode)
+		return nil, fmt.Errorf("could not connect to %s\nplease check your internet connection, and verify url is reachable", endpoint)
 	default:
 		return nil, customError(res)
 	}
