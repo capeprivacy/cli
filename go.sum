@@ -51,6 +51,8 @@ github.com/bgentry/speakeasy v0.1.0/go.mod h1:+zsyZBPWlz7T6j88CTgSN5bM796AkVf0kB
 github.com/bwesterb/go-ristretto v1.2.1/go.mod h1:fUIoIZaG73pV5biE2Blr2xEzDoMj7NFEuV9ekS419A0=
 github.com/capeprivacy/attest v0.0.0-20220928115705-dc76587586c0 h1:2P59XubWGNRfr7iEHxbWy+qSiQNUMg/Z9fB5+8BucWY=
 github.com/capeprivacy/attest v0.0.0-20220928115705-dc76587586c0/go.mod h1:o4EjflQff2DM/osCvlgXTy78NYnpp7tlxbo31OFmsJk=
+github.com/capeprivacy/attest v0.0.0-20221122145352-9d62c4ab7596 h1:qJOEjelX/FYIChQST84N8NzE3cYIiRfV9kZq8qnf43I=
+github.com/capeprivacy/attest v0.0.0-20221122145352-9d62c4ab7596/go.mod h1:o4EjflQff2DM/osCvlgXTy78NYnpp7tlxbo31OFmsJk=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=

@@ -55,7 +55,7 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go v1.44.114
-	github.com/capeprivacy/attest v0.0.0-20220928115705-dc76587586c0
+	github.com/capeprivacy/attest v0.0.0-20221122145352-9d62c4ab7596
 	github.com/fxamacker/cbor v1.5.1
 	github.com/gorilla/websocket v1.5.0
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
