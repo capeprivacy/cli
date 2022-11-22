@@ -9,7 +9,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/capeprivacy/cli/attest"
+	"github.com/capeprivacy/attest/attest"
 	"github.com/capeprivacy/cli/entities"
 )
 
@@ -45,8 +45,8 @@ func wsURL(origURL string) string {
 }
 
 func TestCapeTest(t *testing.T) {
-	runAttestation = func(attestation []byte, rootCert *x509.Certificate) (*attest.AttestationDoc, *attest.AttestationUserData, error) {
-		return &attest.AttestationDoc{}, nil, nil
+	runAttestation = func(attestation []byte, rootCert *x509.Certificate) (*attest.AttestationDoc, error) {
+		return &attest.AttestationDoc{}, nil
 	}
 	localEncrypt = func(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) { return plaintext, nil }
 

@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/capeprivacy/cli/attest"
+	"github.com/capeprivacy/attest/attest"
 )
 
 func TestGetEIFInfo(t *testing.T) {
