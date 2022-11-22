@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/capeprivacy/cli/attest"
+	"github.com/capeprivacy/attest/attest"
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/cli/entities"
 	"github.com/capeprivacy/cli/pcrs"
@@ -69,7 +69,7 @@ func Test(testReq TestRequest, endpoint string, pcrSlice []string) (*entities.Ru
 	}
 
 	log.Debug("< Attestation document")
-	doc, _, err := runAttestation(attestDoc, rootCert)
+	doc, err := runAttestation(attestDoc, rootCert)
 	if err != nil {
 		return nil, err
 	}

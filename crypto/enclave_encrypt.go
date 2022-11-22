@@ -7,7 +7,7 @@ import (
 	"github.com/cloudflare/circl/hpke"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/capeprivacy/cli/attest"
+	"github.com/capeprivacy/attest/attest"
 )
 
 const (
