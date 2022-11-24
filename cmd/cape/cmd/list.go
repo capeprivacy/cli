@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
@@ -123,8 +124,13 @@ func doList(url string, insecure bool, auth entities.FunctionAuth, limit int, of
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"#", "Name", "ID", "Created At"})
+	localTime, err := time.LoadLocation("Local")
+	if err != nil {
+		return err
+	}
+
 	for i, deployment := range deploymentNames {
-		t.AppendRow([]interface{}{i, deployment.Name, deployment.ID, deployment.CreatedAt})
+		t.AppendRow([]interface{}{i, deployment.Name, deployment.ID, deployment.CreatedAt.In(localTime).Format("Jan 02 2006 15:04")})
 	}
 	t.SetStyle(table.StyleLight)
 	t.Render()
