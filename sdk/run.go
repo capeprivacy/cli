@@ -128,7 +128,7 @@ func invoke(doc *attest.AttestationDoc, conn *websocket.Conn, data []byte) ([]by
 		return nil, errors.New("missing attestation document")
 	}
 	if conn == nil {
-		log.Error("missing wesocket connection, you may need to run cape.Connect()")
+		log.Error("missing websocket connection, you may need to run cape.Connect()")
 		return nil, errors.New("no active connection")
 	}
 
