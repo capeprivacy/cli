@@ -56,8 +56,7 @@ func EncryptBytes(keyReq KeyRequest, input []byte) ([]byte, error) {
 	keyCiphertext = append(keyCiphertext, dataCiphertext...)
 
 	// Prefix the ciphertext with "cape:"
-	output := []byte(capeEncryptPrefix)
-	output = append(output, keyCiphertext...)
+	output := append([]byte(capeEncryptPrefix), keyCiphertext...)
 
 	return output, nil
 }
