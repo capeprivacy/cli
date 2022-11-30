@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-func TestEncrpt(t *testing.T) {
+func TestEncrypt(t *testing.T) {
 	k, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatal(err)
