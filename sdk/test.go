@@ -3,9 +3,11 @@ package sdk
 import (
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -161,6 +163,9 @@ func customError(res *http.Response) error {
 		return err
 	}
 	res.Body.Close()
+	if strings.Contains(e.Error, "token is expired") {
+		return errors.New("your token is expired. Try logging in again with `cape login`")
+	}
 	return fmt.Errorf("error code: %d, reason: %s", res.StatusCode, e.Error)
 }
 
