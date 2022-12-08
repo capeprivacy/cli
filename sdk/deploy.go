@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/capeprivacy/cli/attest"
+	"github.com/capeprivacy/attest/attest"
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/cli/entities"
 	"github.com/capeprivacy/cli/pcrs"
@@ -84,7 +84,7 @@ func Deploy(req DeployRequest, keyReq KeyRequest) (string, []byte, error) {
 	}
 
 	log.Debug("< Attestation document")
-	doc, _, err := attest.Attest(attestDoc, rootCert)
+	doc, err := attest.Attest(attestDoc, rootCert)
 	if err != nil {
 		log.Error("error attesting")
 		return "", nil, err

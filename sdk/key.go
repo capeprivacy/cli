@@ -1,6 +1,7 @@
 package sdk
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"os"
@@ -9,11 +10,17 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/capeprivacy/cli/attest"
+	"github.com/capeprivacy/attest/attest"
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/cli/entities"
 	"github.com/capeprivacy/cli/pcrs"
 )
+
+type AttestationUserData struct {
+	FuncChecksum []byte `json:"func_checksum"`
+	KeyChecksum  []byte `json:"key_checksum"`
+	CapeKey      []byte `json:"key"`
+}
 
 type KeyRequest struct {
 	URL          string
@@ -27,7 +34,7 @@ type KeyRequest struct {
 }
 
 func Key(keyReq KeyRequest) ([]byte, error) {
-	var capeKey, err = readCapeKey(keyReq.CapeKeyFile)
+	capeKey, err := readCapeKey(keyReq.CapeKeyFile)
 	if err != nil {
 		// If the key file isn't present we download it, but log this error anyway in case something else happened.
 		log.Debugf("Unable to open cape key file: %s", err)
@@ -64,7 +71,7 @@ func downloadAndSaveKey(keyReq KeyRequest) ([]byte, error) {
 }
 
 // TODO: Run, deploy and test could use this function.
-func ConnectAndAttest(keyReq KeyRequest) (*attest.AttestationDoc, *attest.AttestationUserData, error) {
+func ConnectAndAttest(keyReq KeyRequest) (*attest.AttestationDoc, *AttestationUserData, error) {
 	endpoint := fmt.Sprintf("%s/v1/key", keyReq.URL)
 
 	authProtocolType := "cape.runtime"
@@ -110,9 +117,16 @@ func ConnectAndAttest(keyReq KeyRequest) (*attest.AttestationDoc, *attest.Attest
 	}
 
 	log.Debug("< Auth Completed. Received Attestation Document")
-	doc, userData, err := attest.Attest(attestDoc, rootCert)
+	doc, err := attest.Attest(attestDoc, rootCert)
 	if err != nil {
 		log.Println("error attesting")
+		return nil, nil, err
+	}
+
+	userData := &AttestationUserData{}
+	err = json.Unmarshal(doc.UserData, userData)
+	if err != nil {
+		log.Println("error unmarshalling user data")
 		return nil, nil, err
 	}
 

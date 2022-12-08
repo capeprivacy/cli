@@ -1,6 +1,7 @@
 package sdk
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 
@@ -8,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/capeprivacy/cli/attest"
+	"github.com/capeprivacy/attest/attest"
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/cli/entities"
 	"github.com/capeprivacy/cli/pcrs"
@@ -82,9 +83,16 @@ func connect(url string, functionID string, functionAuth entities.FunctionAuth, 
 	}
 
 	log.Debug("< Auth Completed. Received Attestation Document")
-	doc, userData, err := attest.Attest(attestDoc, rootCert)
+	doc, err := attest.Attest(attestDoc, rootCert)
 	if err != nil {
 		log.Println("error attesting")
+		return nil, nil, err
+	}
+
+	userData := &AttestationUserData{}
+	err = json.Unmarshal(doc.UserData, userData)
+	if err != nil {
+		log.Println("error unmarshalling user data")
 		return nil, nil, err
 	}
 
@@ -120,7 +128,7 @@ func invoke(doc *attest.AttestationDoc, conn *websocket.Conn, data []byte) ([]by
 		return nil, errors.New("missing attestation document")
 	}
 	if conn == nil {
-		log.Error("missing wesocket connection, you may need to run cape.Connect()")
+		log.Error("missing websocket connection, you may need to run cape.Connect()")
 		return nil, errors.New("no active connection")
 	}
 

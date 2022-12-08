@@ -56,14 +56,15 @@ func EncryptBytes(keyReq KeyRequest, input []byte) ([]byte, error) {
 	keyCiphertext = append(keyCiphertext, dataCiphertext...)
 
 	// Prefix the ciphertext with "cape:"
-	output := []byte(capeEncryptPrefix)
-	output = append(output, keyCiphertext...)
+	output := append([]byte(capeEncryptPrefix), keyCiphertext...)
 
 	return output, nil
 }
 
+const AesKeySize = 32
+
 func AESEncrypt(plaintext []byte) ([]byte, []byte, error) {
-	key := make([]byte, 32) // generate a random 32 byte key for AES-256
+	key := make([]byte, AesKeySize) // generate a random 32 byte key for AES-256
 	if _, err := rand.Read(key); err != nil {
 		return nil, nil, err
 	}
@@ -91,7 +92,6 @@ func AESEncrypt(plaintext []byte) ([]byte, []byte, error) {
 
 func RSAEncrypt(plaintext []byte, publicKey []byte) ([]byte, error) {
 	pubAny, err := x509.ParsePKIXPublicKey(publicKey)
-
 	if err != nil {
 		return nil, err
 	}
@@ -101,10 +101,7 @@ func RSAEncrypt(plaintext []byte, publicKey []byte) ([]byte, error) {
 		return nil, fmt.Errorf("unknown public key type")
 	}
 
-	hash := sha256.New()
-	salt := rand.Reader
-
-	ciphertext, err := rsa.EncryptOAEP(hash, salt, pub, plaintext, nil)
+	ciphertext, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, pub, plaintext, nil)
 	if err != nil {
 		return nil, err
 	}

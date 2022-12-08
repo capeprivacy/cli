@@ -22,6 +22,7 @@ require (
 	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
+	github.com/hf/nsm v0.0.0-20211106132757-1ae65a6a69ae // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.1 // indirect
@@ -54,6 +55,7 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go v1.44.114
+	github.com/capeprivacy/attest v0.0.0-20221122145352-9d62c4ab7596
 	github.com/fxamacker/cbor v1.5.1
 	github.com/gorilla/websocket v1.5.0
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
