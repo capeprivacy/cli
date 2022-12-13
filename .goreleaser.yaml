@@ -23,6 +23,8 @@ builds:
       # I think main motivation for using them is to shrink the binary size
       # by removing unneeded symbol information.
       - -s -w -X github.com/capeprivacy/cli/cmd/cape/cmd.version={{.Version}}
+    flags:
+      - -tags=nonsm
 archives:
   - name_template: "{{ .Binary }}_{{ .Os }}_{{ .Arch }}"
     files:
