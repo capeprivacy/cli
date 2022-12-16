@@ -174,16 +174,10 @@ func persistTokenResponse(response *TokenResponse) error {
 		return err
 	}
 
-	err = os.MkdirAll(C.LocalConfigDir, os.ModePerm)
+	err = sdk.PersistFile(C.LocalConfigDir, C.LocalAuthFileName, authJSON)
 	if err != nil {
 		return err
 	}
-
-	err = os.WriteFile(filepath.Join(C.LocalConfigDir, C.LocalAuthFileName), authJSON, 0644)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 

@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"os"
-
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -34,7 +32,8 @@ type KeyRequest struct {
 }
 
 func Key(keyReq KeyRequest) ([]byte, error) {
-	capeKey, err := readCapeKey(keyReq.CapeKeyFile)
+	log.Debug("Reading in cape key from file")
+	capeKey, err := readFile(keyReq.ConfigDir, keyReq.CapeKeyFile)
 	if err != nil {
 		// If the key file isn't present we download it, but log this error anyway in case something else happened.
 		log.Debugf("Unable to open cape key file: %s", err)
@@ -61,7 +60,7 @@ func downloadAndSaveKey(keyReq KeyRequest) ([]byte, error) {
 		return nil, fmt.Errorf("did not receive cape key")
 	}
 
-	err = persistCapeKey(keyReq.ConfigDir, keyReq.CapeKeyFile, userData.CapeKey)
+	err = PersistFile(keyReq.ConfigDir, keyReq.CapeKeyFile, userData.CapeKey)
 	if err != nil {
 		log.Println("failed saving cape key")
 		return nil, err
@@ -137,33 +136,4 @@ func ConnectAndAttest(keyReq KeyRequest) (*attest.AttestationDoc, *AttestationUs
 	}
 
 	return doc, userData, nil
-}
-
-func persistCapeKey(configDir string, capeKeyFile string, capeKey []byte) error {
-	log.Debug("Saving cape key...")
-
-	err := os.MkdirAll(configDir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	err = os.WriteFile(capeKeyFile, capeKey, 0644)
-	if err != nil {
-		return err
-	}
-
-	log.Debug("Cape Key saved to ", capeKeyFile)
-
-	return nil
-}
-
-func readCapeKey(capeKeyFile string) ([]byte, error) {
-	log.Debug("Reading Cape Key from ", capeKeyFile)
-
-	capeKey, err := os.ReadFile(capeKeyFile)
-	if err != nil {
-		return nil, err
-	}
-
-	return capeKey, nil
 }
