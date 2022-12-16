@@ -1,6 +1,7 @@
 package sdk
 
 import (
+	"io/fs"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -74,13 +75,13 @@ func getOSUser() (int, int, error) {
 	return uid, gid, nil
 }
 
-func enforcePerms(filepath string, uid, gid, permissions int) error {
+func enforcePerms(filepath string, uid, gid int, mode fs.FileMode) error {
 	err := os.Chown(filepath, uid, gid)
 	if err != nil {
 		return err
 	}
 
-	err = os.Chmod(filepath, 0600)
+	err = os.Chmod(filepath, mode)
 	if err != nil {
 		return err
 	}
