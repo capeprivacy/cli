@@ -1,11 +1,8 @@
 package sdk
 
 import (
-	"io/fs"
 	"os"
-	"os/user"
 	"path/filepath"
-	"strconv"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -19,12 +16,7 @@ func PersistFile(configDir, filename string, data []byte) error {
 		return err
 	}
 
-	uid, gid, err := getOSUser()
-	if err != nil {
-		return err
-	}
-
-	err = enforcePerms(configDir, uid, gid, 0700)
+	err = os.Chmod(configDir, 0700)
 	if err != nil {
 		return err
 	}
@@ -36,7 +28,7 @@ func PersistFile(configDir, filename string, data []byte) error {
 	log.Debugf("data saved to %s", filename)
 
 	// If file or directory previously existed, enforce limited permissions
-	err = enforcePerms(fullPath, uid, gid, 0600)
+	err = os.Chmod(fullPath, 0600)
 	if err != nil {
 		return err
 	}
@@ -54,36 +46,4 @@ func readFile(directory, capeKeyFile string) ([]byte, error) {
 	}
 
 	return data, nil
-}
-
-func getOSUser() (int, int, error) {
-	user, err := user.Current()
-	if err != nil {
-		return 0, 0, err
-	}
-
-	uid, err := strconv.Atoi(user.Uid)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	gid, err := strconv.Atoi(user.Gid)
-	if err != nil {
-		return uid, 0, err
-	}
-
-	return uid, gid, nil
-}
-
-func enforcePerms(filepath string, uid, gid int, mode fs.FileMode) error {
-	err := os.Chown(filepath, uid, gid)
-	if err != nil {
-		return err
-	}
-
-	err = os.Chmod(filepath, mode)
-	if err != nil {
-		return err
-	}
-	return nil
 }
