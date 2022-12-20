@@ -15,6 +15,8 @@ import (
 )
 
 func TestEncrypt(t *testing.T) {
+	filename := "capekey.pub.der"
+	dir := t.TempDir()
 	k, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatal(err)
@@ -25,7 +27,7 @@ func TestEncrypt(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	f, err := os.Create(path.Join(t.TempDir(), "capekey.pub.der"))
+	f, err := os.Create(path.Join(dir, filename))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +40,8 @@ func TestEncrypt(t *testing.T) {
 	f.Close()
 
 	ciphertext, err := Encrypt(KeyRequest{
-		CapeKeyFile: f.Name(),
+		CapeKeyFile: filename,
+		ConfigDir:   dir,
 	}, []byte("hi my name is"))
 	if err != nil {
 		t.Fatal(err)

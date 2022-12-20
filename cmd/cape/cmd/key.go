@@ -4,7 +4,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 
@@ -80,7 +79,7 @@ func GetKeyRequest(pcrSlice []string) (sdk.KeyRequest, error) {
 		Insecure:     C.Insecure,
 		FunctionAuth: entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t},
 		ConfigDir:    C.LocalConfigDir,
-		CapeKeyFile:  filepath.Join(C.LocalConfigDir, C.LocalCapeKeyFileName),
+		CapeKeyFile:  C.LocalCapeKeyFileName,
 		PcrSlice:     pcrSlice,
 	}, nil
 }
