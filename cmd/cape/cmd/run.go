@@ -34,6 +34,11 @@ Results are output to stdout so you can easily pipe them elsewhere.`,
 
 	# Filter a function's output through sed
 	$ cape run capedocs/echo 'Hello World' | sed 's/Hello/Hola/'
+
+	# Run while verifying PCRs
+	# PCRs can be retrieved with: 'cape get-pcrs'
+	# PCRs are specified through a string array of the form: [<PCR_number>:<PCR_value>], example below
+	$ cape run capedocs/echo 5 --pcr=0:placeholderPCR0,8:placeholderPCR8
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := run(cmd, args)
