@@ -54,6 +54,8 @@ an authentication token will be stored internally.
 
 func init() {
 	rootCmd.AddCommand(loginCmd)
+
+	loginCmd.PersistentFlags().String("link-aws-account", "", "aws account to link with github account in Cape")
 }
 
 func login(cmd *cobra.Command, args []string) error {
@@ -90,6 +92,19 @@ func login(cmd *cobra.Command, args []string) error {
 	_, err = sdk.Key(keyReq)
 	if err != nil {
 		return err
+	}
+
+	authToken, err := getAuthToken()
+	if err != nil {
+		return err
+	}
+
+	customerID, _ := cmd.Flags().GetString("link-aws-account")
+	if customerID != "" {
+		err = sdk.LinkAWSAccount(C.EnclaveHost, authToken, customerID)
+		if err != nil {
+			return err
+		}
 	}
 
 	fmt.Println("Congratulations, you're all set!")
