@@ -18,6 +18,14 @@ import (
 	"github.com/capeprivacy/attest/attest"
 )
 
+type InvalidPCRValueError struct {
+	Key string
+}
+
+func (i InvalidPCRValueError) Error() string {
+	return fmt.Sprintf("unable to parse PCR number for input: %s, please specify numeric PCR number", i.Key)
+}
+
 type Measurements map[string]string
 
 type EIFInfo struct {
@@ -75,7 +83,7 @@ func VerifyPCRs(pcrs map[string][]string, doc *attest.AttestationDoc) error {
 	for key, values := range pcrs {
 		pcrIndex, err := strconv.Atoi(key)
 		if err != nil {
-			return err
+			return InvalidPCRValueError{Key: key}
 		}
 		h := hex.EncodeToString(doc.PCRs[pcrIndex])
 

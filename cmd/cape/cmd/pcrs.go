@@ -22,7 +22,8 @@ var getPCRsCmd = &cobra.Command{
 The PCRs are measurements of the executable version of the cape
 runtime that processes requests. These PCRs can be supplied to
 other commands to validate that Cape is running a version of the
-code that you've verified.`,
+code that you've verified. This command takes a while to run as it
+requires downloading of the latest runtime version.`,
 	RunE: getPCRs,
 }
 
