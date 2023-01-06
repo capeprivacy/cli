@@ -235,6 +235,13 @@ func TestDoGet(t *testing.T) {
 }
 
 func TestAcctToken(t *testing.T) {
+	authToken = func() (string, error) {
+		return "so logged in", nil
+	}
+	defer func() {
+		authToken = getAuthToken
+	}()
+
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, _ := json.Marshal(createTokenResponse{Token: "yourjwtgoeshere"})
 		w.WriteHeader(http.StatusCreated)
@@ -254,6 +261,13 @@ func TestAcctToken(t *testing.T) {
 }
 
 func TestListTokens(t *testing.T) {
+	authToken = func() (string, error) {
+		return "so logged in", nil
+	}
+	defer func() {
+		authToken = getAuthToken
+	}()
+
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, _ := json.Marshal(listTokensResponse{Tokens: []tokenRef{
 			{Name: "abc", Description: "my first token"},

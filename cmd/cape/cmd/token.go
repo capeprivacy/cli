@@ -81,7 +81,7 @@ This will be fixed in the future.`,
 			return err
 		}
 
-		authToken, err := getAuthToken()
+		authToken, err := authToken()
 		if err != nil {
 			return err
 		}
@@ -169,7 +169,7 @@ This is different than creating a token that gives access to an individual funct
 			return err
 		}
 
-		authToken, err := getAuthToken()
+		authToken, err := authToken()
 		if err != nil {
 			return err
 		}
