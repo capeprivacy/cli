@@ -108,7 +108,7 @@ func TestToken(t *testing.T) {
 	cmd, stdout, _ := getCmd()
 	// Have to set the url explicitly, will break other tests if it relies on
 	// URL.
-	viper.Set("ENCLAVE_HOST", srv.URL)
+	_ = os.Setenv("CAPE_ENCLAVE_HOST", srv.URL)
 	functionID := "5gWto31CNOTI"
 	cmd.SetArgs([]string{"token", functionID})
 
@@ -234,7 +234,7 @@ func TestDoGet(t *testing.T) {
 	}
 }
 
-func TestOrgToken(t *testing.T) {
+func TestAcctToken(t *testing.T) {
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, _ := json.Marshal(createTokenResponse{Token: "yourjwtgoeshere"})
 		w.WriteHeader(http.StatusCreated)
