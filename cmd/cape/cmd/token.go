@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jedib0t/go-pretty/v6/table"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/lestrrat-go/jwx/v2/jwa"
@@ -41,8 +42,175 @@ var tokenCmd = &cobra.Command{
 	},
 }
 
+type createTokenReq struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+type tokenRef struct {
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type listTokensResponse struct {
+	Tokens []tokenRef `json:"tokens"`
+}
+
+type createTokenResponse struct {
+	Token string `json:"token"`
+}
+
+var listTokensCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List your account tokens",
+	Long: `List the tokens from your account.
+
+NOTE -- this will not list function tokens (ones made with cape token <function_id>).
+This will be fixed in the future.`,
+
+	RunE: func(cmd *cobra.Command, args []string) error {
+		verbose, err := cmd.Flags().GetBool("verbose")
+		if err != nil {
+			return err
+		}
+
+		url := C.EnclaveHost
+		req, err := http.NewRequest(http.MethodGet, url+"/v1/tokens", nil)
+		if err != nil {
+			return err
+		}
+
+		authToken, err := getAuthToken()
+		if err != nil {
+			return err
+		}
+
+		var bearer = "Bearer " + authToken
+		req.Header.Add("Authorization", bearer)
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return err
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			cmd.SilenceUsage = true
+			if verbose {
+				fmt.Println("received status code", resp.StatusCode)
+			}
+
+			return fmt.Errorf("something went wrong")
+		}
+
+		var ltr listTokensResponse
+		if err := json.NewDecoder(resp.Body).Decode(&ltr); err != nil {
+			return err
+		}
+
+		t := table.NewWriter()
+		t.SetOutputMirror(cmd.OutOrStdout())
+		t.AppendHeader(table.Row{"#", "Name", "Description", "Created At"})
+		localTime, err := time.LoadLocation("Local")
+		if err != nil {
+			return err
+		}
+
+		for i, token := range ltr.Tokens {
+			t.AppendRow([]interface{}{i, token.Name, token.Description, token.CreatedAt.In(localTime).Format("Jan 02 2006 15:04")})
+		}
+		t.SetStyle(table.StyleLight)
+		t.Render()
+
+		return nil
+	},
+}
+
+var createCmd = &cobra.Command{
+	Use:   "create",
+	Short: "Create a token for your account",
+	Long: `Create a token for your account. 
+
+Use this command if you want a token that identifies you. 
+This is different than creating a token that gives access to an individual function.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		verbose, err := cmd.Flags().GetBool("verbose")
+		if err != nil {
+			return err
+		}
+
+		name, err := cmd.Flags().GetString("name")
+		if err != nil {
+			return err
+		}
+
+		description, err := cmd.Flags().GetString("description")
+		if err != nil {
+			return err
+		}
+
+		if name == "" {
+			return fmt.Errorf("tokens must be alphanumeric")
+		}
+
+		url := C.EnclaveHost
+
+		b, err := json.Marshal(createTokenReq{
+			Name:        name,
+			Description: description,
+		})
+
+		if err != nil {
+			return err
+		}
+
+		req, err := http.NewRequest(http.MethodPost, url+"/v1/token", bytes.NewReader(b))
+		if err != nil {
+			return err
+		}
+
+		authToken, err := getAuthToken()
+		if err != nil {
+			return err
+		}
+
+		var bearer = "Bearer " + authToken
+		req.Header.Add("Authorization", bearer)
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return err
+		}
+
+		if resp.StatusCode != http.StatusCreated {
+			cmd.SilenceUsage = true
+			if verbose {
+				fmt.Println("received status code", resp.StatusCode)
+			}
+
+			return fmt.Errorf("something went wrong, your token was not created")
+		}
+
+		var tokenResponse createTokenResponse
+		if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
+			return err
+		}
+
+		if _, err := cmd.OutOrStdout().Write([]byte(fmt.Sprintf("Success! Your token: %s", tokenResponse.Token))); err != nil {
+			return err
+		}
+
+		return nil
+	},
+}
+
 func init() {
+	tokenCmd.AddCommand(listTokensCmd)
+	tokenCmd.AddCommand(createCmd)
 	rootCmd.AddCommand(tokenCmd)
+
+	createCmd.PersistentFlags().StringP("name", "", "", "the name for your token")
+	createCmd.PersistentFlags().StringP("description", "", "", "a description for your token")
 
 	tokenCmd.PersistentFlags().IntP("expiry", "e", 3600, "optional time to live (in seconds)")
 	tokenCmd.PersistentFlags().BoolP("owner", "", false, "optional owner token (debug logs)")

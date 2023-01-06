@@ -233,3 +233,57 @@ func TestDoGet(t *testing.T) {
 		})
 	}
 }
+
+func TestOrgToken(t *testing.T) {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := json.Marshal(createTokenResponse{Token: "yourjwtgoeshere"})
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write(b)
+	}))
+	defer s.Close()
+
+	cmd, stdout, _ := getCmd()
+	cmd.SetArgs([]string{"token", "create", "--name", "my-token", "--url", s.URL})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	if got, want := stdout.String(), "Success! Your token: yourjwtgoeshere"; got != want {
+		t.Fatalf("didn't get expected output, got %s, wanted %s", got, want)
+	}
+}
+
+func TestListTokens(t *testing.T) {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := json.Marshal(listTokensResponse{Tokens: []tokenRef{
+			{Name: "abc", Description: "my first token"},
+			{Name: "abc", Description: "my second token"},
+			{Name: "abc", Description: "my third token"},
+			{Name: "abc", Description: "my fourth token"},
+		}})
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(b)
+	}))
+	defer s.Close()
+
+	cmd, stdout, _ := getCmd()
+	cmd.SetArgs([]string{"token", "list", "--url", s.URL})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	want := `┌───┬──────┬─────────────────┬───────────────────┐
+│ # │ NAME │ DESCRIPTION     │ CREATED AT        │
+├───┼──────┼─────────────────┼───────────────────┤
+│ 0 │ abc  │ my first token  │ Dec 31 0000 19:45 │
+│ 1 │ abc  │ my second token │ Dec 31 0000 19:45 │
+│ 2 │ abc  │ my third token  │ Dec 31 0000 19:45 │
+│ 3 │ abc  │ my fourth token │ Dec 31 0000 19:45 │
+└───┴──────┴─────────────────┴───────────────────┘
+`
+
+	if got, want := stdout.String(), want; got != want {
+		t.Fatalf("didn't get expected output, got \n%s, wanted \n%s", got, want)
+	}
+}
