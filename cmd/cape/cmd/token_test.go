@@ -267,13 +267,14 @@ func TestListTokens(t *testing.T) {
 	defer func() {
 		authToken = getAuthToken
 	}()
+	now := time.Now()
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, _ := json.Marshal(listTokensResponse{Tokens: []tokenRef{
-			{Name: "abc", Description: "my first token"},
-			{Name: "abc", Description: "my second token"},
-			{Name: "abc", Description: "my third token"},
-			{Name: "abc", Description: "my fourth token"},
+			{Name: "abc", Description: "my first token", CreatedAt: now},
+			{Name: "abc", Description: "my second token", CreatedAt: now},
+			{Name: "abc", Description: "my third token", CreatedAt: now},
+			{Name: "abc", Description: "my fourth token", CreatedAt: now},
 		}})
 
 		w.WriteHeader(http.StatusOK)
@@ -287,15 +288,17 @@ func TestListTokens(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want := `┌───┬──────┬─────────────────┬───────────────────┐
+	localTime, _ := time.LoadLocation("Local")
+	formattedTime := now.In(localTime).Format("Jan 02 2006 15:04")
+	want := fmt.Sprintf(`┌───┬──────┬─────────────────┬───────────────────┐
 │ # │ NAME │ DESCRIPTION     │ CREATED AT        │
 ├───┼──────┼─────────────────┼───────────────────┤
-│ 0 │ abc  │ my first token  │ Dec 31 0000 19:45 │
-│ 1 │ abc  │ my second token │ Dec 31 0000 19:45 │
-│ 2 │ abc  │ my third token  │ Dec 31 0000 19:45 │
-│ 3 │ abc  │ my fourth token │ Dec 31 0000 19:45 │
+│ 0 │ abc  │ my first token  │ %s │
+│ 1 │ abc  │ my second token │ %s │
+│ 2 │ abc  │ my third token  │ %s │
+│ 3 │ abc  │ my fourth token │ %s │
 └───┴──────┴─────────────────┴───────────────────┘
-`
+`, formattedTime, formattedTime, formattedTime, formattedTime)
 
 	if got, want := stdout.String(), want; got != want {
 		t.Fatalf("didn't get expected output, got \n%s, wanted \n%s", got, want)
