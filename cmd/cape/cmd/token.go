@@ -150,7 +150,7 @@ This is different than creating a token that gives access to an individual funct
 		}
 
 		if name == "" {
-			return fmt.Errorf("tokens must be alphanumeric")
+			return fmt.Errorf("token names must be alphanumeric")
 		}
 
 		url := C.EnclaveHost
