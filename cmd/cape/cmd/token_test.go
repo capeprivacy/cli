@@ -108,7 +108,7 @@ func TestToken(t *testing.T) {
 	cmd, stdout, _ := getCmd()
 	// Have to set the url explicitly, will break other tests if it relies on
 	// URL.
-	viper.Set("ENCLAVE_HOST", srv.URL)
+	_ = os.Setenv("CAPE_ENCLAVE_HOST", srv.URL)
 	functionID := "5gWto31CNOTI"
 	cmd.SetArgs([]string{"token", functionID})
 
@@ -231,5 +231,76 @@ func TestDoGet(t *testing.T) {
 				t.Fatalf("didn't get expected error\ngot\n\t%v\nwanted\n\t%v", got, want)
 			}
 		})
+	}
+}
+
+func TestAcctToken(t *testing.T) {
+	authToken = func() (string, error) {
+		return "so logged in", nil
+	}
+	defer func() {
+		authToken = getAuthToken
+	}()
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := json.Marshal(createTokenResponse{Token: "yourjwtgoeshere"})
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write(b)
+	}))
+	defer s.Close()
+
+	cmd, stdout, _ := getCmd()
+	cmd.SetArgs([]string{"token", "create", "--name", "my-token", "--url", s.URL})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	if got, want := stdout.String(), "Success! Your token: yourjwtgoeshere"; got != want {
+		t.Fatalf("didn't get expected output, got %s, wanted %s", got, want)
+	}
+}
+
+func TestListTokens(t *testing.T) {
+	authToken = func() (string, error) {
+		return "so logged in", nil
+	}
+	defer func() {
+		authToken = getAuthToken
+	}()
+	now := time.Now()
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := json.Marshal(listTokensResponse{Tokens: []tokenRef{
+			{Name: "abc", Description: "my first token", CreatedAt: now},
+			{Name: "abc", Description: "my second token", CreatedAt: now},
+			{Name: "abc", Description: "my third token", CreatedAt: now},
+			{Name: "abc", Description: "my fourth token", CreatedAt: now},
+		}})
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(b)
+	}))
+	defer s.Close()
+
+	cmd, stdout, _ := getCmd()
+	cmd.SetArgs([]string{"token", "list", "--url", s.URL})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	localTime, _ := time.LoadLocation("Local")
+	formattedTime := now.In(localTime).Format("Jan 02 2006 15:04")
+	want := fmt.Sprintf(`┌───┬──────┬─────────────────┬───────────────────┐
+│ # │ NAME │ DESCRIPTION     │ CREATED AT        │
+├───┼──────┼─────────────────┼───────────────────┤
+│ 0 │ abc  │ my first token  │ %s │
+│ 1 │ abc  │ my second token │ %s │
+│ 2 │ abc  │ my third token  │ %s │
+│ 3 │ abc  │ my fourth token │ %s │
+└───┴──────┴─────────────────┴───────────────────┘
+`, formattedTime, formattedTime, formattedTime, formattedTime)
+
+	if got, want := stdout.String(), want; got != want {
+		t.Fatalf("didn't get expected output, got \n%s, wanted \n%s", got, want)
 	}
 }

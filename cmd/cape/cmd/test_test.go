@@ -320,6 +320,7 @@ func TestFileConfigEndpoint(t *testing.T) {
 	// ensure that env var overrides work for hostname
 	endpointHit := ""
 	fileEndpoint := "https://foo_file.capeprivacy.com"
+	oldEndpoint := os.Getenv("CAPE_ENCLAVE_HOST")
 
 	test = func(testReq sdk.TestRequest, endpoint string, pcrSlice []string) (*entities.RunResults, error) {
 		endpointHit = endpoint
@@ -329,13 +330,14 @@ func TestFileConfigEndpoint(t *testing.T) {
 		return "so logged in", nil
 	}
 	readConfFile = func() error {
-		viper.Set("ENCLAVE_HOST", fileEndpoint)
+		_ = os.Setenv("CAPE_ENCLAVE_HOST", fileEndpoint)
 		return nil
 	}
 	defer func() {
 		test = sdk.Test
 		authToken = getAuthToken
 		readConfFile = viper.ReadInConfig
+		_ = os.Setenv("CAPE_ENCLAVE_HOST", oldEndpoint)
 	}()
 
 	cmd, stdout, stderr := getCmd()
