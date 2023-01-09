@@ -270,12 +270,12 @@ func TestListTokens(t *testing.T) {
 	now := time.Now()
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b, _ := json.Marshal(listTokensResponse{Tokens: []tokenRef{
-			{Name: "abc", Description: "my first token", CreatedAt: now},
-			{Name: "abc", Description: "my second token", CreatedAt: now},
-			{Name: "abc", Description: "my third token", CreatedAt: now},
-			{Name: "abc", Description: "my fourth token", CreatedAt: now},
-		}})
+		b, _ := json.Marshal([]tokenRef{
+			{ID: "aaa", Name: "abc", Description: "my first token", CreatedAt: now},
+			{ID: "bbb", Name: "abc", Description: "my second token", CreatedAt: now},
+			{ID: "ccc", Name: "abc", Description: "my third token", CreatedAt: now},
+			{ID: "ddd", Name: "abc", Description: "my fourth token", CreatedAt: now},
+		})
 
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(b)
@@ -290,14 +290,14 @@ func TestListTokens(t *testing.T) {
 
 	localTime, _ := time.LoadLocation("Local")
 	formattedTime := now.In(localTime).Format("Jan 02 2006 15:04")
-	want := fmt.Sprintf(`┌───┬──────┬─────────────────┬───────────────────┐
-│ # │ NAME │ DESCRIPTION     │ CREATED AT        │
-├───┼──────┼─────────────────┼───────────────────┤
-│ 0 │ abc  │ my first token  │ %s │
-│ 1 │ abc  │ my second token │ %s │
-│ 2 │ abc  │ my third token  │ %s │
-│ 3 │ abc  │ my fourth token │ %s │
-└───┴──────┴─────────────────┴───────────────────┘
+	want := fmt.Sprintf(`┌─────┬──────┬─────────────────┬───────────────────┐
+│ ID  │ NAME │ DESCRIPTION     │ CREATED AT        │
+├─────┼──────┼─────────────────┼───────────────────┤
+│ aaa │ abc  │ my first token  │ %s │
+│ bbb │ abc  │ my second token │ %s │
+│ ccc │ abc  │ my third token  │ %s │
+│ ddd │ abc  │ my fourth token │ %s │
+└─────┴──────┴─────────────────┴───────────────────┘
 `, formattedTime, formattedTime, formattedTime, formattedTime)
 
 	if got, want := stdout.String(), want; got != want {

@@ -48,13 +48,10 @@ type createTokenReq struct {
 }
 
 type tokenRef struct {
+	ID          string    `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
-}
-
-type listTokensResponse struct {
-	Tokens []tokenRef `json:"tokens"`
 }
 
 type createTokenResponse struct {
@@ -103,21 +100,29 @@ This will be fixed in the future.`,
 			return fmt.Errorf("something went wrong")
 		}
 
-		var ltr listTokensResponse
-		if err := json.NewDecoder(resp.Body).Decode(&ltr); err != nil {
+		var toks []tokenRef
+		if err := json.NewDecoder(resp.Body).Decode(&toks); err != nil {
 			return err
+		}
+
+		if len(toks) == 0 {
+			if _, err := cmd.OutOrStdout().Write([]byte("No tokens found. You can create tokens with cape token create\n")); err != nil {
+				return err
+			}
+
+			return nil
 		}
 
 		t := table.NewWriter()
 		t.SetOutputMirror(cmd.OutOrStdout())
-		t.AppendHeader(table.Row{"#", "Name", "Description", "Created At"})
+		t.AppendHeader(table.Row{"ID", "Name", "Description", "Created At"})
 		localTime, err := time.LoadLocation("Local")
 		if err != nil {
 			return err
 		}
 
-		for i, token := range ltr.Tokens {
-			t.AppendRow([]interface{}{i, token.Name, token.Description, token.CreatedAt.In(localTime).Format("Jan 02 2006 15:04")})
+		for _, token := range toks {
+			t.AppendRow([]interface{}{token.ID, token.Name, token.Description, token.CreatedAt.In(localTime).Format("Jan 02 2006 15:04")})
 		}
 		t.SetStyle(table.StyleLight)
 		t.Render()
@@ -186,6 +191,12 @@ This is different than creating a token that gives access to an individual funct
 			cmd.SilenceUsage = true
 			if verbose {
 				fmt.Println("received status code", resp.StatusCode)
+				var errMsg ErrorMsg
+				if err := json.NewDecoder(resp.Body).Decode(&errMsg); err != nil {
+					fmt.Println("could not decode response body")
+				} else {
+					fmt.Println("received server error: ", errMsg.Error)
+				}
 			}
 
 			return fmt.Errorf("something went wrong, your token was not created")
@@ -209,8 +220,8 @@ func init() {
 	tokenCmd.AddCommand(createCmd)
 	rootCmd.AddCommand(tokenCmd)
 
-	createCmd.PersistentFlags().StringP("name", "", "", "the name for your token")
-	createCmd.PersistentFlags().StringP("description", "", "", "a description for your token")
+	createCmd.PersistentFlags().StringP("name", "n", "", "the name for your token")
+	createCmd.PersistentFlags().StringP("description", "d", "", "a description for your token")
 
 	tokenCmd.PersistentFlags().IntP("expiry", "e", 3600, "optional time to live (in seconds)")
 	tokenCmd.PersistentFlags().BoolP("owner", "", false, "optional owner token (debug logs)")
