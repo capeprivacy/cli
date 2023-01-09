@@ -304,3 +304,27 @@ func TestListTokens(t *testing.T) {
 		t.Fatalf("didn't get expected output, got \n%s, wanted \n%s", got, want)
 	}
 }
+
+func TestTokenDelete(t *testing.T) {
+	authToken = func() (string, error) {
+		return "so logged in", nil
+	}
+	defer func() {
+		authToken = getAuthToken
+	}()
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer s.Close()
+
+	cmd, stdout, _ := getCmd()
+	cmd.SetArgs([]string{"token", "delete", "abc123", "--url", s.URL})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	if got, want := stdout.String(), "Deleted token abc123\n"; got != want {
+		t.Fatalf("didn't get expected result, got %s, wanted %s", got, want)
+	}
+}
