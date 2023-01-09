@@ -215,9 +215,64 @@ This is different than creating a token that gives access to an individual funct
 	},
 }
 
+var deleteTokenCmd = &cobra.Command{
+	Use:   "delete",
+	Short: "Delete tokens from your account",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		verbose, err := cmd.Flags().GetBool("verbose")
+		if err != nil {
+			return err
+		}
+
+		tokenIDStr := args[0]
+		url := C.EnclaveHost
+
+		req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/v1/token/%s", url, tokenIDStr), nil)
+		if err != nil {
+			return err
+		}
+
+		authToken, err := authToken()
+		if err != nil {
+			return err
+		}
+
+		var bearer = "Bearer " + authToken
+		req.Header.Add("Authorization", bearer)
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return err
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			cmd.SilenceUsage = true
+			if verbose {
+				fmt.Println("received status code", resp.StatusCode)
+				var errMsg ErrorMsg
+				if err := json.NewDecoder(resp.Body).Decode(&errMsg); err != nil {
+					fmt.Println("could not decode response body")
+				} else {
+					fmt.Println("received server error: ", errMsg.Error)
+				}
+			}
+
+			return fmt.Errorf("something went wrong, your token was not deleted")
+		}
+
+		if _, err := cmd.OutOrStdout().Write([]byte(fmt.Sprintf("Deleted token %s\n", tokenIDStr))); err != nil {
+			return err
+		}
+
+		return nil
+	},
+}
+
 func init() {
 	tokenCmd.AddCommand(listTokensCmd)
 	tokenCmd.AddCommand(createCmd)
+	tokenCmd.AddCommand(deleteTokenCmd)
+
 	rootCmd.AddCommand(tokenCmd)
 
 	createCmd.PersistentFlags().StringP("name", "n", "", "the name for your token")
