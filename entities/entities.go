@@ -64,7 +64,7 @@ type AuthenticationType string
 
 func (a AuthenticationType) Validate() error {
 	switch a {
-	case AuthenticationTypeAuth0, AuthenticationTypeFunctionToken:
+	case AuthenticationTypeUserToken, AuthenticationTypeFunctionToken:
 		return nil
 	default:
 		return fmt.Errorf("invalid authentication type: %s", a)
@@ -76,8 +76,8 @@ func (a AuthenticationType) String() string {
 }
 
 const (
-	AuthenticationTypeAuth0         AuthenticationType = "auth0"
-	AuthenticationTypeFunctionToken AuthenticationType = "token"
+	AuthenticationTypeUserToken     AuthenticationType = "user_token"
+	AuthenticationTypeFunctionToken AuthenticationType = "functiontoken"
 )
 
 type FunctionAuth struct {

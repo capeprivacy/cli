@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/lestrrat-go/jwx/v2/jwt"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -105,12 +106,19 @@ func run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t}
+	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeUserToken, Token: t}
 
-	functionToken, _ := cmd.Flags().GetString("token")
-	if functionToken != "" {
-		auth.Type = entities.AuthenticationTypeFunctionToken
-		auth.Token = functionToken
+	token, _ := cmd.Flags().GetString("token")
+	if token != "" {
+		issuer, err := getTokenIssuer(token)
+		if err != nil {
+			return err
+		}
+		// if its a passed token not issued by us assume its a function token
+		if issuer != "cape-privacy" {
+			auth.Type = entities.AuthenticationTypeFunctionToken
+		}
+		auth.Token = token
 	}
 
 	function := args[0]
@@ -123,7 +131,6 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	var input []byte
 	file, err := cmd.Flags().GetString("file")
 	if err != nil {
 		return UserError{Msg: "error retrieving file flag", Err: err}
@@ -182,25 +189,9 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	switch {
-	case strings.TrimSpace(file) == "-":
-		// read input from stdin
-		buf := new(bytes.Buffer)
-		if _, err := io.Copy(buf, cmd.InOrStdin()); err != nil {
-			return UserError{Msg: "unable to read data from stdin", Err: err}
-		}
-		input = buf.Bytes()
-	case file != "":
-		// input file was provided
-		input, err = os.ReadFile(file)
-		if err != nil {
-			return UserError{Msg: "unable to read data file", Err: err}
-		}
-	case len(args) == 2:
-		// read input from  command line string
-		input = []byte(args[1])
-	default:
-		return UserError{Msg: "invalid input", Err: errors.New("please provide input as a string, input file or stdin")}
+	input, err := getInput(cmd, args, file)
+	if err != nil {
+		return err
 	}
 
 	results, err := sdk.Run(sdk.RunRequest{
@@ -311,4 +302,37 @@ func splitFunctionName(function string) (string, string, error) {
 		return userName, "", errors.New("empty function name")
 	}
 	return userName, functionName, nil
+}
+
+func getTokenIssuer(token string) (string, error) {
+	parsed, err := jwt.Parse([]byte(token), jwt.WithVerify(false))
+	if err != nil {
+		return "", err
+	}
+
+	return parsed.Issuer(), nil
+}
+
+func getInput(cmd *cobra.Command, args []string, file string) ([]byte, error) {
+	switch {
+	case strings.TrimSpace(file) == "-":
+		// read input from stdin
+		buf := new(bytes.Buffer)
+		if _, err := io.Copy(buf, cmd.InOrStdin()); err != nil {
+			return nil, UserError{Msg: "unable to read data from stdin", Err: err}
+		}
+		return buf.Bytes(), nil
+	case file != "":
+		// input file was provided
+		input, err := os.ReadFile(file)
+		if err != nil {
+			return nil, UserError{Msg: "unable to read data file", Err: err}
+		}
+		return input, nil
+	case len(args) == 2:
+		// read input from  command line string
+		return []byte(args[1]), nil
+	default:
+		return nil, UserError{Msg: "invalid input", Err: errors.New("please provide input as a string, input file or stdin")}
+	}
 }

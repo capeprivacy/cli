@@ -134,9 +134,9 @@ This will be fixed in the future.`,
 var createCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a token for your account",
-	Long: `Create a token for your account. 
+	Long: `Create a token for your account.
 
-Use this command if you want a token that identifies you. 
+Use this command if you want a token that identifies you.
 This is different than creating a token that gives access to an individual function.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		verbose, err := cmd.Flags().GetBool("verbose")
@@ -327,7 +327,7 @@ func token(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t}
+	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeUserToken, Token: t}
 	// Check that the signed in user has ownership access to the function before creating
 	// the token for it.
 

@@ -70,7 +70,7 @@ func list(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t}
+	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeUserToken, Token: t}
 	err = doList(u, insecure, auth, limit, offset)
 	if err != nil {
 		return fmt.Errorf("list failed: %w", err)
