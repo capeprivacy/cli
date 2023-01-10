@@ -224,7 +224,7 @@ func TestDoGet(t *testing.T) {
 			}))
 			defer srv.Close()
 			myToken := "oneringtorulethemall"
-			auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: myToken}
+			auth := entities.FunctionAuth{Type: entities.AuthenticationTypeUserToken, Token: myToken}
 			err := doGet(tt.id, srv.URL, true, auth)
 
 			if got, want := err, tt.wantErr; !reflect.DeepEqual(got, want) {

@@ -77,7 +77,7 @@ func GetKeyRequest(pcrSlice []string) (sdk.KeyRequest, error) {
 	return sdk.KeyRequest{
 		URL:          C.EnclaveHost,
 		Insecure:     C.Insecure,
-		FunctionAuth: entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t},
+		FunctionAuth: entities.FunctionAuth{Type: entities.AuthenticationTypeUserToken, Token: t},
 		ConfigDir:    C.LocalConfigDir,
 		CapeKeyFile:  C.LocalCapeKeyFileName,
 		PcrSlice:     pcrSlice,

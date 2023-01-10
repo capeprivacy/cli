@@ -42,7 +42,7 @@ func delete(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeAuth0, Token: t}
+	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeUserToken, Token: t}
 	err = doDelete(u, functionID, insecure, auth)
 	if err != nil {
 		return fmt.Errorf("delete failed: %w", err)
