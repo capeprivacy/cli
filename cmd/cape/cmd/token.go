@@ -48,10 +48,11 @@ type createTokenReq struct {
 }
 
 type tokenRef struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID          string     `json:"id"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	CreatedAt   time.Time  `json:"created_at"`
+	LastUsed    *time.Time `json:"last_used,omitempty"`
 }
 
 type createTokenResponse struct {
@@ -115,14 +116,20 @@ This will be fixed in the future.`,
 
 		t := table.NewWriter()
 		t.SetOutputMirror(cmd.OutOrStdout())
-		t.AppendHeader(table.Row{"ID", "Name", "Description", "Created At"})
+		t.AppendHeader(table.Row{"ID", "Name", "Description", "Created At", "Last Used"})
 		localTime, err := time.LoadLocation("Local")
 		if err != nil {
 			return err
 		}
 
 		for _, token := range toks {
-			t.AppendRow([]interface{}{token.ID, token.Name, token.Description, token.CreatedAt.In(localTime).Format("Jan 02 2006 15:04")})
+			createdAt := token.CreatedAt.In(localTime).Format("Jan 02 2006 15:04")
+			lastUsed := "Never"
+			if lu := token.LastUsed; lu != nil {
+				lastUsed = lu.In(localTime).Format("Jan 02 2006 15:04")
+			}
+
+			t.AppendRow([]interface{}{token.ID, token.Name, token.Description, createdAt, lastUsed})
 		}
 		t.SetStyle(table.StyleLight)
 		t.Render()
