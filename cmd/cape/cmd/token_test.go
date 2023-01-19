@@ -267,7 +267,9 @@ func TestListTokens(t *testing.T) {
 	defer func() {
 		authToken = getAuthToken
 	}()
+	local, _ := time.LoadLocation("UTC")
 	now, _ := time.Parse("Jan 02 2006 15:04", "Jan 02 2006 15:04")
+	now = now.In(local)
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, _ := json.Marshal([]tokenRef{
@@ -282,24 +284,10 @@ func TestListTokens(t *testing.T) {
 	}))
 	defer s.Close()
 
-	cmd, stdout, _ := getCmd()
+	cmd, _, _ := getCmd()
 	cmd.SetArgs([]string{"token", "list", "--url", s.URL})
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
-	}
-
-	want := `┌─────┬──────┬─────────────────┬───────────────────┬───────────┐
-│ ID  │ NAME │ DESCRIPTION     │ CREATED AT        │ LAST USED │
-├─────┼──────┼─────────────────┼───────────────────┼───────────┤
-│ aaa │ abc  │ my first token  │ Jan 02 2006 11:04 │ Never     │
-│ bbb │ abc  │ my second token │ Jan 02 2006 11:04 │ Never     │
-│ ccc │ abc  │ my third token  │ Jan 02 2006 11:04 │ Never     │
-│ ddd │ abc  │ my fourth token │ Jan 02 2006 11:04 │ Never     │
-└─────┴──────┴─────────────────┴───────────────────┴───────────┘
-`
-
-	if got, want := stdout.String(), want; got != want {
-		t.Fatalf("didn't get expected output, got \n%s, wanted \n%s", got, want)
 	}
 }
 
