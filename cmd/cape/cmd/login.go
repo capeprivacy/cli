@@ -91,7 +91,7 @@ func login(cmd *cobra.Command, args []string) error {
 
 	_, err = sdk.Key(keyReq)
 	if err != nil {
-		return err
+		fmt.Println("Unable to fetch cape key, try running 'cape key' after login")
 	}
 
 	authToken, err := getAuthToken()
