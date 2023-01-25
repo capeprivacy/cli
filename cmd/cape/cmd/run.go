@@ -102,12 +102,7 @@ func run(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "you must pass in only one input data (stdin, string or filename)", Err: fmt.Errorf("invalid number of input arguments")}
 	}
 
-	t, err := getAuthToken()
-	if err != nil {
-		return err
-	}
-	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeUserToken, Token: t}
-
+	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeUserToken}
 	token, _ := cmd.Flags().GetString("token")
 	if token != "" {
 		issuer, err := getTokenIssuer(token)
@@ -117,6 +112,12 @@ func run(cmd *cobra.Command, args []string) error {
 		// if its a passed token not issued by us assume its a function token
 		if issuer != "cape-privacy" {
 			auth.Type = entities.AuthenticationTypeFunctionToken
+		}
+		auth.Token = token
+	} else {
+		token, err := getAuthToken()
+		if err != nil {
+			return err
 		}
 		auth.Token = token
 	}
