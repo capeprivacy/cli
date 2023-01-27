@@ -43,16 +43,19 @@ var tokenCmd = &cobra.Command{
 }
 
 type createTokenReq struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	Expiry      *time.Time `json:"expiry,omitempty"`
 }
 
 type tokenRef struct {
-	ID          string     `json:"id"`
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	CreatedAt   time.Time  `json:"created_at"`
-	LastUsed    *time.Time `json:"last_used,omitempty"`
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	CreatedAt   time.Time `json:"created_at"`
+
+	Expiry   *time.Time `json:"expiry,omitempty"`
+	LastUsed *time.Time `json:"last_used,omitempty"`
 }
 
 type createTokenResponse struct {
@@ -116,7 +119,7 @@ This will be fixed in the future.`,
 
 		t := table.NewWriter()
 		t.SetOutputMirror(cmd.OutOrStdout())
-		t.AppendHeader(table.Row{"ID", "Name", "Description", "Created At", "Last Used"})
+		t.AppendHeader(table.Row{"ID", "Name", "Description", "Created At", "Last Used", "Expires"})
 		localTime, err := time.LoadLocation("Local")
 		if err != nil {
 			return err
@@ -129,7 +132,12 @@ This will be fixed in the future.`,
 				lastUsed = lu.In(localTime).Format("Jan 02 2006 15:04")
 			}
 
-			t.AppendRow([]interface{}{token.ID, token.Name, token.Description, createdAt, lastUsed})
+			expiry := "Never"
+			if exp := token.Expiry; exp != nil {
+				expiry = exp.In(localTime).Format("Jan 02 2006 15:04")
+			}
+
+			t.AppendRow([]interface{}{token.ID, token.Name, token.Description, createdAt, lastUsed, expiry})
 		}
 		t.SetStyle(table.StyleLight)
 		t.Render()
@@ -161,16 +169,33 @@ This is different than creating a token that gives access to an individual funct
 			return err
 		}
 
+		expiry, err := cmd.Flags().GetString("expiry")
+		if err != nil {
+			return err
+		}
+
 		if name == "" {
 			return fmt.Errorf("token names must be alphanumeric")
 		}
 
 		url := C.EnclaveHost
 
-		b, err := json.Marshal(createTokenReq{
+		ctr := createTokenReq{
 			Name:        name,
 			Description: description,
-		})
+		}
+
+		if expiry != "" {
+			duration, err := time.ParseDuration(expiry)
+			if err != nil {
+				return err
+			}
+
+			exp := time.Now().UTC().Add(duration)
+			ctr.Expiry = &exp
+		}
+
+		b, err := json.Marshal(ctr)
 
 		if err != nil {
 			return err
@@ -284,6 +309,7 @@ func init() {
 
 	createCmd.PersistentFlags().StringP("name", "n", "", "the name for your token")
 	createCmd.PersistentFlags().StringP("description", "d", "", "a description for your token")
+	createCmd.PersistentFlags().StringP("expiry", "e", "", "a duration which your token will be valid for (e.g., 1h)")
 
 	tokenCmd.PersistentFlags().IntP("expiry", "e", 3600, "optional time to live (in seconds)")
 	tokenCmd.PersistentFlags().BoolP("owner", "", false, "optional owner token (debug logs)")
