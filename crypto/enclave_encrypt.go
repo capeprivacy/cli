@@ -22,9 +22,13 @@ func LogHPKE() {
 	case hpke.KEM_X25519_HKDF_SHA256:
 		log.Debugf("\t*** X25519 Diffie-Hellman function")
 	case hpke.KEM_P256_HKDF_SHA256:
+		fallthrough
 	case hpke.KEM_P384_HKDF_SHA384:
+		fallthrough
 	case hpke.KEM_P521_HKDF_SHA512:
+		fallthrough
 	case hpke.KEM_X448_HKDF_SHA512:
+		fallthrough
 	default:
 		log.Debugf("\t*** Unknown")
 	}
@@ -34,7 +38,9 @@ func LogHPKE() {
 	case hpke.KDF_HKDF_SHA256:
 		log.Debugf("\t*** HMAC-based key derivation function (HKDF) with SHA-256")
 	case hpke.KDF_HKDF_SHA384:
+		fallthrough
 	case hpke.KDF_HKDF_SHA512:
+		fallthrough
 	default:
 		log.Debugf("\t*** Unknown")
 	}
@@ -44,7 +50,9 @@ func LogHPKE() {
 	case hpke.AEAD_ChaCha20Poly1305:
 		log.Debugf("\t*** ChaCha20 stream cipher and Poly1305 MAC")
 	case hpke.AEAD_AES128GCM:
+		fallthrough
 	case hpke.AEAD_AES256GCM:
+		fallthrough
 	default:
 		log.Debugf("\t*** Unknown")
 	}
