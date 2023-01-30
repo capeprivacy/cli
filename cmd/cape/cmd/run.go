@@ -122,15 +122,15 @@ func run(cmd *cobra.Command, args []string) error {
 		auth.Token = token
 	}
 
-	function := args[0]
-	functionID, err := getFunctionID(function, u)
-	if err != nil {
-		if errors.Is(err, ErrInvalidFunctionAlias) {
-			return UserError{Msg: "error retrieving function id", Err: err}
-		}
-
-		return err
-	}
+	functionID := args[0]
+	//functionID, err := getFunctionID(function, u)
+	//if err != nil {
+	//	if errors.Is(err, ErrInvalidFunctionAlias) {
+	//		return UserError{Msg: "error retrieving function id", Err: err}
+	//	}
+	//
+	//	return err
+	//}
 
 	file, err := cmd.Flags().GetString("file")
 	if err != nil {
