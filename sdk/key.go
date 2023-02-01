@@ -95,7 +95,7 @@ func ConnectAndAttest(keyReq KeyRequest) (*attest.AttestationDoc, *AttestationUs
 
 	p := getProtocol(conn)
 
-	req := entities.StartRequest{Nonce: []byte(nonce)}
+	req := entities.StartRequest{Nonce: nonce}
 	log.Debug("\n> Sending Nonce and Auth Token")
 	err = p.WriteStart(req)
 	if err != nil {
@@ -116,7 +116,7 @@ func ConnectAndAttest(keyReq KeyRequest) (*attest.AttestationDoc, *AttestationUs
 	}
 
 	log.Debug("< Auth Completed. Received Attestation Document")
-	doc, err := attest.Attest(attestDoc, rootCert)
+	doc, err := attest.Attest(attestDoc, nonce, rootCert)
 	if err != nil {
 		log.Println("error attesting")
 		return nil, nil, err

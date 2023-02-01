@@ -63,7 +63,7 @@ func Deploy(req DeployRequest, keyReq KeyRequest) (string, []byte, error) {
 		return "", nil, err
 	}
 
-	r := entities.StartRequest{Nonce: []byte(nonce)}
+	r := entities.StartRequest{Nonce: nonce}
 	log.Debug("\n> Sending Nonce and Auth Token")
 	if err := p.WriteStart(r); err != nil {
 		log.Error("error writing deploy request")
@@ -84,7 +84,7 @@ func Deploy(req DeployRequest, keyReq KeyRequest) (string, []byte, error) {
 	}
 
 	log.Debug("< Attestation document")
-	doc, err := attest.Attest(attestDoc, rootCert)
+	doc, err := attest.Attest(attestDoc, nonce, rootCert)
 	if err != nil {
 		log.Error("error attesting")
 		return "", nil, err
