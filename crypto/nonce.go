@@ -8,14 +8,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func GetNonce() (string, error) {
+func GetNonce() ([]byte, error) {
 	buf := make([]byte, 16)
 
 	if _, err := rand.Reader.Read(buf); err != nil {
-		return "", fmt.Errorf("failed to get nonce: %v", err)
+		return nil, fmt.Errorf("failed to get nonce: %v", err)
 	}
 
 	nonce := base64.StdEncoding.EncodeToString(buf)
 	log.Debugf("* Generated Nonce: %s", nonce)
-	return nonce, nil
+	return []byte(nonce), nil
 }

@@ -62,7 +62,7 @@ func connect(url string, functionID string, functionAuth entities.FunctionAuth, 
 
 	p := getProtocol(conn)
 
-	r := entities.StartRequest{Nonce: []byte(nonce)}
+	r := entities.StartRequest{Nonce: nonce}
 	log.Debug("\n> Sending Nonce and Auth Token")
 	err = p.WriteStart(r)
 	if err != nil {
@@ -83,7 +83,7 @@ func connect(url string, functionID string, functionAuth entities.FunctionAuth, 
 	}
 
 	log.Debug("< Auth Completed. Received Attestation Document")
-	doc, err := attest.Attest(attestDoc, rootCert)
+	doc, err := attest.Attest(attestDoc, nonce, rootCert)
 	if err != nil {
 		log.Println("error attesting")
 		return nil, nil, err

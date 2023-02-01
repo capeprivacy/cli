@@ -52,7 +52,7 @@ func Test(testReq TestRequest, endpoint string, pcrSlice []string) (*entities.Ru
 	p := getProtocolFn(conn)
 
 	startReq := entities.StartRequest{
-		Nonce: []byte(nonce),
+		Nonce: nonce,
 	}
 	log.Debug("> Start Request")
 	if err := p.WriteStart(startReq); err != nil {
@@ -71,7 +71,7 @@ func Test(testReq TestRequest, endpoint string, pcrSlice []string) (*entities.Ru
 	}
 
 	log.Debug("< Attestation document")
-	doc, err := runAttestation(attestDoc, rootCert)
+	doc, err := runAttestation(attestDoc, nonce, rootCert)
 	if err != nil {
 		return nil, err
 	}
