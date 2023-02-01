@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -123,15 +122,6 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	functionID := args[0]
-	//functionID, err := getFunctionID(function, u)
-	//if err != nil {
-	//	if errors.Is(err, ErrInvalidFunctionAlias) {
-	//		return UserError{Msg: "error retrieving function id", Err: err}
-	//	}
-	//
-	//	return err
-	//}
-
 	file, err := cmd.Flags().GetString("file")
 	if err != nil {
 		return UserError{Msg: "error retrieving file flag", Err: err}
@@ -211,76 +201,6 @@ func run(cmd *cobra.Command, args []string) error {
 
 	fmt.Println(string(results))
 	return nil
-}
-
-// TODO: This function is exported for tuner to use. Remove once tuner is using sdk.Run directly
-func Run(url string, auth entities.FunctionAuth, functionID string, file string, insecure bool) ([]byte, error) {
-	input, err := os.ReadFile(file)
-	if err != nil {
-		return nil, fmt.Errorf("unable to read data file: %w", err)
-	}
-
-	// TODO: Tuner may want to verify function checksum later.
-	res, err := sdk.Run(sdk.RunRequest{
-		URL:          url,
-		FunctionID:   functionID,
-		Data:         input,
-		Insecure:     insecure,
-		PcrSlice:     []string{},
-		FunctionAuth: auth,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("run request failed: %w", err)
-	}
-
-	return res, nil
-}
-
-var ErrInvalidFunctionAlias = fmt.Errorf("please provide a functionID or a function name of format <githubUser>/<functionName>")
-
-func getFunctionID(function string, capeURL string) (string, error) {
-	if isValidFunctionID(function) {
-		return function, nil
-	}
-
-	if !strings.Contains(function, "/") {
-		return "", ErrInvalidFunctionAlias
-	}
-
-	userName, functionName, err := splitFunctionName(function)
-	if err != nil {
-		return "", ErrInvalidFunctionAlias
-	}
-	u, err := url.Parse(capeURL)
-	if err != nil {
-		return "", err
-	}
-	// If the user called w/ `cape run my/fn --url wss://.... we will want to change the scheme to HTTP(s) for this call
-	if u.Scheme == "ws" {
-		u.Scheme = "http"
-	}
-
-	if u.Scheme == "wss" {
-		u.Scheme = "https"
-	}
-
-	authToken, err := getAuthToken()
-	if err != nil {
-		return "", err
-	}
-
-	r := sdk.FunctionIDRequest{
-		UserName:     userName,
-		FunctionName: functionName,
-		URL:          u.String(),
-		AuthToken:    authToken,
-	}
-
-	functionID, err := sdk.GetFunctionID(r)
-	if err != nil {
-		return "", err
-	}
-	return functionID, nil
 }
 
 func isValidFunctionID(functionID string) bool {
