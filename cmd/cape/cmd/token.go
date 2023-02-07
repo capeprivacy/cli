@@ -550,7 +550,7 @@ func doGet(functionID string, url string, insecure bool, auth entities.FunctionA
 		return fmt.Errorf("expected 200, got server response code %d", res.StatusCode)
 	}
 
-	var deployment entities.DeploymentName
+	var deployment entities.Deployment
 
 	err = json.NewDecoder(res.Body).Decode(&deployment)
 	if err != nil {
