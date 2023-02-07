@@ -110,7 +110,7 @@ func doList(url string, insecure bool, auth entities.FunctionAuth, limit int, of
 		return errors.New("could not read response body")
 	}
 
-	var deploymentNames []entities.DeploymentName
+	var deploymentNames []entities.Deployment
 	err = json.Unmarshal(body, &deploymentNames)
 	if err != nil {
 		return errors.New("malformed body in response")
