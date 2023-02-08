@@ -28,6 +28,8 @@ func (e ErrServerForList) Error() string {
 	return fmt.Sprintf("expected 200, got server response code when listing functions %d: %s", e.statusCode, e.message)
 }
 
+var ErrUnauthorized = errors.New("unauthorized: authentication required")
+
 // listCmd represents the list command
 var listCmd = &cobra.Command{
 	Use:   "list",
@@ -73,6 +75,9 @@ func list(cmd *cobra.Command, args []string) error {
 	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeUserToken, Token: t}
 	err = doList(u, insecure, auth, limit, offset)
 	if err != nil {
+		if errors.Is(err, ErrUnauthorized) {
+			return err
+		}
 		return fmt.Errorf("list failed: %w", err)
 	}
 
@@ -98,9 +103,13 @@ func doList(url string, insecure bool, auth entities.FunctionAuth, limit int, of
 	if res.StatusCode != 200 {
 		var e ErrorMsg
 		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-			return err
+			return ErrServerForList{statusCode: res.StatusCode}
 		}
 		res.Body.Close()
+
+		if res.StatusCode == 401 {
+			return ErrUnauthorized
+		}
 
 		return ErrServerForList{res.StatusCode, e.Error}
 	}
