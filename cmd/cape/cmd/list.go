@@ -64,6 +64,11 @@ func list(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	format, err := cmd.Flags().GetString("output")
+	if err != nil {
+		return err
+	}
+
 	if len(args) > 0 {
 		return UserError{Msg: "list does not take any arguments", Err: fmt.Errorf("invalid number of input arguments")}
 	}
@@ -73,7 +78,7 @@ func list(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeUserToken, Token: t}
-	err = doList(u, insecure, auth, limit, offset)
+	err = doList(u, insecure, auth, limit, offset, format)
 	if err != nil {
 		if errors.Is(err, ErrUnauthorized) {
 			return err
@@ -84,7 +89,7 @@ func list(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func doList(url string, insecure bool, auth entities.FunctionAuth, limit int, offset int) error { //nolint:gocognit
+func doList(url string, insecure bool, auth entities.FunctionAuth, limit int, offset int, format string) error { //nolint:gocognit
 	endpoint := fmt.Sprintf("%s/v1/functions?limit=%d&offset=%d", url, limit, offset)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
@@ -130,6 +135,19 @@ func doList(url string, insecure bool, auth entities.FunctionAuth, limit int, of
 		return nil
 	}
 
+	if f, ok := formatters[format]; ok {
+		return f(deploymentNames)
+	}
+
+	return printTable(deploymentNames)
+}
+
+var formatters = map[string]func([]entities.Deployment) error{
+	"plain": printTable,
+	"json":  printJSON,
+}
+
+func printTable(deps []entities.Deployment) error {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"#", "Name", "ID", "Created At"})
@@ -138,11 +156,20 @@ func doList(url string, insecure bool, auth entities.FunctionAuth, limit int, of
 		return err
 	}
 
-	for i, deployment := range deploymentNames {
+	for i, deployment := range deps {
 		t.AppendRow([]interface{}{i, deployment.Name, deployment.ID, deployment.CreatedAt.In(localTime).Format("Jan 02 2006 15:04")})
 	}
 	t.SetStyle(table.StyleLight)
 	t.Render()
-
 	return nil
+}
+
+func printJSON(deps []entities.Deployment) error {
+	return json.NewEncoder(os.Stdout).Encode(struct {
+		Deps  []entities.Deployment `json:"deployments"`
+		Count int                   `json:"count"`
+	}{
+		Deps:  deps,
+		Count: len(deps),
+	})
 }
