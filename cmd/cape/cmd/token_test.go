@@ -250,7 +250,7 @@ func TestAcctToken(t *testing.T) {
 	defer s.Close()
 
 	cmd, stdout, _ := getCmd()
-	cmd.SetArgs([]string{"token", "create", "--name", "my-token", "--url", s.URL})
+	cmd.SetArgs([]string{"token", "create", "--name", "my-token", "--function", "1234", "--url", s.URL})
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
