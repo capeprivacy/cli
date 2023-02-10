@@ -108,7 +108,7 @@ func Encrypt(message, username string, options ...Option) (string, error) {
 	}
 
 	ciphertext := base64.StdEncoding.EncodeToString(append(keyCiphertext, dataCiphertext...))
-	result := "cape:" + ciphertext
+	result := capeEncryptPrefix + ciphertext
 
 	return result, nil
 }
