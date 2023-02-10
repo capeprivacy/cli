@@ -1,87 +1,89 @@
 package sdk
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/sha256"
-	"crypto/x509"
-	"encoding/base64"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
-	"path"
+	"reflect"
+	"strings"
 	"testing"
 )
 
 func TestEncrypt(t *testing.T) {
-	filename := "capekey.pub.der"
-	dir := t.TempDir()
-	k, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		t.Fatal(err)
-	}
+	for _, tt := range []struct {
+		name    string
+		server  http.HandlerFunc
+		wantErr error
+	}{
+		{
+			"encrypts data",
+			func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				f, err := os.ReadFile("./testdata/key.json")
+				if err != nil {
+					t.Error(err)
+				}
 
-	der, err := x509.MarshalPKIXPublicKey(&k.PublicKey)
-	if err != nil {
-		t.Fatal(err)
-	}
+				if _, err := w.Write(f); err != nil {
+					t.Error(err)
+				}
+			},
+			nil,
+		},
+		{
+			"bad server response",
+			func(writer http.ResponseWriter, request *http.Request) {
+				writer.WriteHeader(http.StatusInternalServerError)
+			},
+			fmt.Errorf("something went wrong, status code: 500"),
+		},
+		{
+			"bad server response unexpected data",
+			func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = w.Write([]byte(`{"jfkdfs": "fjkslfdk"}"`))
+			},
+			fmt.Errorf("something went wrong, status code: 500"),
+		},
+		{
+			"bad server response with error",
+			func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = w.Write([]byte(`{"error": "server is broken"}"`))
+			},
+			fmt.Errorf("server is broken"),
+		},
+		{
+			"bad server response with message",
+			func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = w.Write([]byte(`{"message": "server is broken"}"`))
+			},
+			fmt.Errorf("server is broken"),
+		},
+		{
+			"bad attestation document",
+			func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"attestation_document": "fjkdsfksdfk`)) // will EOF error (bad json)
+			},
+			fmt.Errorf("error parsing attestation document"),
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			s := httptest.NewServer(tt.server)
+			defer s.Close()
 
-	f, err := os.Create(path.Join(dir, filename))
-	if err != nil {
-		t.Fatal(err)
-	}
+			result, err := Encrypt("hello", "bendecoste", WithURL(s.URL))
 
-	_, err = f.Write(der)
-	if err != nil {
-		t.Fatal(err)
-	}
+			if got, want := err, tt.wantErr; want != nil && !reflect.DeepEqual(got, want) {
+				t.Fatalf("didn't get expected error\ngot\n\t%v\nwanted\n\t%v", got, want)
+			}
 
-	f.Close()
-
-	ciphertext, err := Encrypt(KeyRequest{
-		CapeKeyFile: filename,
-		ConfigDir:   dir,
-	}, []byte("hi my name is"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if expectedLen := 401; len(ciphertext) != expectedLen {
-		t.Fatalf("encrypted message length must equal %d, it equals %d", expectedLen, len(ciphertext))
-	}
-
-	decCipherText, err := base64.StdEncoding.DecodeString(ciphertext[5:])
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	rsaKeyCipherText := decCipherText[:256]
-	rsaKeyPlainText, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, k, rsaKeyCipherText, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	aesCipherText := decCipherText[256:]
-
-	block, err := aes.NewCipher(rsaKeyPlainText)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	plaintext, err := gcm.Open(nil, aesCipherText[:gcm.NonceSize()], aesCipherText[gcm.NonceSize():], nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expectedPlaintext := "hi my name is"
-	if string(plaintext) != expectedPlaintext {
-		fmt.Println(string(plaintext))
-		t.Fatalf("expected plaintext to equal %s got %s", expectedPlaintext, string(plaintext))
+			if tt.wantErr == nil && !strings.HasPrefix(result, "cape:") {
+				t.Errorf("result not in expected format: %s", result)
+			}
+		})
 	}
 }
