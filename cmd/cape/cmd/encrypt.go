@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/spf13/cobra"
 
 	"github.com/capeprivacy/cli/sdk"
@@ -16,22 +17,21 @@ import (
 var encryptCmd = &cobra.Command{
 	Use:   "encrypt (<input data> | -f <input file>)",
 	Short: "Encrypt local data",
-	Long: `Encrypt local data for use with cape functions.
+	Long: `Cape Encrypt
+
+Encrypt local data for use with cape functions.
 
 Retrieves a user-specific public key and encrypts local data so that it may be
 safely shared and used as input to cape functions. Results are output to stdout
 so you can easily pipe them elsewhere.
+
+By default, cape encrypt will use your public key to encrypt data.
+You can specify another user with --username.
 `,
-	Example: `
-	# Encrypt a string
-	cape encrypt "foo"
-	
-	# Encrypt input data read from stdin
-	echo '1234' | cape encrypt
-	
-	# Encrypt data read from a file named "example.txt"
-	cape encrypt -f example.txt
-`,
+	Example: `  cape encrypt "foo"                       Encrypt a string
+  echo '1234' | cape encrypt               Encrypt input data read from stdin
+  cape encrypt -f example.txt              Encrypt data read from a file named "example.txt"
+  cape encrypt hello --username capedocs   Encrypt using capedocs publickey`,
 	RunE: encrypt,
 }
 
@@ -39,31 +39,52 @@ func init() {
 	rootCmd.AddCommand(encryptCmd)
 
 	encryptCmd.PersistentFlags().StringP("file", "f", "", "input data file (or '-f -' to accept stdin)")
-	encryptCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against, used while getting key for the first time")
+	encryptCmd.PersistentFlags().String("username", "", "username of the key owner")
 }
 
 func encrypt(cmd *cobra.Command, args []string) error {
-	pcrSlice, err := cmd.Flags().GetStringSlice("pcr")
+	username, err := cmd.Flags().GetString("username")
 	if err != nil {
-		return UserError{Msg: "error retrieving pcr flags", Err: err}
+		return err
+	}
+
+	if username == "" {
+		t, err := getTokenResponse()
+		if err != nil {
+			cmd.SilenceUsage = true
+			return fmt.Errorf("couldn't get username from ~/.config/cape/auth id token, are you logged in? (run `cape login`)")
+		}
+
+		j, err := jwt.ParseInsecure([]byte(t.IDToken))
+		if err != nil {
+			cmd.SilenceUsage = true
+			return fmt.Errorf("couldn't get username from ~/.config/cape/auth id token, are you logged in? (run `cape login`)")
+		}
+
+		n, ok := j.Get("nickname")
+		if !ok {
+			cmd.SilenceUsage = true
+			return fmt.Errorf("couldn't get username from the `id_token` in ~/.config/cape/auth, are you logged in? (run `cape login`)")
+		}
+
+		username = n.(string)
 	}
 
 	input, userError := parseInput(cmd, args)
-	if userError != nil {
+	if err != nil {
 		return userError
 	}
 
-	keyReq, err := GetKeyRequest(pcrSlice)
+	// at this point the command was used properly
+	cmd.SilenceUsage = true
+	secret, err := capeEncrypt(string(input), username)
 	if err != nil {
 		return err
 	}
 
-	result, err := sdk.Encrypt(keyReq, input)
-	if err != nil {
+	if _, err := cmd.OutOrStdout().Write([]byte(secret + "\n")); err != nil {
 		return err
 	}
-
-	fmt.Println(result)
 
 	return nil
 }
@@ -102,3 +123,5 @@ func parseInput(cmd *cobra.Command, args []string) ([]byte, *UserError) {
 
 	return input, nil
 }
+
+var capeEncrypt = sdk.Encrypt
