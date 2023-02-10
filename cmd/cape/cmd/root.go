@@ -1,12 +1,15 @@
 package cmd
 
 import (
+	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
 
+	goVersion "github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -65,11 +68,71 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+type Release struct {
+	TagName string `json:"tag_name"`
+}
+
+func checkForUpdate(ctx context.Context) (*Release, error) {
+	version := getVersion()
+	if strings.HasPrefix(version, "(devel)") {
+		// don't check in dev
+		return nil, nil
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.github.com/repos/capeprivacy/cli/releases/latest", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var release Release
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		return nil, err
+	}
+
+	v, err := goVersion.NewVersion(release.TagName)
+	if err != nil {
+		return nil, err
+	}
+
+	myVersion, err := goVersion.NewVersion(version)
+	if err != nil {
+		return nil, err
+	}
+
+	if v.GreaterThan(myVersion) {
+		return &release, nil
+	}
+
+	return nil, nil
+}
+
 // ExecuteCLI adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func ExecuteCLI() {
-	if rootCmd.Execute() != nil {
-		os.Exit(1)
+	ctx := context.Background()
+	updateCtx, updateCancel := context.WithCancel(ctx)
+	defer updateCancel()
+	releaseCh := make(chan *Release)
+	go func() {
+		u, _ := checkForUpdate(updateCtx)
+		// we don't care if there is an error
+		releaseCh <- u
+	}()
+
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1) //nolint:gocritic
+	}
+
+	// give up on trying to see if there is an update
+	updateCancel()
+	if release := <-releaseCh; release != nil {
+		fmt.Printf("\nThere is a new version (%s) of the Cape CLI available, you can download it at https://github.com/capeprivacy/cli/releases/latest\n", release.TagName)
+		fmt.Println("Or upgrade by running \n\tcurl -fsSL https://raw.githubusercontent.com/capeprivacy/cli/main/install.sh | sh")
 	}
 }
 
