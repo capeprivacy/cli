@@ -45,6 +45,7 @@ var tokenCmd = &cobra.Command{
 type createTokenReq struct {
 	Name        string     `json:"name"`
 	Description string     `json:"description"`
+	FunctionID  string     `json:"function_id"`
 	Expiry      *time.Time `json:"expiry,omitempty"`
 }
 
@@ -151,8 +152,8 @@ var createCmd = &cobra.Command{
 	Short: "Create a token for your account",
 	Long: `Create a token for your account.
 
-Use this command if you want a token that identifies you.
-This is different than creating a token that gives access to an individual function.`,
+Use this command if you want a token that identifies you and scoped to a specific function. During creation
+you pass a function id with --function flag and then this token can only be used to run that function.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		verbose, err := cmd.Flags().GetBool("verbose")
 		if err != nil {
@@ -169,6 +170,11 @@ This is different than creating a token that gives access to an individual funct
 			return err
 		}
 
+		functionID, err := cmd.Flags().GetString("function")
+		if err != nil {
+			return err
+		}
+
 		expiry, err := cmd.Flags().GetString("expiry")
 		if err != nil {
 			return err
@@ -178,11 +184,16 @@ This is different than creating a token that gives access to an individual funct
 			return fmt.Errorf("token names must be alphanumeric")
 		}
 
+		if functionID == "" {
+			return fmt.Errorf("function id must be set")
+		}
+
 		url := C.EnclaveHost
 
 		ctr := createTokenReq{
 			Name:        name,
 			Description: description,
+			FunctionID:  functionID,
 		}
 
 		if expiry != "" {
@@ -310,6 +321,7 @@ func init() {
 	createCmd.PersistentFlags().StringP("name", "n", "", "the name for your token")
 	createCmd.PersistentFlags().StringP("description", "d", "", "a description for your token")
 	createCmd.PersistentFlags().StringP("expiry", "e", "", "a duration which your token will be valid for (e.g., 1h)")
+	createCmd.PersistentFlags().StringP("function", "f", "", "the function which can be called with this token")
 
 	tokenCmd.PersistentFlags().IntP("expiry", "e", 3600, "optional time to live (in seconds)")
 	tokenCmd.PersistentFlags().BoolP("owner", "", false, "optional owner token (debug logs)")
