@@ -79,12 +79,7 @@ func Encrypt(message, username string, options ...Option) (string, error) {
 		return "", errors.New("error parsing attestation document")
 	}
 
-	root, err := attest.GetRootAWSCert()
-	if err != nil {
-		return "", err
-	}
-
-	doc, err := attest.Attest(r.AttestationDocument, nil, root)
+	doc, err := attest.Attest(r.AttestationDocument, nil, nil)
 	if err != nil {
 		return "", err
 	}

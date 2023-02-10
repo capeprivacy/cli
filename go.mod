@@ -18,6 +18,7 @@ require (
 	github.com/fxamacker/cbor/v2 v2.4.0 // indirect
 	github.com/goccy/go-json v0.9.11 // indirect
 	github.com/google/uuid v1.3.0 // indirect
+	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hf/nsm v0.0.0-20220930140112-cd181bd646b9 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
