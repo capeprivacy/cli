@@ -152,8 +152,8 @@ var createCmd = &cobra.Command{
 	Short: "Create a token for your account",
 	Long: `Create a token for your account.
 
-Use this command if you want a token that identifies you.
-This is different than creating a token that gives access to an individual function.`,
+Use this command if you want a token that identifies you and scoped to a specific function. During creation
+you pass a function id with --function flag and then this token can only be used to run that function.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		verbose, err := cmd.Flags().GetBool("verbose")
 		if err != nil {
