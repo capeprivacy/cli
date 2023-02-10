@@ -42,7 +42,7 @@ func TestEncrypt(t *testing.T) {
 			"bad server response unexpected data",
 			func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(`{"jfkdfs": "fjkslfdk"}"`))
+				_, _ = w.Write([]byte(`{"jfkdfs": "fjkslfdk"}"`))
 			},
 			fmt.Errorf("something went wrong, status code: 500"),
 		},
@@ -50,7 +50,7 @@ func TestEncrypt(t *testing.T) {
 			"bad server response with error",
 			func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(`{"error": "server is broken"}"`))
+				_, _ = w.Write([]byte(`{"error": "server is broken"}"`))
 			},
 			fmt.Errorf("server is broken"),
 		},
@@ -58,7 +58,7 @@ func TestEncrypt(t *testing.T) {
 			"bad server response with message",
 			func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(`{"message": "server is broken"}"`))
+				_, _ = w.Write([]byte(`{"message": "server is broken"}"`))
 			},
 			fmt.Errorf("server is broken"),
 		},
@@ -66,7 +66,7 @@ func TestEncrypt(t *testing.T) {
 			"bad attestation document",
 			func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(`{"attestation_document": "fjkdsfksdfk`)) // will EOF error (bad json)
+				_, _ = w.Write([]byte(`{"attestation_document": "fjkdsfksdfk`)) // will EOF error (bad json)
 			},
 			fmt.Errorf("error parsing attestation document"),
 		},
