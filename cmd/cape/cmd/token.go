@@ -136,10 +136,20 @@ This will be fixed in the future.`,
 var createCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a token for your account",
-	Long: `Create a token for your account.
+	Long: `Cape Token Create
 
-Use this command if you want a token that identifies you and scoped to a specific function. During creation
-you pass a function id with --function flag and then this token can only be used to run that function.`,
+Create a Personal Access Token (PAT) that uniquely identifies you.
+Currently, tokens can only be used to perform cape run.
+
+By default, a token is able to run any function that its creator is allowed to run and they do not expire.
+You can scope a token to an individual function with the --function flag.
+You can set an expiry of the token with the --expiry flag.
+`,
+	Example: `  cape token create -n my-token -d 'for testing'                  Create a token that can run anything
+  cape token create -n my-token -f Nm672nXZQnBe9vL4zedGJb         Create a token that can only run the function Nm672nXZQnBe9vL4zedGJb
+  cape token create -n my-token -e 1h                             Create a token that can run anything that expires in 1 hour
+  cape token create -n my-token -f Nm672nXZQnBe9vL4zedGJb -e 1h   Create a token that can run Nm672nXZQnBe9vL4zedGJb that expires in 1 hour`,
+
 	RunE: func(cmd *cobra.Command, args []string) error {
 		verbose, err := cmd.Flags().GetBool("verbose")
 		if err != nil {
