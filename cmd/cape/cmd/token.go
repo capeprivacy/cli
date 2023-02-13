@@ -184,10 +184,6 @@ you pass a function id with --function flag and then this token can only be used
 			return fmt.Errorf("token names must be alphanumeric")
 		}
 
-		if functionID == "" {
-			return fmt.Errorf("function id must be set")
-		}
-
 		url := C.EnclaveHost
 
 		ctr := createTokenReq{
