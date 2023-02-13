@@ -69,7 +69,7 @@ This will be fixed in the future.`,
 			return err
 		}
 
-		authToken, err := authToken()
+		authToken, err := getAuthTokenFlagOrOther(cmd)
 		if err != nil {
 			return err
 		}
@@ -209,7 +209,7 @@ You can set an expiry of the token with the --expiry flag.
 			return err
 		}
 
-		authToken, err := authToken()
+		authToken, err := getAuthTokenFlagOrOther(cmd)
 		if err != nil {
 			return err
 		}
@@ -267,7 +267,7 @@ var deleteTokenCmd = &cobra.Command{
 			return err
 		}
 
-		authToken, err := authToken()
+		authToken, err := getAuthTokenFlagOrOther(cmd)
 		if err != nil {
 			return err
 		}
@@ -318,6 +318,7 @@ func init() {
 	tokenCmd.PersistentFlags().IntP("expiry", "e", 3600, "optional time to live (in seconds)")
 	tokenCmd.PersistentFlags().BoolP("owner", "", false, "optional owner token (debug logs)")
 	tokenCmd.PersistentFlags().StringP("function-checksum", "", "", "optional function checksum")
+	tokenCmd.PersistentFlags().StringP("token", "t", "", "An optional token to use")
 
 	registerTemplate(tokenCmd.Name(), tokenTmpl)
 }
@@ -412,3 +413,16 @@ func doGet(functionID string, url string, insecure bool, auth entities.FunctionA
 }
 
 var tokenTmpl = "{{ .Token }}\n"
+
+func getAuthTokenFlagOrOther(cmd *cobra.Command) (string, error) {
+	token, err := cmd.Flags().GetString("token")
+	if err != nil {
+		return "", err
+	}
+
+	if token != "" {
+		return token, nil
+	}
+
+	return authToken()
+}
