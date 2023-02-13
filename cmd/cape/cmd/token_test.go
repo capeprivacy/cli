@@ -255,7 +255,7 @@ func TestAcctToken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got, want := stdout.String(), "Success! Your token: yourjwtgoeshere"; got != want {
+	if got, want := stdout.String(), "yourjwtgoeshere\n"; got != want {
 		t.Fatalf("didn't get expected output, got %s, wanted %s", got, want)
 	}
 }

@@ -246,7 +246,7 @@ you pass a function id with --function flag and then this token can only be used
 			return err
 		}
 
-		if _, err := cmd.OutOrStdout().Write([]byte(fmt.Sprintf("Success! Your token: %s", tokenResponse.Token))); err != nil {
+		if _, err := cmd.OutOrStdout().Write([]byte(tokenResponse.Token + "\n")); err != nil {
 			return err
 		}
 
