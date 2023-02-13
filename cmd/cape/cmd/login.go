@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,13 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lestrrat-go/jwx/v2/jwk"
-
 	"github.com/capeprivacy/cli/sdk"
 
 	"github.com/avast/retry-go"
-	"github.com/lestrrat-go/jwx/v2/jwt"
-
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -216,20 +211,6 @@ func getTokenResponse() (*TokenResponse, error) {
 
 	return &response, nil
 }
-
-func defaultGetAccessTokenVerifyAndParse() (jwt.Token, error) {
-	tokenResponse, err := getTokenResponse()
-	if err != nil {
-		return nil, err
-	}
-	set, err := jwk.Fetch(context.Background(), fmt.Sprintf("%s/.well-known/jwks.json", C.AuthHost))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse JWKS %w", err)
-	}
-	return jwt.Parse([]byte(tokenResponse.AccessToken), jwt.WithKeySet(set))
-}
-
-var getAccessTokenVerifyAndParse = defaultGetAccessTokenVerifyAndParse
 
 // Based on GIST: https://gist.github.com/hyg/9c4afcd91fe24316cbf0
 func openbrowser(url string) error {

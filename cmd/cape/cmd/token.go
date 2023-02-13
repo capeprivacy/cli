@@ -12,34 +12,20 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/jedib0t/go-pretty/v6/table"
-	log "github.com/sirupsen/logrus"
-
-	"github.com/lestrrat-go/jwx/v2/jwa"
-	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/spf13/cobra"
 
 	"github.com/capeprivacy/cli/entities"
-	"github.com/capeprivacy/cli/render"
 )
 
 var privateKeyFile = "token.pem"
 var publicKeyFile = "token.pub.pem"
 
 var tokenCmd = &cobra.Command{
-	Use:   "token <function_id>",
-	Short: "Create a token to execute a cape function",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		err := token(cmd, args)
-		// If it is not a user error, don't show usage help
-		if _, ok := err.(UserError); !ok {
-			cmd.SilenceUsage = true
-		}
-		return err
-	},
+	Use:   "token <subcommand>",
+	Short: "Commands for working with tokens",
 }
 
 type createTokenReq struct {
@@ -150,10 +136,20 @@ This will be fixed in the future.`,
 var createCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a token for your account",
-	Long: `Create a token for your account.
+	Long: `Cape Token Create
 
-Use this command if you want a token that identifies you and scoped to a specific function. During creation
-you pass a function id with --function flag and then this token can only be used to run that function.`,
+Create a Personal Access Token (PAT) that uniquely identifies you.
+Currently, tokens can only be used to perform cape run.
+
+By default, a token is able to run any function that its creator is allowed to run and they do not expire.
+You can scope a token to an individual function with the --function flag.
+You can set an expiry of the token with the --expiry flag.
+`,
+	Example: `  cape token create -n my-token -d 'for testing'                  Create a token that can run anything
+  cape token create -n my-token -f Nm672nXZQnBe9vL4zedGJb         Create a token that can only run the function Nm672nXZQnBe9vL4zedGJb
+  cape token create -n my-token -e 1h                             Create a token that can run anything that expires in 1 hour
+  cape token create -n my-token -f Nm672nXZQnBe9vL4zedGJb -e 1h   Create a token that can run Nm672nXZQnBe9vL4zedGJb that expires in 1 hour`,
+
 	RunE: func(cmd *cobra.Command, args []string) error {
 		verbose, err := cmd.Flags().GetBool("verbose")
 		if err != nil {
@@ -182,10 +178,6 @@ you pass a function id with --function flag and then this token can only be used
 
 		if name == "" {
 			return fmt.Errorf("token names must be alphanumeric")
-		}
-
-		if functionID == "" {
-			return fmt.Errorf("function id must be set")
 		}
 
 		url := C.EnclaveHost
@@ -250,7 +242,7 @@ you pass a function id with --function flag and then this token can only be used
 			return err
 		}
 
-		if _, err := cmd.OutOrStdout().Write([]byte(fmt.Sprintf("Success! Your token: %s", tokenResponse.Token))); err != nil {
+		if _, err := cmd.OutOrStdout().Write([]byte(tokenResponse.Token + "\n")); err != nil {
 			return err
 		}
 
@@ -328,159 +320,6 @@ func init() {
 	tokenCmd.PersistentFlags().StringP("function-checksum", "", "", "optional function checksum")
 
 	registerTemplate(tokenCmd.Name(), tokenTmpl)
-}
-
-func token(cmd *cobra.Command, args []string) error {
-	url := C.EnclaveHost
-	insecure := C.Insecure
-	if len(args) < 1 {
-		return fmt.Errorf("you must pass a function ID")
-	}
-
-	functionID := args[0]
-	expiry, err := cmd.Flags().GetInt("expiry")
-	if err != nil {
-		return err
-	}
-
-	owner, err := cmd.Flags().GetBool("owner")
-	if err != nil {
-		return err
-	}
-
-	// This gets the token from login.
-	accessTokenParsed, err := getAccessTokenVerifyAndParse()
-	if err != nil {
-		return err
-	}
-
-	functionChecksum, err := cmd.Flags().GetString("function-checksum")
-	if err != nil {
-		return err
-	}
-
-	// Use the AccessToken sub (user id) as the issuer for the function token.
-	// The issuer is used to determine which KMS key to use inside the enclave.
-	issuer := accessTokenParsed.Subject()
-	if issuer == "" {
-		return fmt.Errorf("could not detect your user id, perhaps retry logging in")
-	}
-
-	// Get the un-parsed access token.
-	// (TODO) Optimize token retrieval so we only get auth token once.
-	t, err := authToken()
-	if err != nil {
-		return err
-	}
-	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeUserToken, Token: t}
-	// Check that the signed in user has ownership access to the function before creating
-	// the token for it.
-
-	err = doGet(functionID, url, insecure, auth)
-	if err != nil {
-		return err
-	}
-
-	tokenString, err := Token(issuer, functionID, expiry, owner)
-	if err != nil {
-		log.Errorf("failed to create token for: %s, make sure you are the owner of the function.", functionID)
-		return err
-	}
-
-	log.Infof("This token will expire in %s\n", time.Second*time.Duration(expiry))
-
-	output := struct {
-		ID       string `json:"function_id"`
-		Token    string `json:"function_token"`
-		Checksum string `json:"function_checksum"`
-	}{
-		ID:       functionID,
-		Token:    tokenString,
-		Checksum: functionChecksum,
-	}
-
-	return render.Ctx(cmd.Context()).Render(cmd.OutOrStdout(), output)
-}
-
-func Token(issuer string, functionID string, expires int, owner bool) (string, error) {
-	privateKey, err := getOrGeneratePrivateKey()
-	if err != nil {
-		return "", err
-	}
-
-	var scope = []string{"function:invoke"}
-	if owner {
-		scope = append(scope, "function:output")
-	}
-
-	token, err := jwt.NewBuilder().
-		Issuer(issuer).
-		Subject(functionID).
-		Claim("scope", strings.Join(scope, " ")).
-		IssuedAt(time.Now()).
-		Expiration(time.Now().Add(time.Second * time.Duration(expires))).
-		Build()
-	if err != nil {
-		return "", err
-	}
-
-	tokenString, err := jwt.Sign(token, jwt.WithKey(jwa.RS256, privateKey))
-	if err != nil {
-		return "", err
-	}
-
-	return string(tokenString), nil
-}
-
-func getOrGeneratePrivateKey() (*rsa.PrivateKey, error) {
-	privateKey, err := getPrivateKey()
-	if err != nil {
-		// Attempt to generate a key pair if reading public key fails.
-		err = generateKeyPair()
-		if err != nil {
-			return nil, err
-		}
-		privateKey, err = getPrivateKey()
-		if err != nil {
-			return nil, err
-		}
-	}
-	return privateKey, err
-}
-
-func getPrivateKey() (*rsa.PrivateKey, error) {
-	keyPEM, err := getPrivateKeyPEM()
-	if err != nil {
-		return nil, err
-	}
-
-	block, _ := pem.Decode(keyPEM.Bytes())
-	if block == nil || block.Type != "RSA PRIVATE KEY" {
-		return nil, errors.New("failed to decode private key")
-	}
-
-	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return privateKey, nil
-}
-
-func getPrivateKeyPEM() (*bytes.Buffer, error) {
-	privateKeyPEM, err := os.Open(filepath.Join(C.LocalConfigDir, privateKeyFile))
-	if err != nil {
-		return nil, err
-	}
-	defer privateKeyPEM.Close()
-
-	buf := new(bytes.Buffer)
-	_, err = buf.ReadFrom(privateKeyPEM)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf, nil
 }
 
 func generateKeyPair() error {
