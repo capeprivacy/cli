@@ -75,7 +75,7 @@ func TestEncrypt(t *testing.T) {
 			s := httptest.NewServer(tt.server)
 			defer s.Close()
 
-			result, err := Encrypt("hello", "bendecoste", WithURL(s.URL))
+			result, err := Encrypt("hello", "bendecoste", WithURL(s.URL), WithInsecure(true))
 
 			if got, want := err, tt.wantErr; want != nil && !reflect.DeepEqual(got, want) {
 				t.Fatalf("didn't get expected error\ngot\n\t%v\nwanted\n\t%v", got, want)

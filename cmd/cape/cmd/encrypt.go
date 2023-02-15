@@ -77,7 +77,7 @@ func encrypt(cmd *cobra.Command, args []string) error {
 
 	// at this point the command was used properly
 	cmd.SilenceUsage = true
-	secret, err := capeEncrypt(string(input), username)
+	secret, err := capeEncrypt(string(input), username, sdk.WithURL(C.EnclaveHost), sdk.WithInsecure(C.Insecure))
 	if err != nil {
 		return err
 	}
