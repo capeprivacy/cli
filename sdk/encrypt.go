@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
@@ -20,7 +21,8 @@ import (
 var capeEncryptPrefix = "cape:"
 
 type Options struct {
-	URL string
+	URL      string
+	Insecure bool
 }
 
 type Option func(o *Options)
@@ -28,6 +30,22 @@ type Option func(o *Options)
 func WithURL(s string) Option {
 	return func(o *Options) {
 		o.URL = s
+	}
+}
+
+func WithInsecure(insecure bool) Option {
+	return func(o *Options) {
+		o.Insecure = insecure
+	}
+}
+
+func insecureClient() *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
 	}
 }
 
@@ -40,12 +58,17 @@ func Encrypt(message, username string, options ...Option) (string, error) {
 		o(&opts)
 	}
 
+	client := http.DefaultClient
+	if opts.Insecure {
+		client = insecureClient()
+	}
+
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/v1/user/%s/key", opts.URL, username), nil)
 	if err != nil {
 		return "", err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
