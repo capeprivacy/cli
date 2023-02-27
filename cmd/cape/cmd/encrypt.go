@@ -71,7 +71,7 @@ func encrypt(cmd *cobra.Command, args []string) error {
 	}
 
 	input, userError := parseInput(cmd, args)
-	if err != nil {
+	if userError != nil {
 		return userError
 	}
 
@@ -117,10 +117,12 @@ func parseInput(cmd *cobra.Command, args []string) ([]byte, *UserError) {
 	case len(args) == 1:
 		// read input from  command line string
 		input = []byte(args[0])
+		if len(input) == 0 {
+			return nil, &UserError{Msg: "unable to encrypt", Err: errors.New("input is empty")}
+		}
 	default:
 		return nil, &UserError{Msg: "invalid input", Err: errors.New("please provide input as a string, input file or stdin")}
 	}
-
 	return input, nil
 }
 
