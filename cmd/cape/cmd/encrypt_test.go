@@ -41,6 +41,16 @@ func TestEncryptBadInput(t *testing.T) {
 			args:      []string{"encrypt", "", "", "--username", "bendecoste"},
 			wantError: UserError{Msg: "you must pass in only one input data (stdin, string or filename)", Err: fmt.Errorf("invalid number of input arguments")},
 		},
+		{
+			name:      "no file input",
+			args:      []string{"encrypt", "-f", "", "--username", "bendecoste"},
+			wantError: UserError{Msg: "invalid input", Err: errors.New("please provide input as a string, input file or stdin")},
+		},
+		{
+			name:      "bad file input",
+			args:      []string{"encrypt", "-f", "nofile.txt", "--username", "bendecoste"},
+			wantError: &UserError{Msg: "unable to read data file", Err: errors.New("open nofile.txt: no such file or directory")},
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			capeEncrypt = func(message, username string, options ...sdk.Option) (string, error) {
