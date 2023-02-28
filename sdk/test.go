@@ -184,13 +184,13 @@ func doDial(endpoint string, insecure bool, authProtocolType string, authToken s
 		return nil, customError(res)
 	}
 
-	log.Debug("* Received 307 redirect")
-
 	location, err := res.Location()
 	if err != nil {
 		log.Error("could not get location off header")
 		return nil, err
 	}
+
+	log.WithField("pool_url", location.Host).Debug("* Connecting to enclave")
 
 	conn, res, err = websocketDial(location.String(), insecure, authProtocolType, authToken)
 	if err != nil {
@@ -199,7 +199,7 @@ func doDial(endpoint string, insecure bool, authProtocolType string, authToken s
 			res.Body.Close()
 			return nil, customErr
 		}
-		log.Error("could not dial websocket again after 307 redirect")
+		log.WithError(err).Error("could not connect to enclave")
 		return nil, err
 	}
 
