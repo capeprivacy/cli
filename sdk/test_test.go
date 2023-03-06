@@ -1,7 +1,6 @@
 package sdk
 
 import (
-	"crypto/x509"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/capeprivacy/attest/attest"
 	"github.com/capeprivacy/cli/entities"
+	"github.com/capeprivacy/cli/mocks"
 )
 
 type testProtocol struct {
@@ -45,9 +45,12 @@ func wsURL(origURL string) string {
 }
 
 func TestCapeTest(t *testing.T) {
-	runAttestation = func(attestation []byte, nonce []byte, rootCert *x509.Certificate) (*attest.AttestationDoc, error) {
-		return &attest.AttestationDoc{}, nil
+	verifier := mocks.MockVerifier{
+		VerifyFn: func(attestation []byte, nonce []byte) (*attest.AttestationDoc, error) {
+			return &attest.AttestationDoc{}, nil
+		},
 	}
+
 	localEncrypt = func(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) { return plaintext, nil }
 
 	getProtocolFn = func(ws *websocket.Conn) protocol {
@@ -80,7 +83,7 @@ func TestCapeTest(t *testing.T) {
 		Insecure: true,
 	}
 
-	res, err := Test(test, wsURL(s.URL), []string{})
+	res, err := Test(test, verifier, wsURL(s.URL), []string{})
 	if err != nil {
 		t.Fatal(err)
 	}

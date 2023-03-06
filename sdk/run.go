@@ -76,14 +76,10 @@ func connect(url string, functionID string, functionAuth entities.FunctionAuth, 
 		return nil, nil, err
 	}
 
-	log.Debug("< Downloading AWS Root Certificate")
-	rootCert, err := attest.GetRootAWSCert()
-	if err != nil {
-		return nil, nil, err
-	}
+	verifier := attest.NewVerifier()
 
 	log.Debug("< Auth Completed. Received Attestation Document")
-	doc, err := attest.Attest(attestDoc, nonce, rootCert)
+	doc, err := verifier.Verify(attestDoc, nonce)
 	if err != nil {
 		log.Println("error attesting")
 		return nil, nil, err
