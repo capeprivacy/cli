@@ -18,6 +18,10 @@ import (
 	"github.com/capeprivacy/cli/pcrs"
 )
 
+type Verifier interface {
+	Verify(attestation []byte, nonce []byte) (*attest.AttestationDoc, error)
+}
+
 type TestRequest struct {
 	Function  []byte
 	Input     []byte
@@ -34,7 +38,7 @@ type ErrorMsg struct {
 // Test simulates the workflow of Deploy and Run, without storing the function.
 // It loads the given function into an enclave, runs it on the given data, and returns the result.
 // Use Test to verify that your function will work before storing it via Deploy.
-func Test(testReq TestRequest, endpoint string, pcrSlice []string) (*entities.RunResults, error) {
+func Test(testReq TestRequest, verifier Verifier, endpoint string, pcrSlice []string) (*entities.RunResults, error) {
 	conn, err := doDial(endpoint, testReq.Insecure, "cape.runtime", testReq.AuthToken)
 	if err != nil {
 		return nil, err
@@ -64,14 +68,8 @@ func Test(testReq TestRequest, endpoint string, pcrSlice []string) (*entities.Ru
 		return nil, err
 	}
 
-	log.Debug("< Downloading AWS Root Certificate")
-	rootCert, err := attest.GetRootAWSCert()
-	if err != nil {
-		return nil, err
-	}
-
 	log.Debug("< Attestation document")
-	doc, err := runAttestation(attestDoc, nonce, rootCert)
+	doc, err := verifier.Verify(attestDoc, nonce)
 	if err != nil {
 		return nil, err
 	}
@@ -148,9 +146,10 @@ func transformURL(urlStr string) (string, error) {
 		return "", err
 	}
 
-	if u.Scheme == "http" {
+	switch u.Scheme {
+	case "http":
 		u.Scheme = "ws"
-	} else if u.Scheme == "https" {
+	case "https":
 		u.Scheme = "wss"
 	}
 
@@ -207,5 +206,4 @@ func doDial(endpoint string, insecure bool, authProtocolType string, authToken s
 }
 
 var getProtocolFn = getProtocol
-var runAttestation = attest.Attest
 var localEncrypt = crypto.LocalEncrypt

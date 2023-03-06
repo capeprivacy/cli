@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/capeprivacy/attest/attest"
 )
@@ -102,7 +103,14 @@ func Encrypt(message, username string, options ...Option) (string, error) {
 		return "", errors.New("error parsing attestation document")
 	}
 
-	doc, err := attest.Attest(r.AttestationDocument, nil, nil)
+	notBefore, err := getDocumentNotBefore(r.AttestationDocument)
+	if err != nil {
+		return "", err
+	}
+
+	verifier := attest.NewVerifier(attest.WithCurrentTime(notBefore))
+
+	doc, err := verifier.Verify(r.AttestationDocument, nil)
 	if err != nil {
 		return "", err
 	}
@@ -201,4 +209,18 @@ func RSAEncrypt(plaintext []byte, publicKey []byte) ([]byte, error) {
 	}
 
 	return ciphertext, nil
+}
+
+func getDocumentNotBefore(attestation []byte) (time.Time, error) {
+	doc, err := attest.ParseAttestationDocument(attestation)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	cert, err := x509.ParseCertificate(doc.Certificate)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return cert.NotBefore, nil
 }

@@ -77,14 +77,10 @@ func Deploy(req DeployRequest, keyReq KeyRequest) (string, []byte, error) {
 		return "", nil, err
 	}
 
-	log.Debug("< Downloading AWS Root Certificate")
-	rootCert, err := attest.GetRootAWSCert()
-	if err != nil {
-		return "", nil, err
-	}
+	verifier := attest.NewVerifier()
 
 	log.Debug("< Attestation document")
-	doc, err := attest.Attest(attestDoc, nonce, rootCert)
+	doc, err := verifier.Verify(attestDoc, nonce)
 	if err != nil {
 		log.Error("error attesting")
 		return "", nil, err

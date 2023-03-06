@@ -49,7 +49,7 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go v1.44.114
-	github.com/capeprivacy/attest v0.0.0-20230201194029-d22d85c6736b
+	github.com/capeprivacy/attest v0.0.0-20230306135858-d7368f33de73
 	github.com/gorilla/websocket v1.5.0
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/jedib0t/go-pretty/v6 v6.4.0
