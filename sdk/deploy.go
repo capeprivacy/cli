@@ -21,7 +21,7 @@ type protocol interface {
 	ReadAttestationDoc() ([]byte, error)
 	ReadRunResults() (*entities.RunResults, error)
 	WriteBinary([]byte) error
-	WriteFunctionInfo(name string) error
+	WriteFunctionInfo(name string, public bool) error
 	ReadDeploymentResults() (*entities.SetDeploymentIDRequest, error)
 }
 
@@ -34,6 +34,7 @@ type DeployRequest struct {
 	Name      string
 	Reader    io.Reader
 	PcrSlice  []string
+	Public    bool
 	AuthToken string
 
 	// For development use only: skips validating TLS certificate from the URL
@@ -109,9 +110,9 @@ func Deploy(req DeployRequest, keyReq KeyRequest) (string, []byte, error) {
 		return "", nil, err
 	}
 
-	log.Debug("\n> Sending Public Key")
-	if err := p.WriteFunctionInfo(req.Name); err != nil {
-		log.Error("error sending public key")
+	log.Debug("\n> Sending Function Info")
+	if err := p.WriteFunctionInfo(req.Name, req.Public); err != nil {
+		log.Error("error sending function info key")
 		return "", nil, err
 	}
 

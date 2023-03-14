@@ -206,6 +206,7 @@ func doDeploy(url string, functionInput string, functionName string, insecure bo
 		Reader:    reader,
 		Insecure:  insecure,
 		PcrSlice:  pcrSlice,
+		Public:    public,
 		AuthToken: token,
 	}, keyReq)
 	if err != nil {

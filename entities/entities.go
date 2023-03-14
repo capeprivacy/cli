@@ -28,6 +28,7 @@ type DeployRequest struct {
 
 type FunctionInfo struct {
 	FunctionName string `json:"function_name"`
+	Public       bool   `json:"public"`
 }
 
 type FunctionMetadata struct {
