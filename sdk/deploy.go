@@ -21,7 +21,7 @@ type protocol interface {
 	ReadAttestationDoc() ([]byte, error)
 	ReadRunResults() (*entities.RunResults, error)
 	WriteBinary([]byte) error
-	WriteFunctionInfo(key string, name string) error
+	WriteFunctionInfo(name string) error
 	ReadDeploymentResults() (*entities.SetDeploymentIDRequest, error)
 }
 
@@ -30,12 +30,11 @@ func getProtocol(ws *websocket.Conn) protocol {
 }
 
 type DeployRequest struct {
-	URL                    string
-	Name                   string
-	Reader                 io.Reader
-	PcrSlice               []string
-	FunctionTokenPublicKey string
-	AuthToken              string
+	URL       string
+	Name      string
+	Reader    io.Reader
+	PcrSlice  []string
+	AuthToken string
 
 	// For development use only: skips validating TLS certificate from the URL
 	Insecure bool
@@ -111,7 +110,7 @@ func Deploy(req DeployRequest, keyReq KeyRequest) (string, []byte, error) {
 	}
 
 	log.Debug("\n> Sending Public Key")
-	if err := p.WriteFunctionInfo(req.FunctionTokenPublicKey, req.Name); err != nil {
+	if err := p.WriteFunctionInfo(req.Name); err != nil {
 		log.Error("error sending public key")
 		return "", nil, err
 	}

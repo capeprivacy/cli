@@ -3,10 +3,6 @@ package cmd
 import (
 	"archive/zip"
 	"bytes"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -21,10 +17,6 @@ import (
 	"github.com/capeprivacy/cli/sdk"
 	czip "github.com/capeprivacy/cli/zip"
 )
-
-type PublicKeyRequest struct {
-	FunctionTokenPublicKey string `json:"function_token_pk"`
-}
 
 type DeployResponse struct {
 	ID string `json:"id"`
@@ -203,29 +195,18 @@ func doDeploy(url string, functionInput string, functionName string, insecure bo
 		return "", nil, err
 	}
 
-	// Public functions do not include a public key.
-	//	Public keys are used for function tokens.
-	functionTokenPublicKey := ""
-	if !public {
-		functionTokenPublicKey, err = getFunctionTokenPublicKey()
-		if err != nil {
-			return "", nil, err
-		}
-	}
-
 	keyReq, err := GetKeyRequest(pcrSlice)
 	if err != nil {
 		return "", nil, err
 	}
 
 	id, checksum, err := sdk.Deploy(sdk.DeployRequest{
-		URL:                    url,
-		Name:                   functionName,
-		Reader:                 reader,
-		Insecure:               insecure,
-		PcrSlice:               pcrSlice,
-		FunctionTokenPublicKey: functionTokenPublicKey,
-		AuthToken:              token,
+		URL:       url,
+		Name:      functionName,
+		Reader:    reader,
+		Insecure:  insecure,
+		PcrSlice:  pcrSlice,
+		AuthToken: token,
 	}, keyReq)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to deploy function: %w", err)
@@ -285,72 +266,6 @@ func getAuthToken() (string, error) {
 	log.Debug("* Retrieved Auth Token")
 
 	return tokenResponse.AccessToken, nil
-}
-
-func getOrGeneratePublicKey() (*rsa.PublicKey, error) {
-	publicKey, err := getPublicKey()
-	if err != nil {
-		// Attempt to generate a key pair if reading public key fails.
-		err = generateKeyPair()
-		if err != nil {
-			return nil, nil
-		}
-		publicKey, err = getPublicKey()
-		if err != nil {
-			return nil, nil
-		}
-	}
-	return publicKey, err
-}
-
-func getPublicKey() (*rsa.PublicKey, error) {
-	keyPEM, err := getPublicKeyPEM()
-	if err != nil {
-		return nil, err
-	}
-
-	block, _ := pem.Decode(keyPEM.Bytes())
-	if block == nil || block.Type != "PUBLIC KEY" {
-		return nil, errors.New("failed to decode public key")
-	}
-
-	publicKey, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return publicKey.(*rsa.PublicKey), nil
-}
-
-func getPublicKeyPEM() (*bytes.Buffer, error) {
-	publicKeyPEM, err := os.Open(filepath.Join(C.LocalConfigDir, publicKeyFile))
-	if err != nil {
-		return nil, err
-	}
-	defer publicKeyPEM.Close()
-
-	buf := new(bytes.Buffer)
-	_, err = buf.ReadFrom(publicKeyPEM)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf, nil
-}
-
-func getFunctionTokenPublicKey() (string, error) {
-	_, err := getOrGeneratePublicKey()
-	if err != nil {
-		return "", err
-	}
-
-	// Read the raw PEM.
-	pem, err := getPublicKeyPEM()
-	if err != nil {
-		return "", err
-	}
-
-	return pem.String(), nil
 }
 
 var deployTmpl = `Function ID       ➜  {{ .ID }}

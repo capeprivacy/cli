@@ -2,16 +2,10 @@ package cmd
 
 import (
 	"bytes"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/jedib0t/go-pretty/v6/table"
@@ -19,9 +13,6 @@ import (
 
 	"github.com/capeprivacy/cli/entities"
 )
-
-var privateKeyFile = "token.pem"
-var publicKeyFile = "token.pub.pem"
 
 var tokenCmd = &cobra.Command{
 	Use:   "token <subcommand>",
@@ -52,10 +43,7 @@ type createTokenResponse struct {
 var listTokensCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List your account tokens",
-	Long: `List the tokens from your account.
-
-NOTE -- this will not list function tokens (ones made with cape token <function_id>).
-This will be fixed in the future.`,
+	Long:  "List the tokens from your account.",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		verbose, err := cmd.Flags().GetBool("verbose")
@@ -321,57 +309,6 @@ func init() {
 	tokenCmd.PersistentFlags().StringP("token", "t", "", "An optional token to use")
 
 	registerTemplate(tokenCmd.Name(), tokenTmpl)
-}
-
-func generateKeyPair() error {
-	// Ensure the local auth directory is configured.
-	err := os.MkdirAll(C.LocalConfigDir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	// Generate key pair
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return err
-	}
-	publicKey := &privateKey.PublicKey
-
-	// Export private key
-	var privateKeyBytes = x509.MarshalPKCS1PrivateKey(privateKey)
-	privateKeyBlock := &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: privateKeyBytes,
-	}
-
-	privatePem, err := os.Create(filepath.Join(C.LocalConfigDir, privateKeyFile))
-	if err != nil {
-		return err
-	}
-	err = pem.Encode(privatePem, privateKeyBlock)
-	if err != nil {
-		return err
-	}
-
-	// Export public key
-	publicKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
-	if err != nil {
-		return err
-	}
-	publicKeyBlock := &pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: publicKeyBytes,
-	}
-	publicPem, err := os.Create(filepath.Join(C.LocalConfigDir, publicKeyFile))
-	if err != nil {
-		return err
-	}
-	err = pem.Encode(publicPem, publicKeyBlock)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func doGet(functionID string, url string, insecure bool, auth entities.FunctionAuth) error {

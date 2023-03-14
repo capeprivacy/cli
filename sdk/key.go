@@ -75,9 +75,6 @@ func ConnectAndAttest(keyReq KeyRequest) (*attest.AttestationDoc, *AttestationUs
 
 	authProtocolType := "cape.runtime"
 	auth := keyReq.FunctionAuth
-	if auth.Type == entities.AuthenticationTypeFunctionToken {
-		authProtocolType = "cape.function"
-	}
 
 	conn, err := doDial(endpoint, keyReq.Insecure, authProtocolType, auth.Token)
 	if err != nil {
