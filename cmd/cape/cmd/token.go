@@ -230,7 +230,7 @@ You can set an expiry of the token with the --expiry flag.
 				if err := json.NewDecoder(resp.Body).Decode(&errMsg); err != nil {
 					fmt.Println("could not decode response body")
 				} else {
-					fmt.Println("received server error: ", errMsg.Error)
+					fmt.Printf("received server error: %s, message: %s", errMsg.Error, errMsg.Message)
 				}
 			}
 

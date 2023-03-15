@@ -16,7 +16,8 @@ import (
 )
 
 type ErrorMsg struct {
-	Error string `json:"error"`
+	Message string `json:"message"`
+	Error   string `json:"error"`
 }
 
 type ErrServerForList struct {
