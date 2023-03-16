@@ -90,8 +90,8 @@ func (p Protocol) ReadFunctionInfo() (*entities.FunctionInfo, error) {
 	return readMsg[entities.FunctionInfo](p.Websocket)
 }
 
-func (p Protocol) WriteFunctionInfo(key string, name string) error {
-	return writeMsg(p.Websocket, entities.FunctionInfo{FunctionTokenPublicKey: key, FunctionName: name})
+func (p Protocol) WriteFunctionInfo(name string, public bool) error {
+	return writeMsg(p.Websocket, entities.FunctionInfo{FunctionName: name, Public: public})
 }
 
 func (p Protocol) ReadAttestationDoc() ([]byte, error) {

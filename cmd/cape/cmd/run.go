@@ -10,8 +10,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/lestrrat-go/jwx/v2/jwt"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/capeprivacy/cli/entities"
@@ -70,23 +68,11 @@ type ErrorRunResponse struct {
 func init() {
 	rootCmd.AddCommand(runCmd)
 
-	runCmd.PersistentFlags().StringP("token", "t", "", "function token to use")
+	runCmd.PersistentFlags().StringP("token", "t", "", "authorization token to use")
 	runCmd.PersistentFlags().StringP("file", "f", "", "input data file (or '-f -' to accept stdin)")
 	runCmd.PersistentFlags().StringP("function-checksum", "", "", "function checksum to attest")
-	runCmd.PersistentFlags().StringP("function-hash", "", "", "function hash to attest")
-	runCmd.PersistentFlags().StringP("key-policy-hash", "", "", "key policy hash to attest")
 	runCmd.PersistentFlags().StringP("key-policy-checksum", "", "", "key policy checksum to attest")
 	runCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
-
-	err := runCmd.PersistentFlags().MarkDeprecated("function-hash", "this flag has been deprecated for renaming, use 'function-checksum' instead")
-	if err != nil {
-		log.WithError(err).Error("unable to set flag 'function-hash' as deprecated")
-	}
-
-	err = runCmd.PersistentFlags().MarkDeprecated("key-policy-hash", "this flag has been deprecated for renaming, use 'key-policy-checksum' instead")
-	if err != nil {
-		log.WithError(err).Error("unable to set flag 'key-policy-hash' as deprecated")
-	}
 }
 
 func run(cmd *cobra.Command, args []string) error {
@@ -104,14 +90,6 @@ func run(cmd *cobra.Command, args []string) error {
 	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeUserToken}
 	token, _ := cmd.Flags().GetString("token")
 	if token != "" {
-		issuer, err := getTokenIssuer(token)
-		if err != nil {
-			return err
-		}
-		// if its a passed token not issued by us assume its a function token
-		if issuer != "cape-privacy" {
-			auth.Type = entities.AuthenticationTypeFunctionToken
-		}
 		auth.Token = token
 	} else {
 		token, err := getAuthToken()
@@ -132,22 +110,11 @@ func run(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "error retrieving function-checksum flag", Err: err}
 	}
 
-	// Deprecated
-	funcHashArg, err := cmd.Flags().GetString("function-hash")
-	if err != nil {
-		return UserError{Msg: "error retrieving function_hash flag", Err: err}
-	}
-
 	var funcChecksum []byte
 	if funcChecksumArg != "" {
 		funcChecksum, err = hex.DecodeString(funcChecksumArg)
 		if err != nil {
 			return UserError{Msg: "error reading in checksum", Err: err}
-		}
-	} else {
-		funcChecksum, err = hex.DecodeString(funcHashArg)
-		if err != nil {
-			return UserError{Msg: "error reading function hash", Err: err}
 		}
 	}
 
@@ -161,20 +128,9 @@ func run(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "error retrieving key_checksum flag", Err: err}
 	}
 
-	// Deprecated
-	keyPolicyHashArg, err := cmd.Flags().GetString("key-policy-hash")
-	if err != nil {
-		return UserError{Msg: "error retrieving key_policy_hash flag", Err: err}
-	}
-
 	var keyChecksum []byte
 	if keyChecksumArg != "" {
 		keyChecksum, err = hex.DecodeString(keyChecksumArg)
-		if err != nil {
-			return UserError{Msg: "error reading in key policy checksum", Err: err}
-		}
-	} else {
-		keyChecksum, err = hex.DecodeString(keyPolicyHashArg)
 		if err != nil {
 			return UserError{Msg: "error reading in key policy checksum", Err: err}
 		}
@@ -223,15 +179,6 @@ func splitFunctionName(function string) (string, string, error) {
 		return userName, "", errors.New("empty function name")
 	}
 	return userName, functionName, nil
-}
-
-func getTokenIssuer(token string) (string, error) {
-	parsed, err := jwt.Parse([]byte(token), jwt.WithVerify(false))
-	if err != nil {
-		return "", err
-	}
-
-	return parsed.Issuer(), nil
 }
 
 func getInput(cmd *cobra.Command, args []string, file string) ([]byte, error) {

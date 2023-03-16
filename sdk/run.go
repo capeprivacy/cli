@@ -46,9 +46,6 @@ func connect(url string, functionID string, functionAuth entities.FunctionAuth, 
 
 	authProtocolType := "cape.runtime"
 	auth := functionAuth
-	if auth.Type == entities.AuthenticationTypeFunctionToken {
-		authProtocolType = "cape.function"
-	}
 
 	conn, err := doDial(endpoint, insecure, authProtocolType, auth.Token)
 	if err != nil {

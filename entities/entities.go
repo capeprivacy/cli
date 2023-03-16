@@ -8,9 +8,8 @@ import (
 type StartRequest struct {
 	// Nonce is used by the client to verify the nonce received back in
 	// the attestation doc
-	Nonce         []byte           `json:"nonce"`
-	FunctionToken string           `json:"function_token,omitempty"`
-	Metadata      FunctionMetadata `json:"metadata,omitempty"`
+	Nonce    []byte           `json:"nonce"`
+	Metadata FunctionMetadata `json:"metadata,omitempty"`
 }
 
 type RunRequest struct {
@@ -28,8 +27,8 @@ type DeployRequest struct {
 }
 
 type FunctionInfo struct {
-	FunctionTokenPublicKey string `json:"function_token_pk"`
-	FunctionName           string `json:"function_name"`
+	FunctionName string `json:"function_name"`
+	Public       bool   `json:"public"`
 }
 
 type FunctionMetadata struct {
@@ -64,7 +63,7 @@ type AuthenticationType string
 
 func (a AuthenticationType) Validate() error {
 	switch a {
-	case AuthenticationTypeUserToken, AuthenticationTypeFunctionToken:
+	case AuthenticationTypeUserToken:
 		return nil
 	default:
 		return fmt.Errorf("invalid authentication type: %s", a)
@@ -76,8 +75,7 @@ func (a AuthenticationType) String() string {
 }
 
 const (
-	AuthenticationTypeUserToken     AuthenticationType = "user_token"
-	AuthenticationTypeFunctionToken AuthenticationType = "functiontoken"
+	AuthenticationTypeUserToken AuthenticationType = "user_token"
 )
 
 type FunctionAuth struct {
