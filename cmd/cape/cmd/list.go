@@ -135,14 +135,14 @@ func doList(url string, insecure bool, auth entities.FunctionAuth, limit int, of
 		return nil
 	}
 
-	if f, ok := formatters[format]; ok {
+	if f, ok := listFormatters[format]; ok {
 		return f(deploymentNames)
 	}
 
 	return printTable(deploymentNames)
 }
 
-var formatters = map[string]func([]entities.Deployment) error{
+var listFormatters = map[string]func([]entities.Deployment) error{
 	"plain": printTable,
 	"json":  printJSON,
 }

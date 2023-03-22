@@ -8,6 +8,8 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	"github.com/capeprivacy/cli"
+
 	"github.com/capeprivacy/attest/attest"
 	"github.com/capeprivacy/cli/entities"
 	"github.com/capeprivacy/cli/mocks"
@@ -16,7 +18,7 @@ import (
 type testProtocol struct {
 	start   func(req entities.StartRequest) error
 	attest  func() ([]byte, error)
-	results func() (*entities.RunResults, error)
+	results func() (*cli.RunResult, error)
 	binary  func(b []byte) error
 }
 
@@ -32,7 +34,7 @@ func (t testProtocol) WriteStart(request entities.StartRequest) error {
 	return t.start(request)
 }
 func (t testProtocol) ReadAttestationDoc() ([]byte, error) { return t.attest() }
-func (t testProtocol) ReadRunResults() (*entities.RunResults, error) {
+func (t testProtocol) ReadRunResults() (*cli.RunResult, error) {
 	return t.results()
 }
 func (t testProtocol) WriteBinary(bytes []byte) error { return t.binary(bytes) }
@@ -57,8 +59,8 @@ func TestCapeTest(t *testing.T) {
 		return testProtocol{
 			start:  func(req entities.StartRequest) error { return nil },
 			attest: func() ([]byte, error) { return []byte{}, nil },
-			results: func() (*entities.RunResults, error) {
-				return &entities.RunResults{Message: []byte("good job")}, nil
+			results: func() (*cli.RunResult, error) {
+				return &cli.RunResult{Message: []byte("good job")}, nil
 			},
 			binary: func(b []byte) error { return nil },
 		}

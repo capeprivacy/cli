@@ -54,11 +54,6 @@ type AttestationWrapper struct {
 	Message []byte `json:"message"`
 }
 
-type RunResults struct {
-	Type    string `json:"type"`
-	Message []byte `json:"message"`
-}
-
 type AuthenticationType string
 
 func (a AuthenticationType) Validate() error {

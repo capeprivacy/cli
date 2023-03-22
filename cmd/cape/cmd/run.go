@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +12,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+
+	"github.com/capeprivacy/cli"
 
 	"github.com/capeprivacy/cli/entities"
 	"github.com/capeprivacy/cli/sdk"
@@ -78,6 +81,15 @@ func init() {
 func run(cmd *cobra.Command, args []string) error {
 	u := C.EnclaveHost
 	insecure := C.Insecure
+	output, err := cmd.Flags().GetString("output")
+	if err != nil {
+		return err
+	}
+
+	formatter, ok := runFormatters[output]
+	if !ok {
+		return fmt.Errorf("unknown output option: %s", output)
+	}
 
 	if len(args) < 1 {
 		return UserError{Msg: "you must pass a function ID or a function name", Err: fmt.Errorf("invalid number of input arguments")}
@@ -155,8 +167,7 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("run request failed: %w", err)
 	}
 
-	fmt.Println(string(results))
-	return nil
+	return formatter(*results)
 }
 
 func isValidFunctionID(functionID string) bool {
@@ -203,4 +214,22 @@ func getInput(cmd *cobra.Command, args []string, file string) ([]byte, error) {
 	default:
 		return nil, UserError{Msg: "invalid input", Err: errors.New("please provide input as a string, input file or stdin")}
 	}
+}
+
+var runFormatters = map[string]func(result cli.RunResult) error{
+	"plain": runPlain,
+	"json":  runJSON,
+}
+
+func runPlain(result cli.RunResult) error {
+	fmt.Println(string(result.Message))
+	return nil
+}
+
+func runJSON(result cli.RunResult) error {
+	return json.NewEncoder(os.Stdout).Encode(struct {
+		Output string `json:"output"`
+	}{
+		Output: string(result.Message),
+	})
 }
