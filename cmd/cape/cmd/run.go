@@ -228,8 +228,12 @@ func runPlain(result cli.RunResult) error {
 
 func runJSON(result cli.RunResult) error {
 	return json.NewEncoder(os.Stdout).Encode(struct {
-		Output string `json:"output"`
+		Output          string              `json:"output"`
+		VerifiedResults cli.VerifiedResults `json:"verified_results"`
+		SignedResults   []byte              `json:"signed_results"`
 	}{
-		Output: string(result.Message),
+		Output:          string(result.Message),
+		VerifiedResults: result.VerifiedResults,
+		SignedResults:   result.SignedResults,
 	})
 }
