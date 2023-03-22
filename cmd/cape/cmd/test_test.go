@@ -16,7 +16,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/capeprivacy/cli/entities"
+	"github.com/capeprivacy/cli"
+
 	"github.com/capeprivacy/cli/sdk"
 	czip "github.com/capeprivacy/cli/zip"
 )
@@ -83,7 +84,7 @@ func TestServerError(t *testing.T) {
 	cmd.SetArgs([]string{"test", "testdata/my_fn", "hello world"})
 
 	errMsg := "something went wrong"
-	test = func(testReq sdk.TestRequest, verifier sdk.Verifier, endpoint string, pcrSlice []string) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, verifier sdk.Verifier, endpoint string, pcrSlice []string) (*cli.RunResult, error) {
 		return nil, errors.New(errMsg)
 	}
 	authToken = func() (string, error) {
@@ -114,9 +115,9 @@ func TestSuccess(t *testing.T) {
 	results := "success!"
 	var gotFn []byte
 	var gotInput []byte
-	test = func(testReq sdk.TestRequest, verifier sdk.Verifier, endpoint string, pcrSlice []string) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, verifier sdk.Verifier, endpoint string, pcrSlice []string) (*cli.RunResult, error) {
 		gotFn, gotInput = testReq.Function, testReq.Input
-		return &entities.RunResults{Message: []byte(results)}, nil
+		return &cli.RunResult{Message: []byte(results)}, nil
 	}
 	authToken = func() (string, error) {
 		return "so logged in", nil
@@ -158,9 +159,9 @@ func TestSuccessStdin(t *testing.T) {
 	results := "success!"
 	var gotFn []byte
 	var gotInput []byte
-	test = func(testReq sdk.TestRequest, verifier sdk.Verifier, endpoint string, pcrSlice []string) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, verifier sdk.Verifier, endpoint string, pcrSlice []string) (*cli.RunResult, error) {
 		gotFn, gotInput = testReq.Function, testReq.Input
-		return &entities.RunResults{Message: []byte(results)}, nil
+		return &cli.RunResult{Message: []byte(results)}, nil
 	}
 	authToken = func() (string, error) {
 		return "so logged in", nil
@@ -202,7 +203,7 @@ func TestWSConnection(t *testing.T) {
 	type msg struct {
 		Message []byte `json:"msg"`
 	}
-	test = func(testReq sdk.TestRequest, verifier sdk.Verifier, endpoint string, pcrSlice []string) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, verifier sdk.Verifier, endpoint string, pcrSlice []string) (*cli.RunResult, error) {
 		c, _, err := websocket.DefaultDialer.Dial(endpoint, nil)
 		if err != nil {
 			return nil, err
@@ -214,7 +215,7 @@ func TestWSConnection(t *testing.T) {
 			return nil, err
 		}
 
-		return &entities.RunResults{Message: m.Message}, nil
+		return &cli.RunResult{Message: m.Message}, nil
 	}
 	authToken = func() (string, error) {
 		return "so logged in", nil
@@ -260,9 +261,9 @@ func TestWSConnection(t *testing.T) {
 func TestEndpoint(t *testing.T) {
 	// ensure that `cape test` hits the `/v1/test` endpoint
 	endpointHit := ""
-	test = func(testReq sdk.TestRequest, verifier sdk.Verifier, endpoint string, pcrSlice []string) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, verifier sdk.Verifier, endpoint string, pcrSlice []string) (*cli.RunResult, error) {
 		endpointHit = endpoint
-		return &entities.RunResults{Message: []byte("good job")}, nil
+		return &cli.RunResult{Message: []byte("good job")}, nil
 	}
 	authToken = func() (string, error) {
 		return "so logged in", nil
@@ -288,9 +289,9 @@ func TestEndpoint(t *testing.T) {
 func TestEnvVarConfigEndpoint(t *testing.T) {
 	// ensure that env var overrides work for hostname
 	endpointHit := ""
-	test = func(testReq sdk.TestRequest, verifier sdk.Verifier, endpoint string, pcrSlice []string) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, verifier sdk.Verifier, endpoint string, pcrSlice []string) (*cli.RunResult, error) {
 		endpointHit = endpoint
-		return &entities.RunResults{Message: []byte("good job")}, nil
+		return &cli.RunResult{Message: []byte("good job")}, nil
 	}
 	authToken = func() (string, error) {
 		return "so logged in", nil
@@ -322,9 +323,9 @@ func TestFileConfigEndpoint(t *testing.T) {
 	fileEndpoint := "https://foo_file.capeprivacy.com"
 	oldEndpoint := os.Getenv("CAPE_ENCLAVE_HOST")
 
-	test = func(testReq sdk.TestRequest, verifier sdk.Verifier, endpoint string, pcrSlice []string) (*entities.RunResults, error) {
+	test = func(testReq sdk.TestRequest, verifier sdk.Verifier, endpoint string, pcrSlice []string) (*cli.RunResult, error) {
 		endpointHit = endpoint
-		return &entities.RunResults{Message: []byte("good job")}, nil
+		return &cli.RunResult{Message: []byte("good job")}, nil
 	}
 	authToken = func() (string, error) {
 		return "so logged in", nil

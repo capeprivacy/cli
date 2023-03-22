@@ -9,6 +9,8 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/capeprivacy/cli"
+
 	"github.com/capeprivacy/attest/attest"
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/cli/entities"
@@ -29,7 +31,7 @@ type RunRequest struct {
 }
 
 // Run loads the given function into a secure enclave and invokes it on the given data, then returns the result.
-func Run(req RunRequest) ([]byte, error) {
+func Run(req RunRequest) (*cli.RunResult, error) {
 	conn, doc, err := connect(req.URL, req.FunctionID, req.FunctionAuth, req.FuncChecksum, req.KeyChecksum, req.PcrSlice, req.Insecure)
 	if err != nil {
 		return nil, err
@@ -115,7 +117,7 @@ func connect(url string, functionID string, functionAuth entities.FunctionAuth, 
 	return conn, doc, nil
 }
 
-func invoke(doc *attest.AttestationDoc, conn *websocket.Conn, data []byte) ([]byte, error) {
+func invoke(doc *attest.AttestationDoc, conn *websocket.Conn, data []byte) (*cli.RunResult, error) {
 	if doc == nil {
 		log.Error("missing attestation document, you may need to run cape.Connect()")
 		return nil, errors.New("missing attestation document")
@@ -145,7 +147,7 @@ func invoke(doc *attest.AttestationDoc, conn *websocket.Conn, data []byte) ([]by
 	}
 	log.Debugf("< Received Function Results.")
 
-	return resData.Message, nil
+	return resData, nil
 }
 
 func writeData(conn *websocket.Conn, data []byte) error {

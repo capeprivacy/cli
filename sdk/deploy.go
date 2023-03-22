@@ -9,6 +9,8 @@ import (
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/capeprivacy/cli"
+
 	"github.com/capeprivacy/attest/attest"
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/cli/entities"
@@ -19,7 +21,7 @@ import (
 type protocol interface {
 	WriteStart(request entities.StartRequest) error
 	ReadAttestationDoc() ([]byte, error)
-	ReadRunResults() (*entities.RunResults, error)
+	ReadRunResults() (*cli.RunResult, error)
 	WriteBinary([]byte) error
 	WriteFunctionInfo(name string, public bool) error
 	ReadDeploymentResults() (*entities.SetDeploymentIDRequest, error)

@@ -5,6 +5,8 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	"github.com/capeprivacy/cli"
+
 	"github.com/capeprivacy/cli/entities"
 )
 
@@ -78,11 +80,11 @@ func (p Protocol) ReadDeploymentResults() (*entities.SetDeploymentIDRequest, err
 	return readMsg[entities.SetDeploymentIDRequest](p.Websocket)
 }
 
-func (p Protocol) ReadRunResults() (*entities.RunResults, error) {
-	return readMsg[entities.RunResults](p.Websocket)
+func (p Protocol) ReadRunResults() (*cli.RunResult, error) {
+	return readMsg[cli.RunResult](p.Websocket)
 }
 
-func (p Protocol) WriteRunResults(results entities.RunResults) error {
+func (p Protocol) WriteRunResults(results cli.RunResult) error {
 	return writeMsg(p.Websocket, results)
 }
 

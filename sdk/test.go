@@ -12,6 +12,8 @@ import (
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/capeprivacy/cli"
+
 	"github.com/capeprivacy/attest/attest"
 	"github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/cli/entities"
@@ -38,7 +40,7 @@ type ErrorMsg struct {
 // Test simulates the workflow of Deploy and Run, without storing the function.
 // It loads the given function into an enclave, runs it on the given data, and returns the result.
 // Use Test to verify that your function will work before storing it via Deploy.
-func Test(testReq TestRequest, verifier Verifier, endpoint string, pcrSlice []string) (*entities.RunResults, error) {
+func Test(testReq TestRequest, verifier Verifier, endpoint string, pcrSlice []string) (*cli.RunResult, error) {
 	conn, err := doDial(endpoint, testReq.Insecure, "cape.runtime", testReq.AuthToken)
 	if err != nil {
 		return nil, err
