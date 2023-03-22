@@ -1,6 +1,10 @@
 package sdk
 
 import (
+	"crypto"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -12,7 +16,7 @@ import (
 	"github.com/capeprivacy/cli"
 
 	"github.com/capeprivacy/attest/attest"
-	"github.com/capeprivacy/cli/crypto"
+	capeCrypto "github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/cli/entities"
 	"github.com/capeprivacy/cli/pcrs"
 )
@@ -54,7 +58,7 @@ func connect(url string, functionID string, functionAuth entities.FunctionAuth, 
 		return nil, nil, err
 	}
 
-	nonce, err := crypto.GetNonce()
+	nonce, err := capeCrypto.GetNonce()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -127,7 +131,7 @@ func invoke(doc *attest.AttestationDoc, conn *websocket.Conn, data []byte) (*cli
 		return nil, errors.New("no active connection")
 	}
 
-	encryptedData, err := crypto.LocalEncrypt(*doc, data)
+	encryptedData, err := capeCrypto.LocalEncrypt(*doc, data)
 	if err != nil {
 		log.Println("error encrypting")
 		return nil, err
@@ -147,6 +151,28 @@ func invoke(doc *attest.AttestationDoc, conn *websocket.Conn, data []byte) (*cli
 	}
 	log.Debugf("< Received Function Results.")
 	resData.AttestationDocument = doc
+
+	log.Debugf("* Verifying Function Results.")
+
+	// TODO -- connect is already doing this
+	var ud AttestationUserData
+	if err := json.Unmarshal(doc.UserData, &ud); err != nil {
+		return nil, err
+	}
+
+	publicKey, err := x509.ParsePKCS1PublicKey(ud.SignatureVerificationKey)
+	if err != nil {
+		return nil, err
+	}
+
+	c := sha256.New()
+	if err := json.NewEncoder(c).Encode(resData.Checksums); err != nil {
+		return nil, err
+	}
+
+	if err := rsa.VerifyPSS(publicKey, crypto.SHA256, c.Sum(nil), resData.SignedResults, nil); err != nil {
+		return nil, err
+	}
 
 	return resData, nil
 }
