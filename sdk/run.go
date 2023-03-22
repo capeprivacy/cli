@@ -174,6 +174,8 @@ func invoke(doc *attest.AttestationDoc, conn *websocket.Conn, data []byte) (*cli
 		return nil, err
 	}
 
+	log.Debugf("* Function results verified")
+
 	return resData, nil
 }
 
