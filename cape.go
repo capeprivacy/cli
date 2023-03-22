@@ -1,15 +1,19 @@
 package cli
 
-type VerifiedResults struct {
-	InputSig  []byte `json:"input_signature"`
-	FuncSig   []byte `json:"function_signature"`
-	OutputSig []byte `json:"output_signature"`
+import "github.com/capeprivacy/attest/attest"
+
+type Checksums struct {
+	Input    []byte `json:"input"`
+	Function []byte `json:"function"`
+	Output   []byte `json:"output"`
 }
 
 type RunResult struct {
 	// TODO -- Remove type??
-	Type            string          `json:"type"`
-	Message         []byte          `json:"message"`
-	VerifiedResults VerifiedResults `json:"verified_results"`
-	SignedResults   []byte          `json:"signed_results"`
+	Type          string    `json:"type"`
+	Message       []byte    `json:"message"`
+	Checksums     Checksums `json:"checksums"`
+	SignedResults []byte    `json:"signed_results"`
+
+	AttestationDocument *attest.AttestationDoc `json:"attestation_document"`
 }

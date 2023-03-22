@@ -146,6 +146,7 @@ func invoke(doc *attest.AttestationDoc, conn *websocket.Conn, data []byte) (*cli
 		return nil, err
 	}
 	log.Debugf("< Received Function Results.")
+	resData.AttestationDocument = doc
 
 	return resData, nil
 }

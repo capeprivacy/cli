@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/capeprivacy/attest/attest"
 	"github.com/spf13/cobra"
 
 	"github.com/capeprivacy/cli"
@@ -228,12 +229,14 @@ func runPlain(result cli.RunResult) error {
 
 func runJSON(result cli.RunResult) error {
 	return json.NewEncoder(os.Stdout).Encode(struct {
-		Output          string              `json:"output"`
-		VerifiedResults cli.VerifiedResults `json:"verified_results"`
-		SignedResults   []byte              `json:"signed_results"`
+		Output         string                 `json:"output"`
+		Checksums      cli.Checksums          `json:"checksums"`
+		SignedResults  []byte                 `json:"signed_results"`
+		AttestationDoc *attest.AttestationDoc `json:"attestation_doc"`
 	}{
-		Output:          string(result.Message),
-		VerifiedResults: result.VerifiedResults,
-		SignedResults:   result.SignedResults,
+		Output:         string(result.Message),
+		Checksums:      result.Checksums,
+		SignedResults:  result.SignedResults,
+		AttestationDoc: result.AttestationDocument,
 	})
 }
