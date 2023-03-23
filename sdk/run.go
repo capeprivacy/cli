@@ -79,6 +79,9 @@ func connect(url string, functionID string, functionAuth entities.FunctionAuth, 
 		return nil, nil, err
 	}
 
+	fmt.Println("THIS IS THE ATTEST DOC")
+	fmt.Println(attestDoc)
+
 	verifier := attest.NewVerifier()
 
 	log.Debug("< Auth Completed. Received Attestation Document")
@@ -174,7 +177,7 @@ func invoke(doc *attest.AttestationDoc, conn *websocket.Conn, data []byte) (*cli
 		return nil, err
 	}
 
-	log.Debugf("* Function results verified")
+	log.Debugf("* Function Results Verified")
 
 	return resData, nil
 }

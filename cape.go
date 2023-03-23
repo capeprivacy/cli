@@ -13,7 +13,7 @@ type RunResult struct {
 	Type          string    `json:"type"`
 	Message       []byte    `json:"message"`
 	Checksums     Checksums `json:"checksums"`
-	SignedResults []byte    `json:"signed_results"`
+	SignedResults []byte    `json:"signed_checksums"`
 
 	AttestationDocument *attest.AttestationDoc `json:"attestation_document"`
 }
