@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -80,7 +81,7 @@ func connect(url string, functionID string, functionAuth entities.FunctionAuth, 
 	}
 
 	fmt.Println("THIS IS THE ATTEST DOC")
-	fmt.Println(attestDoc)
+	fmt.Println(hex.EncodeToString(attestDoc))
 
 	verifier := attest.NewVerifier()
 
