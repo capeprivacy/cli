@@ -238,7 +238,7 @@ func runJSON(result cli.RunResult) error {
 	}{
 		Output:            string(result.Message),
 		Checksums:         result.Checksums,
-		SignedResults:     result.SignedResults,
+		SignedResults:     result.SignedChecksums,
 		AttestationDoc:    result.DecodedAttestationDocument,
 		RawAttestationDoc: result.RawAttestationDocument,
 	})

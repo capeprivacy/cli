@@ -170,7 +170,7 @@ func invoke(attestDoc *attestationDoc, conn *websocket.Conn, data []byte) (*cli.
 		return nil, err
 	}
 
-	if err := rsa.VerifyPSS(publicKey, crypto.SHA256, c.Sum(nil), resData.SignedResults, nil); err != nil {
+	if err := rsa.VerifyPSS(publicKey, crypto.SHA256, c.Sum(nil), resData.SignedChecksums, nil); err != nil {
 		return nil, err
 	}
 

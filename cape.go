@@ -9,10 +9,10 @@ type Checksums struct {
 }
 
 type RunResult struct {
-	Type          string    `json:"type"`
-	Message       []byte    `json:"message"`
-	Checksums     Checksums `json:"checksums"`
-	SignedResults []byte    `json:"signed_checksums"`
+	Type            string    `json:"type"`
+	Message         []byte    `json:"message"`
+	Checksums       Checksums `json:"checksums"`
+	SignedChecksums []byte    `json:"signed_checksums"`
 
 	DecodedAttestationDocument *attest.AttestationDoc `json:"decoded_attestation_document"`
 	RawAttestationDocument     []byte                 `json:"raw_attestation_document"`
