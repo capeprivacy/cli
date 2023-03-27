@@ -1,6 +1,10 @@
 package sdk
 
 import (
+	"crypto"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -12,7 +16,7 @@ import (
 	"github.com/capeprivacy/cli"
 
 	"github.com/capeprivacy/attest/attest"
-	"github.com/capeprivacy/cli/crypto"
+	capeCrypto "github.com/capeprivacy/cli/crypto"
 	"github.com/capeprivacy/cli/entities"
 	"github.com/capeprivacy/cli/pcrs"
 )
@@ -30,6 +34,11 @@ type RunRequest struct {
 	Insecure bool
 }
 
+type attestationDoc struct {
+	decoded *attest.AttestationDoc
+	raw     []byte
+}
+
 // Run loads the given function into a secure enclave and invokes it on the given data, then returns the result.
 func Run(req RunRequest) (*cli.RunResult, error) {
 	conn, doc, err := connect(req.URL, req.FunctionID, req.FunctionAuth, req.FuncChecksum, req.KeyChecksum, req.PcrSlice, req.Insecure)
@@ -43,7 +52,7 @@ func Run(req RunRequest) (*cli.RunResult, error) {
 	return invoke(doc, conn, req.Data)
 }
 
-func connect(url string, functionID string, functionAuth entities.FunctionAuth, funcChecksum []byte, keyChecksum []byte, pcrSlice []string, insecure bool) (*websocket.Conn, *attest.AttestationDoc, error) {
+func connect(url string, functionID string, functionAuth entities.FunctionAuth, funcChecksum []byte, keyChecksum []byte, pcrSlice []string, insecure bool) (*websocket.Conn, *attestationDoc, error) {
 	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
 
 	authProtocolType := "cape.runtime"
@@ -54,7 +63,7 @@ func connect(url string, functionID string, functionAuth entities.FunctionAuth, 
 		return nil, nil, err
 	}
 
-	nonce, err := crypto.GetNonce()
+	nonce, err := capeCrypto.GetNonce()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -114,20 +123,14 @@ func connect(url string, functionID string, functionAuth entities.FunctionAuth, 
 		return nil, nil, fmt.Errorf("returned key policy checksum did not match provided, got: %x, want %x", userData.KeyChecksum, keyChecksum)
 	}
 
-	return conn, doc, nil
+	return conn, &attestationDoc{
+		decoded: doc,
+		raw:     attestDoc,
+	}, nil
 }
 
-func invoke(doc *attest.AttestationDoc, conn *websocket.Conn, data []byte) (*cli.RunResult, error) {
-	if doc == nil {
-		log.Error("missing attestation document, you may need to run cape.Connect()")
-		return nil, errors.New("missing attestation document")
-	}
-	if conn == nil {
-		log.Error("missing websocket connection, you may need to run cape.Connect()")
-		return nil, errors.New("no active connection")
-	}
-
-	encryptedData, err := crypto.LocalEncrypt(*doc, data)
+func invoke(attestDoc *attestationDoc, conn *websocket.Conn, data []byte) (*cli.RunResult, error) {
+	encryptedData, err := capeCrypto.LocalEncrypt(*attestDoc.decoded, data)
 	if err != nil {
 		log.Println("error encrypting")
 		return nil, err
@@ -146,6 +149,32 @@ func invoke(doc *attest.AttestationDoc, conn *websocket.Conn, data []byte) (*cli
 		return nil, err
 	}
 	log.Debugf("< Received Function Results.")
+	resData.DecodedAttestationDocument = attestDoc.decoded
+	resData.RawAttestationDocument = attestDoc.raw
+
+	log.Debugf("* Verifying Function Results.")
+
+	// TODO -- connect is already doing this
+	var ud AttestationUserData
+	if err := json.Unmarshal(attestDoc.decoded.UserData, &ud); err != nil {
+		return nil, err
+	}
+
+	publicKey, err := x509.ParsePKCS1PublicKey(ud.SignatureVerificationKey)
+	if err != nil {
+		return nil, err
+	}
+
+	c := sha256.New()
+	if err := json.NewEncoder(c).Encode(resData.Checksums); err != nil {
+		return nil, err
+	}
+
+	if err := rsa.VerifyPSS(publicKey, crypto.SHA256, c.Sum(nil), resData.SignedChecksums, nil); err != nil {
+		return nil, err
+	}
+
+	log.Debugf("* Function Results Verified")
 
 	return resData, nil
 }

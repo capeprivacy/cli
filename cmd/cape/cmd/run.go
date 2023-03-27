@@ -13,6 +13,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/capeprivacy/attest/attest"
+
 	"github.com/capeprivacy/cli"
 
 	"github.com/capeprivacy/cli/entities"
@@ -228,8 +230,16 @@ func runPlain(result cli.RunResult) error {
 
 func runJSON(result cli.RunResult) error {
 	return json.NewEncoder(os.Stdout).Encode(struct {
-		Output string `json:"output"`
+		Output            string                 `json:"output"`
+		Checksums         cli.Checksums          `json:"checksums"`
+		SignedResults     []byte                 `json:"signed_results"`
+		AttestationDoc    *attest.AttestationDoc `json:"attestation_doc"`
+		RawAttestationDoc []byte                 `json:"raw_attestation_doc"`
 	}{
-		Output: string(result.Message),
+		Output:            string(result.Message),
+		Checksums:         result.Checksums,
+		SignedResults:     result.SignedChecksums,
+		AttestationDoc:    result.DecodedAttestationDocument,
+		RawAttestationDoc: result.RawAttestationDocument,
 	})
 }
