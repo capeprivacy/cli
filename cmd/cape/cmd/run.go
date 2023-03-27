@@ -11,8 +11,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/capeprivacy/attest/attest"
 	"github.com/spf13/cobra"
+
+	"github.com/capeprivacy/attest/attest"
 
 	"github.com/capeprivacy/cli"
 
