@@ -9,7 +9,6 @@ type Checksums struct {
 }
 
 type RunResult struct {
-	// TODO -- Remove type??
 	Type          string    `json:"type"`
 	Message       []byte    `json:"message"`
 	Checksums     Checksums `json:"checksums"`
