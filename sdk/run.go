@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -35,6 +34,11 @@ type RunRequest struct {
 	Insecure bool
 }
 
+type attestationDoc struct {
+	decoded *attest.AttestationDoc
+	raw     []byte
+}
+
 // Run loads the given function into a secure enclave and invokes it on the given data, then returns the result.
 func Run(req RunRequest) (*cli.RunResult, error) {
 	conn, doc, err := connect(req.URL, req.FunctionID, req.FunctionAuth, req.FuncChecksum, req.KeyChecksum, req.PcrSlice, req.Insecure)
@@ -48,7 +52,7 @@ func Run(req RunRequest) (*cli.RunResult, error) {
 	return invoke(doc, conn, req.Data)
 }
 
-func connect(url string, functionID string, functionAuth entities.FunctionAuth, funcChecksum []byte, keyChecksum []byte, pcrSlice []string, insecure bool) (*websocket.Conn, *attest.AttestationDoc, error) {
+func connect(url string, functionID string, functionAuth entities.FunctionAuth, funcChecksum []byte, keyChecksum []byte, pcrSlice []string, insecure bool) (*websocket.Conn, *attestationDoc, error) {
 	endpoint := fmt.Sprintf("%s/v1/run/%s", url, functionID)
 
 	authProtocolType := "cape.runtime"
@@ -79,9 +83,6 @@ func connect(url string, functionID string, functionAuth entities.FunctionAuth, 
 	if err != nil {
 		return nil, nil, err
 	}
-
-	fmt.Println("THIS IS THE ATTEST DOC")
-	fmt.Println(hex.EncodeToString(attestDoc))
 
 	verifier := attest.NewVerifier()
 
@@ -122,20 +123,14 @@ func connect(url string, functionID string, functionAuth entities.FunctionAuth, 
 		return nil, nil, fmt.Errorf("returned key policy checksum did not match provided, got: %x, want %x", userData.KeyChecksum, keyChecksum)
 	}
 
-	return conn, doc, nil
+	return conn, &attestationDoc{
+		decoded: doc,
+		raw:     attestDoc,
+	}, nil
 }
 
-func invoke(doc *attest.AttestationDoc, conn *websocket.Conn, data []byte) (*cli.RunResult, error) {
-	if doc == nil {
-		log.Error("missing attestation document, you may need to run cape.Connect()")
-		return nil, errors.New("missing attestation document")
-	}
-	if conn == nil {
-		log.Error("missing websocket connection, you may need to run cape.Connect()")
-		return nil, errors.New("no active connection")
-	}
-
-	encryptedData, err := capeCrypto.LocalEncrypt(*doc, data)
+func invoke(attestDoc *attestationDoc, conn *websocket.Conn, data []byte) (*cli.RunResult, error) {
+	encryptedData, err := capeCrypto.LocalEncrypt(*attestDoc.decoded, data)
 	if err != nil {
 		log.Println("error encrypting")
 		return nil, err
@@ -154,13 +149,14 @@ func invoke(doc *attest.AttestationDoc, conn *websocket.Conn, data []byte) (*cli
 		return nil, err
 	}
 	log.Debugf("< Received Function Results.")
-	resData.AttestationDocument = doc
+	resData.DecodedAttestationDocument = attestDoc.decoded
+	resData.RawAttestationDocument = attestDoc.raw
 
 	log.Debugf("* Verifying Function Results.")
 
 	// TODO -- connect is already doing this
 	var ud AttestationUserData
-	if err := json.Unmarshal(doc.UserData, &ud); err != nil {
+	if err := json.Unmarshal(attestDoc.decoded.UserData, &ud); err != nil {
 		return nil, err
 	}
 

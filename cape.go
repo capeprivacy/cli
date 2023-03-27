@@ -15,5 +15,6 @@ type RunResult struct {
 	Checksums     Checksums `json:"checksums"`
 	SignedResults []byte    `json:"signed_checksums"`
 
-	AttestationDocument *attest.AttestationDoc `json:"attestation_document"`
+	DecodedAttestationDocument *attest.AttestationDoc `json:"decoded_attestation_document"`
+	RawAttestationDocument     []byte                 `json:"raw_attestation_document"`
 }
