@@ -54,6 +54,7 @@ with cape run (see cape run -h for details).
 func init() {
 	rootCmd.AddCommand(deployCmd)
 
+	deployCmd.PersistentFlags().StringP("token", "t", "", "authorization token to use")
 	deployCmd.PersistentFlags().StringP("name", "n", "", "a name to give this function (default is the directory name)")
 	deployCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
 	deployCmd.PersistentFlags().BoolP("public", "", false, "make the function public (anyone can run it)")
@@ -87,12 +88,22 @@ func deploy(cmd *cobra.Command, args []string) error {
 	functionInput := args[0]
 	name := getName(functionInput, n)
 
-	dID, checksum, err := doDeploy(u, functionInput, name, insecure, pcrSlice, public)
+	token, _ := cmd.Flags().GetString("token")
+	if token == "" {
+		t, err := getAuthToken()
+		if err != nil {
+			return err
+		}
+
+		token = t
+	}
+
+	dID, checksum, err := doDeploy(u, token, functionInput, name, insecure, pcrSlice, public)
 	if err != nil {
 		return err
 	}
 
-	username, err := getUsername()
+	username, err := getUsername(token)
 	if err != nil {
 		return err
 	}
@@ -123,7 +134,7 @@ func getName(functionInput string, nameFlag string) string {
 	return strings.Split(filepath.Base(functionInput), ".")[0]
 }
 
-func doDeploy(url string, functionInput string, functionName string, insecure bool, pcrSlice []string, public bool) (string, []byte, error) {
+func doDeploy(url string, token string, functionInput string, functionName string, insecure bool, pcrSlice []string, public bool) (string, []byte, error) {
 	file, err := os.Open(functionInput)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to read function directory or file: %w", err)
@@ -190,11 +201,6 @@ func doDeploy(url string, functionInput string, functionName string, insecure bo
 		reader = bytes.NewBuffer(buf)
 	}
 
-	token, err := getAuthToken()
-	if err != nil {
-		return "", nil, err
-	}
-
 	keyReq, err := GetKeyRequest(pcrSlice)
 	if err != nil {
 		return "", nil, err
@@ -240,12 +246,7 @@ func zipSize(path string) (uint64, error) {
 	return size, nil
 }
 
-func getUsername() (string, error) {
-	t, err := getAuthToken()
-	if err != nil {
-		return "", err
-	}
-
+func getUsername(t string) (string, error) {
 	token, err := jwt.Parse([]byte(t), jwt.WithVerify(false))
 	if err != nil {
 		return "", err
@@ -271,5 +272,5 @@ func getAuthToken() (string, error) {
 
 var deployTmpl = `Function ID       ➜  {{ .ID }}
 Function Checksum ➜  {{ .Checksum }}
-Function Name     ➜  {{ .FunctionName }} 
+Function Name     ➜  {{ .FunctionName }}
 `
