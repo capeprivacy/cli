@@ -1,40 +1,20 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
-	"strings"
-	"time"
 
+	"golang.org/x/oauth2"
+
+	"github.com/capeprivacy/cli/oauth2device"
 	"github.com/capeprivacy/cli/sdk"
 
-	"github.com/avast/retry-go"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
-
-type DeviceCodeResponse struct {
-	VerificationURIComplete string `json:"verification_uri_complete"`
-	UserCode                string `json:"user_code"`
-	DeviceCode              string `json:"device_code"`
-	ExpiresIn               int    `json:"expires_in"`
-	Interval                int    `json:"interval"`
-}
-
-type TokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	IDToken      string `json:"id_token"`
-	TokenType    string `json:"token_type"`
-	ExpiresIn    int    `json:"expires_in"`
-}
 
 var loginCmd = &cobra.Command{
 	Use:   "login",
@@ -54,27 +34,42 @@ func init() {
 }
 
 func login(cmd *cobra.Command, args []string) error {
-	deviceCodeResponse, err := newDeviceCode()
-	if err != nil {
-		return err
-	}
-
-	var tokenResponse *TokenResponse
-	err = retry.Do(
-		func() error {
-			response, err := getToken(deviceCodeResponse.DeviceCode)
-			tokenResponse = response
-			return err
+	cfg := &oauth2.Config{
+		ClientID: C.ClientID,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  fmt.Sprintf("%s/oauth/authorize", C.AuthHost),
+			TokenURL: fmt.Sprintf("%s/oauth/token", C.AuthHost),
 		},
-		retry.Attempts(uint(deviceCodeResponse.ExpiresIn/deviceCodeResponse.Interval)),
-		retry.DelayType(retry.FixedDelay),
-		retry.Delay(time.Duration(deviceCodeResponse.Interval)*time.Second),
-	)
+		Scopes: []string{"openid", "profile", "email", "offline_access"},
+	}
+
+	dCfg := &oauth2device.Config{
+		Config: cfg,
+		DeviceEndpoint: oauth2device.Endpoint{
+			CodeURL: fmt.Sprintf("%s/oauth/device/code", C.AuthHost),
+		},
+		Audience: C.Audience,
+	}
+
+	dc, err := dCfg.DeviceCode(context.TODO())
 	if err != nil {
 		return err
 	}
 
-	err = persistTokenResponse(tokenResponse)
+	fmt.Printf("Your CLI confirmation code is: %s\n", dc.UserCode)
+	fmt.Printf("Visit this URL to complete the login process: %s\n", dc.VerificationURIComplete)
+	// Since we're printing the URL, we can safely ignore any error attempting to open the browser
+	_ = openbrowser(dc.VerificationURIComplete)
+
+	tok, err := dCfg.Wait(context.TODO(), dc)
+	if err != nil {
+		if errors.Is(err, oauth2device.ErrAccessDenied) {
+			cmd.SilenceUsage = true
+		}
+		return err
+	}
+
+	err = persistTokenResponse(tok)
 	if err != nil {
 		return err
 	}
@@ -106,80 +101,20 @@ func login(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func newDeviceCode() (*DeviceCodeResponse, error) {
-	deviceCodeURL := fmt.Sprintf("%s/oauth/device/code", C.AuthHost)
-	payloadStr := fmt.Sprintf("client_id=%s&scope=openid%%20profile%%20email%%20offline_access&audience=%s", C.ClientID, C.Audience)
-	req, err := http.NewRequest("POST", deviceCodeURL, strings.NewReader(payloadStr))
-	if err != nil {
-		return nil, err
+func persistTokenResponse(t *oauth2.Token) error {
+	var tok struct {
+		*oauth2.Token
+		IDToken string `json:"id_token,omitempty"`
 	}
 
-	req.Header.Add("content-type", "application/x-www-form-urlencoded")
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
+	idTok, ok := t.Extra("id_token").(string)
+	if !ok {
+		fmt.Println("no id token")
 	}
+	tok.Token = t
+	tok.IDToken = idTok
 
-	defer res.Body.Close()
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if res.StatusCode != 200 {
-		log.Errorf("unable to login to cape, error: %s", res.Status)
-	}
-
-	response := DeviceCodeResponse{}
-	err = json.Unmarshal(body, &response)
-
-	if err != nil {
-		return nil, err
-	}
-	if len(response.VerificationURIComplete) == 0 {
-		return nil, errors.New("unknown response detected")
-	}
-
-	fmt.Printf("Your CLI confirmation code is: %s\n", response.UserCode)
-	fmt.Printf("Visit this URL to complete the login process: %s\n", response.VerificationURIComplete)
-	// Since we're printing the URL, we can safely ignore any error attempting to open the browser
-	_ = openbrowser(response.VerificationURIComplete)
-
-	return &response, nil
-}
-
-func getToken(deviceCode string) (*TokenResponse, error) {
-	tokenURL := fmt.Sprintf("%s/oauth/token", C.AuthHost)
-	payload := strings.NewReader(fmt.Sprintf("grant_type=urn%%3Aietf%%3Aparams%%3Aoauth%%3Agrant-type%%3Adevice_code&device_code=%s&client_id=%s", deviceCode, C.ClientID))
-	req, _ := http.NewRequest("POST", tokenURL, payload)
-
-	req.Header.Add("content-type", "application/x-www-form-urlencoded")
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	defer res.Body.Close()
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if res.StatusCode != 200 {
-		return nil, errors.New("authorization pending")
-	}
-
-	response := TokenResponse{}
-	err = json.Unmarshal(body, &response)
-	if err != nil {
-		return nil, err
-	}
-
-	return &response, nil
-}
-
-func persistTokenResponse(response *TokenResponse) error {
-	authJSON, err := json.MarshalIndent(response, "", "  ")
+	authJSON, err := json.MarshalIndent(tok, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -189,27 +124,6 @@ func persistTokenResponse(response *TokenResponse) error {
 		return err
 	}
 	return nil
-}
-
-func getTokenResponse() (*TokenResponse, error) {
-	authFile, err := os.Open(filepath.Join(C.LocalConfigDir, C.LocalAuthFileName))
-	if err != nil {
-		return nil, err
-	}
-	defer authFile.Close()
-
-	byteValue, err := io.ReadAll(authFile)
-	if err != nil {
-		return nil, err
-	}
-
-	var response TokenResponse
-	err = json.Unmarshal(byteValue, &response)
-	if err != nil {
-		return nil, err
-	}
-
-	return &response, nil
 }
 
 // Based on GIST: https://gist.github.com/hyg/9c4afcd91fe24316cbf0

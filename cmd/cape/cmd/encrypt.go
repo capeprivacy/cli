@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/spf13/cobra"
 
+	"github.com/capeprivacy/cli"
 	"github.com/capeprivacy/cli/sdk"
 )
 
@@ -49,13 +51,19 @@ func encrypt(cmd *cobra.Command, args []string) error {
 	}
 
 	if username == "" {
-		t, err := getTokenResponse()
+		t, err := cli.TokenFromFile(filepath.Join(C.LocalConfigDir, C.LocalAuthFileName))
 		if err != nil {
 			cmd.SilenceUsage = true
 			return fmt.Errorf("couldn't get username from ~/.config/cape/auth id token, are you logged in? (run `cape login`)")
 		}
 
-		j, err := jwt.ParseInsecure([]byte(t.IDToken))
+		idTok, ok := t.Extra("id_token").(string)
+		if !ok {
+			cmd.SilenceUsage = true
+			return fmt.Errorf("couldn't get username from ~/.config/cape/auth id token, are you logged in? (run `cape login`)")
+		}
+
+		j, err := jwt.ParseInsecure([]byte(idTok))
 		if err != nil {
 			cmd.SilenceUsage = true
 			return fmt.Errorf("couldn't get username from ~/.config/cape/auth id token, are you logged in? (run `cape login`)")
