@@ -15,9 +15,10 @@ import (
 )
 
 type AttestationUserData struct {
-	FuncChecksum []byte `json:"func_checksum"`
-	KeyChecksum  []byte `json:"key_checksum"`
-	CapeKey      []byte `json:"key"`
+	FuncChecksum             []byte `json:"func_checksum"`
+	KeyChecksum              []byte `json:"key_checksum"`
+	CapeKey                  []byte `json:"key"`
+	SignatureVerificationKey []byte `json:"signature_verification_public_key,omitempty"`
 }
 
 type KeyRequest struct {
