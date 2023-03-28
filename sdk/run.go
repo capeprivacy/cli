@@ -152,29 +152,30 @@ func invoke(attestDoc *attestationDoc, conn *websocket.Conn, data []byte) (*cli.
 	resData.DecodedAttestationDocument = attestDoc.decoded
 	resData.RawAttestationDocument = attestDoc.raw
 
-	log.Debugf("* Verifying Function Results.")
-
 	// TODO -- connect is already doing this
 	var ud AttestationUserData
 	if err := json.Unmarshal(attestDoc.decoded.UserData, &ud); err != nil {
 		return nil, err
 	}
 
-	publicKey, err := x509.ParsePKCS1PublicKey(ud.SignatureVerificationKey)
-	if err != nil {
-		return nil, err
-	}
+	if ud.SignatureVerificationKey != nil {
+		log.Debugf("* Verifying Function Results.")
+		publicKey, err := x509.ParsePKCS1PublicKey(ud.SignatureVerificationKey)
+		if err != nil {
+			return nil, err
+		}
 
-	c := sha256.New()
-	if err := json.NewEncoder(c).Encode(resData.Checksums); err != nil {
-		return nil, err
-	}
+		c := sha256.New()
+		if err := json.NewEncoder(c).Encode(resData.Checksums); err != nil {
+			return nil, err
+		}
 
-	if err := rsa.VerifyPSS(publicKey, crypto.SHA256, c.Sum(nil), resData.SignedChecksums, nil); err != nil {
-		return nil, err
-	}
+		if err := rsa.VerifyPSS(publicKey, crypto.SHA256, c.Sum(nil), resData.SignedChecksums, nil); err != nil {
+			return nil, err
+		}
 
-	log.Debugf("* Function Results Verified")
+		log.Debugf("* Function Results Verified")
+	}
 
 	return resData, nil
 }
