@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -26,6 +27,8 @@ var deleteCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(deleteCmd)
+
+	deleteCmd.PersistentFlags().StringP("token", "t", "", "authorization token to use")
 }
 
 func delete(cmd *cobra.Command, args []string) error {
@@ -38,12 +41,18 @@ func delete(cmd *cobra.Command, args []string) error {
 
 	functionID := args[0]
 
-	t, err := authToken()
-	if err != nil {
-		return err
+	token, _ := cmd.Flags().GetString("token")
+	if token == "" {
+		t, err := authToken()
+		if err != nil {
+			return err
+		}
+
+		token = t
 	}
-	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeUserToken, Token: t}
-	err = doDelete(u, functionID, insecure, auth)
+
+	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeUserToken, Token: token}
+	err := doDelete(u, functionID, insecure, auth)
 	if err != nil {
 		return fmt.Errorf("delete failed: %w", err)
 	}
@@ -71,6 +80,16 @@ func doDelete(url string, functionID string, insecure bool, auth entities.Functi
 		if res.StatusCode == 404 {
 			return fmt.Errorf("function ID not found: %s", functionID)
 		}
+
+		var errMsg ErrorMsg
+		if err := json.NewDecoder(res.Body).Decode(&errMsg); err != nil {
+			return fmt.Errorf("expected 200, got server response code %d and could not decode err msg", res.StatusCode)
+		}
+
+		if errMsg.Error() != "" {
+			return errMsg
+		}
+
 		return fmt.Errorf("expected 200, got server response code %d", res.StatusCode)
 	}
 

@@ -201,7 +201,7 @@ func doDeploy(url string, token string, functionInput string, functionName strin
 		reader = bytes.NewBuffer(buf)
 	}
 
-	keyReq, err := GetKeyRequest(pcrSlice)
+	keyReq, err := GetKeyRequest(pcrSlice, token)
 	if err != nil {
 		return "", nil, err
 	}
