@@ -79,7 +79,12 @@ func login(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	keyReq, err := GetKeyRequest([]string{})
+	authToken, err := getAuthToken()
+	if err != nil {
+		return err
+	}
+
+	keyReq, err := GetKeyRequest([]string{}, authToken)
 	if err != nil {
 		return err
 	}
@@ -87,11 +92,6 @@ func login(cmd *cobra.Command, args []string) error {
 	_, err = sdk.Key(keyReq)
 	if err != nil {
 		fmt.Println("Unable to fetch cape key, try running 'cape key' after login")
-	}
-
-	authToken, err := getAuthToken()
-	if err != nil {
-		return err
 	}
 
 	customerID, _ := cmd.Flags().GetString("link-aws-account")

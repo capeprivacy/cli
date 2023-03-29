@@ -38,7 +38,12 @@ func key(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "error retrieving pcr flags", Err: err}
 	}
 
-	keyReq, err := GetKeyRequest(pcrSlice)
+	token, err := getAuthToken()
+	if err != nil {
+		return err
+	}
+
+	keyReq, err := GetKeyRequest(pcrSlice, token)
 	if err != nil {
 		return err
 	}
@@ -68,16 +73,11 @@ func key(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func GetKeyRequest(pcrSlice []string) (sdk.KeyRequest, error) {
-	t, err := getAuthToken()
-	if err != nil {
-		return sdk.KeyRequest{}, err
-	}
-
+func GetKeyRequest(pcrSlice []string, token string) (sdk.KeyRequest, error) {
 	return sdk.KeyRequest{
 		URL:          C.EnclaveHost,
 		Insecure:     C.Insecure,
-		FunctionAuth: entities.FunctionAuth{Type: entities.AuthenticationTypeUserToken, Token: t},
+		FunctionAuth: entities.FunctionAuth{Type: entities.AuthenticationTypeUserToken, Token: token},
 		ConfigDir:    C.LocalConfigDir,
 		CapeKeyFile:  C.LocalCapeKeyFileName,
 		PcrSlice:     pcrSlice,

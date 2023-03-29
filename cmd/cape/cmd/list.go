@@ -16,7 +16,11 @@ import (
 )
 
 type ErrorMsg struct {
-	Error string `json:"error"`
+	ErrorMsg string `json:"error"`
+}
+
+func (e ErrorMsg) Error() string {
+	return e.ErrorMsg
 }
 
 type ErrServerForList struct {
@@ -116,7 +120,7 @@ func doList(url string, insecure bool, auth entities.FunctionAuth, limit int, of
 			return ErrUnauthorized
 		}
 
-		return ErrServerForList{res.StatusCode, e.Error}
+		return ErrServerForList{res.StatusCode, e.ErrorMsg}
 	}
 
 	body, err := io.ReadAll(res.Body)
