@@ -70,7 +70,7 @@ func TestBadFunction(t *testing.T) {
 		t.Fatal(errors.New("received no error when we should have"))
 	}
 
-	if got, want := stderr.String(), "Error: unable to zip specified directory: zipping directory failed: lstat notafunction: no such file or directory\n"; got != want {
+	if got, want := stderr.String(), "Error: unable to process user function input: unable to read function directory or file: open testdata/notafunction: no such file or directory\n"; got != want {
 		t.Errorf("didn't get expected stderr, got %s, wanted %s", got, want)
 	}
 

@@ -14,7 +14,6 @@ import (
 
 	"github.com/capeprivacy/attest/attest"
 	"github.com/capeprivacy/cli/sdk"
-	czip "github.com/capeprivacy/cli/zip"
 )
 
 var testCmd = &cobra.Command{
@@ -56,11 +55,15 @@ func Test(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "you must provide input data", Err: fmt.Errorf("invalid number of input arguments")}
 	}
 
-	fnZip, err := czip.Create(args[0])
+	userFunc, err := sdk.ProcessUserFunction(args[0])
 	if err != nil {
-		return UserError{Msg: "unable to zip specified directory", Err: err}
+		return UserError{Msg: "unable to process user function input", Err: err}
 	}
 
+	fnZip, err := io.ReadAll(userFunc)
+	if err != nil {
+		return UserError{Msg: "unable to read user function input", Err: err}
+	}
 	var input []byte
 	file, err := cmd.Flags().GetString("file")
 	if err != nil {
