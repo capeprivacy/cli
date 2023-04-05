@@ -131,8 +131,8 @@ func ExecuteCLI() {
 	// give up on trying to see if there is an update
 	updateCancel()
 	if release := <-releaseCh; release != nil {
-		fmt.Printf("\nThere is a new version (%s) of the Cape CLI available, you can download it at https://github.com/capeprivacy/cli/releases/latest\n", release.TagName)
-		fmt.Println("Or upgrade by running \n\tcurl -fsSL https://raw.githubusercontent.com/capeprivacy/cli/main/install.sh | sh")
+		_, _ = fmt.Fprintf(os.Stderr, "\nThere is a new version (%s) of the Cape CLI available, you can download it at https://github.com/capeprivacy/cli/releases/latest\n", release.TagName)
+		_, _ = fmt.Fprintf(os.Stderr, "Or upgrade by running \n\tcurl -fsSL https://raw.githubusercontent.com/capeprivacy/cli/main/install.sh | sh")
 	}
 }
 
