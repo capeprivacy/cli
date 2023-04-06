@@ -13,6 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/capeprivacy/attest/attest"
+	"github.com/capeprivacy/cli/entities"
 	"github.com/capeprivacy/cli/sdk"
 )
 
@@ -40,7 +41,7 @@ Results are output to stdout so you can easily pipe them elsewhere`,
 
 func init() {
 	rootCmd.AddCommand(testCmd)
-
+	testCmd.PersistentFlags().StringP("token", "t", "", "authorization token to use")
 	testCmd.PersistentFlags().StringP("file", "f", "", "input data file (or '-f -' to accept stdin)")
 	testCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against")
 }
@@ -96,9 +97,16 @@ func Test(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "invalid input", Err: errors.New("please provide input as a string, input file or stdin")}
 	}
 
-	token, err := authToken()
-	if err != nil {
-		return err
+	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeUserToken}
+	token, _ := cmd.Flags().GetString("token")
+	if token != "" {
+		auth.Token = token
+	} else {
+		token, err := authToken()
+		if err != nil {
+			return err
+		}
+		auth.Token = token
 	}
 
 	verifier := attest.NewVerifier()
