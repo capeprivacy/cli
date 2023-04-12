@@ -3,7 +3,6 @@ package cmd
 import (
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
 
 	"github.com/spf13/cobra"
 
@@ -38,7 +37,7 @@ func key(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "error retrieving pcr flags", Err: err}
 	}
 
-	token, err := getAuthToken()
+	token, err := authTokenFunc()
 	if err != nil {
 		return err
 	}
@@ -48,7 +47,7 @@ func key(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	capeKey, err := sdk.Key(keyReq)
+	capeKey, err := keyFunc(keyReq)
 	if err != nil {
 		return err
 	}
@@ -57,18 +56,20 @@ func key(cmd *cobra.Command, args []string) error {
 	//  ...but NOTE that Cape will only support decryption if envelope encryption is used.
 	p, err := x509.ParsePKIXPublicKey(capeKey)
 	if err != nil {
-		return err
+		return UserError{Msg: "error: key in unexpected format", Err: err}
 	}
 
 	m, err := x509.MarshalPKIXPublicKey(p)
 	if err != nil {
-		return err
+		return UserError{Msg: "error: key in unexpected format", Err: err}
 	}
 
-	fmt.Println(string(pem.EncodeToMemory(&pem.Block{
+	if _, err := cmd.OutOrStdout().Write(pem.EncodeToMemory(&pem.Block{
 		Type:  "PUBLIC KEY",
 		Bytes: m,
-	})))
+	})); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -83,3 +84,6 @@ func GetKeyRequest(pcrSlice []string, token string) (sdk.KeyRequest, error) {
 		PcrSlice:     pcrSlice,
 	}, nil
 }
+
+var authTokenFunc = getAuthToken
+var keyFunc = sdk.Key
