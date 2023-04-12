@@ -29,6 +29,7 @@ func init() {
 	rootCmd.AddCommand(keyCmd)
 
 	keyCmd.PersistentFlags().StringSliceP("pcr", "p", []string{""}, "pass multiple PCRs to validate against, used while getting key for the first time")
+	keyCmd.PersistentFlags().StringP("token", "t", "", "authorization token to use")
 }
 
 func key(cmd *cobra.Command, args []string) error {
@@ -37,9 +38,14 @@ func key(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "error retrieving pcr flags", Err: err}
 	}
 
-	token, err := authTokenFunc()
-	if err != nil {
-		return err
+	token, _ := cmd.Flags().GetString("token")
+	if token == "" {
+		t, err := authTokenFunc()
+		if err != nil {
+			return err
+		}
+
+		token = t
 	}
 
 	keyReq, err := GetKeyRequest(pcrSlice, token)

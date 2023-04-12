@@ -9,9 +9,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/gorilla/websocket"
+
 	"github.com/capeprivacy/attest/attest"
 	"github.com/capeprivacy/cli/mocks"
-	"github.com/gorilla/websocket"
 )
 
 func TestKeyNotPresent(t *testing.T) {
