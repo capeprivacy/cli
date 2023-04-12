@@ -50,6 +50,7 @@ var listCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(listCmd)
+	listCmd.PersistentFlags().StringP("token", "t", "", "authorization token to use")
 	listCmd.PersistentFlags().IntP("limit", "", 50, "Limit the number of functions returned.")
 	listCmd.PersistentFlags().IntP("offset", "", 0, "Number of functions to skip before listing.")
 }
@@ -77,11 +78,17 @@ func list(cmd *cobra.Command, args []string) error {
 		return UserError{Msg: "list does not take any arguments", Err: fmt.Errorf("invalid number of input arguments")}
 	}
 
-	t, err := authToken()
-	if err != nil {
-		return err
+	token, _ := cmd.Flags().GetString("token")
+	if token == "" {
+		t, err := authToken()
+		if err != nil {
+			return err
+		}
+
+		token = t
 	}
-	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeUserToken, Token: t}
+
+	auth := entities.FunctionAuth{Type: entities.AuthenticationTypeUserToken, Token: token}
 	err = doList(u, insecure, auth, limit, offset, format)
 	if err != nil {
 		if errors.Is(err, ErrUnauthorized) {
@@ -93,7 +100,7 @@ func list(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func doList(url string, insecure bool, auth entities.FunctionAuth, limit int, offset int, format string) error { //nolint:gocognit
+func doList(url string, insecure bool, auth entities.FunctionAuth, limit int, offset int, format string) error {
 	endpoint := fmt.Sprintf("%s/v1/functions?limit=%d&offset=%d", url, limit, offset)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
