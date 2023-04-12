@@ -80,7 +80,7 @@ func list(cmd *cobra.Command, args []string) error {
 
 	token, _ := cmd.Flags().GetString("token")
 	if token == "" {
-		t, err := getAuthToken()
+		t, err := authToken()
 		if err != nil {
 			return err
 		}
