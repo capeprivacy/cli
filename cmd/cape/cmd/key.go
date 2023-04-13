@@ -40,7 +40,7 @@ func key(cmd *cobra.Command, args []string) error {
 
 	token, _ := cmd.Flags().GetString("token")
 	if token == "" {
-		t, err := authTokenFunc()
+		t, err := authToken()
 		if err != nil {
 			return err
 		}
@@ -91,5 +91,4 @@ func GetKeyRequest(pcrSlice []string, token string) (sdk.KeyRequest, error) {
 	}, nil
 }
 
-var authTokenFunc = getAuthToken
 var keyFunc = sdk.Key
