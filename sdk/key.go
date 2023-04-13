@@ -39,7 +39,7 @@ func Key(keyReq KeyRequest) ([]byte, error) {
 		// If the key file isn't present we download it, but log this error anyway in case something else happened.
 		log.Debugf("Unable to open cape key file: %s", err)
 
-		capeKey, err = downloadAndSaveKey(keyReq)
+		capeKey, err = downloadAndSaveKey(keyReq, attest.NewVerifier())
 		if err != nil {
 			return nil, err
 		}
@@ -48,10 +48,10 @@ func Key(keyReq KeyRequest) ([]byte, error) {
 	return capeKey, nil
 }
 
-func downloadAndSaveKey(keyReq KeyRequest) ([]byte, error) {
+func downloadAndSaveKey(keyReq KeyRequest, verifier Verifier) ([]byte, error) {
 	log.Debug("Downloading cape key...")
 
-	_, userData, err := ConnectAndAttest(keyReq)
+	_, userData, err := ConnectAndAttest(keyReq, verifier)
 	if err != nil {
 		log.Println("failed to attest")
 		return nil, err
@@ -71,7 +71,7 @@ func downloadAndSaveKey(keyReq KeyRequest) ([]byte, error) {
 }
 
 // TODO: Run, deploy and test could use this function.
-func ConnectAndAttest(keyReq KeyRequest) (*attest.AttestationDoc, *AttestationUserData, error) {
+func ConnectAndAttest(keyReq KeyRequest, verifier Verifier) (*attest.AttestationDoc, *AttestationUserData, error) {
 	endpoint := fmt.Sprintf("%s/v1/key", keyReq.URL)
 
 	authProtocolType := "cape.runtime"
@@ -91,7 +91,7 @@ func ConnectAndAttest(keyReq KeyRequest) (*attest.AttestationDoc, *AttestationUs
 		return nil, nil, err
 	}
 
-	p := getProtocol(conn)
+	p := getProtocolFn(conn)
 
 	req := entities.StartRequest{Nonce: nonce}
 	log.Debug("\n> Sending Nonce and Auth Token")
@@ -106,8 +106,6 @@ func ConnectAndAttest(keyReq KeyRequest) (*attest.AttestationDoc, *AttestationUs
 	if err != nil {
 		return nil, nil, err
 	}
-
-	verifier := attest.NewVerifier()
 
 	log.Debug("< Auth Completed. Received Attestation Document")
 	doc, err := verifier.Verify(attestDoc, nonce)

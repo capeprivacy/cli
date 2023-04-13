@@ -11,33 +11,8 @@ import (
 	"github.com/capeprivacy/cli"
 
 	"github.com/capeprivacy/attest/attest"
-	"github.com/capeprivacy/cli/entities"
 	"github.com/capeprivacy/cli/mocks"
 )
-
-type testProtocol struct {
-	start   func(req entities.StartRequest) error
-	attest  func() ([]byte, error)
-	results func() (*cli.RunResult, error)
-	binary  func(b []byte) error
-}
-
-func (t testProtocol) WriteFunctionInfo(name string, public bool) error {
-	return nil
-}
-
-func (t testProtocol) ReadDeploymentResults() (*entities.SetDeploymentIDRequest, error) {
-	return nil, nil
-}
-
-func (t testProtocol) WriteStart(request entities.StartRequest) error {
-	return t.start(request)
-}
-func (t testProtocol) ReadAttestationDoc() ([]byte, error) { return t.attest() }
-func (t testProtocol) ReadRunResults() (*cli.RunResult, error) {
-	return t.results()
-}
-func (t testProtocol) WriteBinary(bytes []byte) error { return t.binary(bytes) }
 
 func wsURL(origURL string) string {
 	u, _ := url.Parse(origURL)
@@ -47,24 +22,18 @@ func wsURL(origURL string) string {
 }
 
 func TestCapeTest(t *testing.T) {
-	verifier := mocks.MockVerifier{
-		VerifyFn: func(attestation []byte, nonce []byte) (*attest.AttestationDoc, error) {
-			return &attest.AttestationDoc{}, nil
-		},
-	}
-
 	localEncrypt = func(doc attest.AttestationDoc, plaintext []byte) ([]byte, error) { return plaintext, nil }
 
 	getProtocolFn = func(ws *websocket.Conn) protocol {
-		return testProtocol{
-			start:  func(req entities.StartRequest) error { return nil },
-			attest: func() ([]byte, error) { return []byte{}, nil },
-			results: func() (*cli.RunResult, error) {
+		return mocks.Protocol{
+			ReadRunResultsFn: func() (*cli.RunResult, error) {
 				return &cli.RunResult{Message: []byte("good job")}, nil
 			},
-			binary: func(b []byte) error { return nil },
 		}
 	}
+	defer func() {
+		getProtocolFn = getProtocol
+	}()
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		upgrader := websocket.Upgrader{
@@ -85,7 +54,7 @@ func TestCapeTest(t *testing.T) {
 		Insecure: true,
 	}
 
-	res, err := Test(test, verifier, wsURL(s.URL), []string{})
+	res, err := Test(test, mocks.Verifier{}, wsURL(s.URL), []string{})
 	if err != nil {
 		t.Fatal(err)
 	}
