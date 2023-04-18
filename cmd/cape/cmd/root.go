@@ -167,7 +167,7 @@ func init() {
 		log.Error("failed to bind cli argument.")
 		cobra.CheckErr(err)
 	}
-	if err := viper.BindPFlag("LOCAL_PRESETS_FILE_NAME", rootCmd.PersistentFlags().Lookup("config")); err != nil {
+	if err := viper.BindPFlag("LOCAL_PRESETS_FILE", rootCmd.PersistentFlags().Lookup("config")); err != nil {
 		log.Error("failed to bind cli argument.")
 		cobra.CheckErr(err)
 	}
@@ -181,18 +181,18 @@ func initConfig() {
 		cobra.CheckErr(err)
 	}
 	home, err := os.UserHomeDir()
-	cobra.CheckErr(err)
-	viper.SetDefault("LOCAL_CONFIG_DIR", home+"/.config/cape")
+	cfgDir := home + "/.config/cape"
+	viper.SetDefault("LOCAL_CONFIG_DIR", cfgDir)
 
-	if err := viper.BindEnv("LOCAL_PRESETS_FILE_NAME"); err != nil {
+	if err := viper.BindEnv("LOCAL_PRESETS_FILE"); err != nil {
 		log.Error("failed to bind environment variable.")
 		cobra.CheckErr(err)
 	}
-	viper.SetDefault("LOCAL_PRESETS_FILE_NAME", "presets.json")
+	viper.SetDefault("LOCAL_PRESETS_FILE", cfgDir+"/presets.json")
 
 	// Read in config parameters from file
-	viper.AddConfigPath(viper.GetString("LOCAL_CONFIG_DIR"))
-	viper.SetConfigName(viper.GetString("LOCAL_PRESETS_FILE_NAME"))
+	// viper.AddConfigPath(viper.GetString("LOCAL_CONFIG_DIR"))
+	viper.SetConfigFile(viper.GetString("LOCAL_PRESETS_FILE"))
 	viper.SetConfigType("json")
 
 	if err := readConfFile(); err != nil {
