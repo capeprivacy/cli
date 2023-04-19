@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"os"
 	"strings"
@@ -167,6 +169,14 @@ func init() {
 		log.Error("failed to bind cli argument.")
 		cobra.CheckErr(err)
 	}
+	if err := viper.BindPFlag("CAPE_VERBOSE", rootCmd.PersistentFlags().Lookup("verbose")); err != nil {
+		log.Error("failed to bind cli argument.")
+		cobra.CheckErr(err)
+	}
+	if err := viper.BindPFlag("CAPE_OUTPUT_FMT", rootCmd.PersistentFlags().Lookup("output")); err != nil {
+		log.Error("failed to bind cli argument.")
+		cobra.CheckErr(err)
+	}
 	if err := viper.BindPFlag("LOCAL_PRESETS_FILE", rootCmd.PersistentFlags().Lookup("config")); err != nil {
 		log.Error("failed to bind cli argument.")
 		cobra.CheckErr(err)
@@ -191,12 +201,12 @@ func initConfig() {
 	viper.SetDefault("LOCAL_PRESETS_FILE", cfgDir+"/presets.json")
 
 	// Read in config parameters from file
-	// viper.AddConfigPath(viper.GetString("LOCAL_CONFIG_DIR"))
 	viper.SetConfigFile(viper.GetString("LOCAL_PRESETS_FILE"))
 	viper.SetConfigType("json")
 
+	fileNotExist := &fs.PathError{}
 	if err := readConfFile(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+		if !errors.Is(err, viper.ConfigFileNotFoundError{}) && !errors.As(err, &fileNotExist) {
 			// Config file found but not valid
 			log.Error("failed to read config params.")
 			cobra.CheckErr(err)

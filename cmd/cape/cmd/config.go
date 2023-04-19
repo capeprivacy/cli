@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -26,14 +25,9 @@ func init() {
 
 func Config(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
-		// No args, so print current config values
-		fmt.Println("Here are the configurable options and their values:")
-		cmd.Flags().VisitAll(func(f *pflag.Flag) {
-			// Print all non hidden flags
-			if !f.Hidden {
-				fmt.Printf("Name: %s, Value: %s, Default: %s\n", f.Name, f.Value, f.DefValue)
-			}
-		})
+		// No args, so print current config options
+		cmd.Println("Here are the configurable options:")
+		cmd.Println(strings.Join(viper.AllKeys(), ", "))
 		return nil
 	}
 
@@ -49,7 +43,7 @@ func Config(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("not a valid key: %s.\n Valid keys are: %+v", key, viper.AllKeys())
 	}
 
-	configFile := filepath.Join(viper.GetString("LOCAL_CONFIG_DIR"), viper.GetString("LOCAL_PRESETS_FILE_NAME"))
+	configFile := viper.GetString("LOCAL_PRESETS_FILE")
 
 	if !fileExists(configFile) {
 		var file, err = os.Create(configFile)
