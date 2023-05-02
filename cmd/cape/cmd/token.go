@@ -334,9 +334,8 @@ func doGet(functionID string, url string, insecure bool, auth entities.FunctionA
 		return UserError{Msg: "function not found", Err: errors.New(functionID)}
 	case http.StatusUnauthorized:
 		return UserError{Msg: "unauthorized to create a function token for function", Err: errors.New(functionID)}
-
 	default:
-		return fmt.Errorf("expected 200, got server response code %d", res.StatusCode)
+		return httpError(res.StatusCode)
 	}
 
 	var deployment entities.Deployment

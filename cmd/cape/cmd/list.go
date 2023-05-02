@@ -15,25 +15,6 @@ import (
 	"github.com/capeprivacy/cli/entities"
 )
 
-type ErrorMsg struct {
-	ErrorMsg string `json:"error"`
-}
-
-func (e ErrorMsg) Error() string {
-	return e.ErrorMsg
-}
-
-type ErrServerForList struct {
-	statusCode int
-	message    string
-}
-
-func (e ErrServerForList) Error() string {
-	return fmt.Sprintf("expected 200, got server response code when listing functions %d: %s", e.statusCode, e.message)
-}
-
-var ErrUnauthorized = errors.New("unauthorized: authentication required")
-
 // listCmd represents the list command
 var listCmd = &cobra.Command{
 	Use:   "list",
@@ -119,7 +100,7 @@ func doList(url string, insecure bool, auth entities.FunctionAuth, limit int, of
 	if res.StatusCode != 200 {
 		var e ErrorMsg
 		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-			return ErrServerForList{statusCode: res.StatusCode}
+			return httpError(res.StatusCode)
 		}
 		res.Body.Close()
 
@@ -127,7 +108,7 @@ func doList(url string, insecure bool, auth entities.FunctionAuth, limit int, of
 			return ErrUnauthorized
 		}
 
-		return ErrServerForList{res.StatusCode, e.ErrorMsg}
+		return e
 	}
 
 	body, err := io.ReadAll(res.Body)

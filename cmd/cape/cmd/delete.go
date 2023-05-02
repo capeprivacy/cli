@@ -83,14 +83,14 @@ func doDelete(url string, functionID string, insecure bool, auth entities.Functi
 
 		var errMsg ErrorMsg
 		if err := json.NewDecoder(res.Body).Decode(&errMsg); err != nil {
-			return fmt.Errorf("expected 200, got server response code %d and could not decode err msg", res.StatusCode)
+			return httpError(res.StatusCode)
 		}
 
 		if errMsg.Error() != "" {
 			return errMsg
 		}
 
-		return fmt.Errorf("expected 200, got server response code %d", res.StatusCode)
+		return httpError(res.StatusCode)
 	}
 
 	log.Infof("Success! Function %s deleted.\n", functionID)
