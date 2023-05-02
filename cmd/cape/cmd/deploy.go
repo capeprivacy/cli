@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	"github.com/capeprivacy/cli"
 	"github.com/capeprivacy/cli/render"
 	"github.com/capeprivacy/cli/sdk"
 )
@@ -156,18 +157,18 @@ func getUsername(t string) (string, error) {
 }
 
 func getAuthToken() (string, error) {
-	tokenResponse, err := getTokenResponse()
+	tok, err := cli.TokenFromFile(filepath.Join(C.LocalConfigDir, C.LocalAuthFileName))
 	if err != nil {
 		return "", fmt.Errorf("failed to get auth token (did you run 'cape login'?): %v", err)
 	}
 
-	if tokenResponse.AccessToken == "" {
+	if tok.AccessToken == "" {
 		return "", fmt.Errorf("empty access token (did you run 'cape login'?)")
 	}
 
 	log.Debug("* Retrieved Auth Token")
 
-	return tokenResponse.AccessToken, nil
+	return tok.AccessToken, nil
 }
 
 var deployTmpl = `Function ID       ➜  {{ .ID }}
