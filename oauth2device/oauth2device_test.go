@@ -267,8 +267,3 @@ func staticHandler(s string) http.Handler {
 		fmt.Fprint(w, s)
 	})
 }
-
-/*
-func (c *Config) DeviceCode(ctx context.Context) (*DeviceCode, error) {
-func (c *Config) Wait(ctx context.Context, code *DeviceCode) (*oauth2.Token, error) {
-*/
