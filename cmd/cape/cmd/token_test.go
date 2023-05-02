@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -85,7 +84,7 @@ func TestDoGet(t *testing.T) {
 				Location:            "",
 				AttestationDocument: nil,
 			},
-			fmt.Errorf("expected 200, got server response code %d", http.StatusConflict),
+			httpError(http.StatusConflict),
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

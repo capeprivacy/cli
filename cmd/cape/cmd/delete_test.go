@@ -52,7 +52,7 @@ func TestDeleteBadFunction(t *testing.T) {
 		t.Fatal(errors.New("received no error when we should have"))
 	}
 
-	if got, want := stderr.String(), "Error: delete failed: expected 200, got server response code 401\n"; got != want {
+	if got, want := stderr.String(), "Error: delete failed: 401 Unauthorized\n"; got != want {
 		t.Errorf("didn't get expected stderr, got %s, wanted %s", got, want)
 	}
 }
